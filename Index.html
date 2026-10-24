@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Алик — Ревизия</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+:root {
+    --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b;
+    --primary: #2563eb; --success: #10b981; --danger: #ef4444;
+    --white: #ffffff; --border: #e2e8f0; --radius: 16px;
+}
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); margin: 0; padding: 16px;
+    padding-bottom: 90px;
+}
+
+.header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 16px;
+}
+.header h1 { margin: 0; font-size: 20px; }
+
+.card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    margin-bottom: 16px;
+}
+.card-title {
+    font-size: 16px; font-weight: 700; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+/* СКАНЕР */
+.scan-methods {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 16px;
+}
+.scan-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 16px; text-align: center;
+    border: 2px dashed var(--primary); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center;
+}
+.scan-icon { font-size: 30px; margin-bottom: 8px; }
+.scan-text { font-size: 14px; font-weight: 600; color: var(--primary); }
+#scanner-container {
+    display: none; background: #000; border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 16px; position: relative;
+}
+#reader { width: 100%; }
+.close-scanner {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(239, 68, 68, 0.9); color: white;
+    border: none; padding: 8px 12px; border-radius: 8px;
+    z-index: 100; font-weight: bold; cursor: pointer;
+}
+
+/* ФОРМА */
+.form-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 12px;
+}
+.input-group { display: flex; flex-direction: column; }
+.input-group.full { grid-column: span 2; }
+.input-label {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
+}
+.input-field {
+    padding: 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 15px; font-weight: 500;
+    color: var(--text); outline: none; width: 100%;
+    background: #f8fafc;
+}
+
+/* ПИЛЮЛИ */
+.size-pills {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+}
+.size-pill {
+    padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-weight: 600;
+    color: var(--text); background: var(--white); cursor: pointer;
+}
+.size-pill.active {
+    background: var(--primary); color: white; border-color: var(--primary);
+}
+
+/* КОЛИЧЕСТВО */
+.qty-control {
+    display: flex; align-items: center; gap: 12px; margin-top: 8px;
+}
+.qty-btn {
+    width: 48px; height: 48px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--white);
+    font-size: 24px; font-weight: bold;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer; color: var(--text);
+}
+.qty-input {
+    flex: 1; height: 48px; text-align: center;
+    font-size: 20px; font-weight: 700;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: #f8fafc; outline: none;
+}
+
+/* СПИСОК */
+.list-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px dashed var(--border);
+}
+.list-item:last-child { border-bottom: none; }
+.btn-del {
+    color: var(--danger); background: #fee2e2; border: none;
+    width: 32px; height: 32px; border-radius: 8px;
+    font-size: 16px; cursor: pointer;
+}
+
+/* КНОПКИ */
+.btn-main {
+    background: var(--primary); color: white; border: none;
+    padding: 16px; border-radius: 12px; font-size: 16px;
+    font-weight: 600; width: 100%; cursor: pointer;
+}
+
+/* НИЗ */
+.bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--white); padding: 16px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Ревизия · Алик</h1>
+</div>
+
+<!-- Сканер -->
+<div class="scan-methods">
+    <div class="scan-card" onclick="startVideoScanner()">
+        <div class="scan-icon">📹</div>
+        <div class="scan-text">Видео (Авто)</div>
+    </div>
+    <div class="scan-card" onclick="document.getElementById('camera-input').click()">
+        <div class="scan-icon">📷</div>
+        <div class="scan-text">Сделать фото</div>
+    </div>
+</div>
+
+<input type="file" id="camera-input" accept="image/*"
+       capture="environment" style="display: none;" onchange="processPhoto(this)">
+
+<div id="scanner-container">
+    <button class="close-scanner" onclick="stopVideoScanner()">Закрыть</button>
+    <div id="reader"></div>
+</div>
+
+<!-- Форма -->
+<div class="card">
+    <div class="form-grid">
+        <div class="input-group full">
+            <label class="input-label">Наименование</label>
+            <input type="text" class="input-field" id="prod-name"
+                   placeholder="Отсканируйте товар...">
+        </div>
+        <div class="input-group">
+            <label class="input-label">Цена, ₽</label>
+            <input type="number" class="input-field" id="prod-price" placeholder="0">
+        </div>
+        <div class="input-group">
+            <label class="input-label">Штрихкод / SKU</label>
+            <input type="text" class="input-field" id="prod-art" placeholder="---">
+        </div>
+    </div>
+
+    <!-- Размер -->
+    <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
+    <div class="size-pills" id="size-pills">
+        <div class="size-pill" onclick="selectSize(this)">M</div>
+        <div class="size-pill" onclick="selectSize(this)">L</div>
+        <div class="size-pill" onclick="selectSize(this)">XL</div>
+        <div class="size-pill" onclick="selectSize(this)">2XL</div>
+        <div class="size-pill" onclick="selectSize(this)">3XL</div>
+        <div class="size-pill" onclick="selectSize(this)">4XL</div>
+        <div class="size-pill" onclick="selectSize(this)">5XL</div>
+        <div class="size-pill" onclick="selectSize(this)">6XL</div>
+    </div>
+    <div class="input-group" style="margin-bottom: 12px;">
+        <input type="text" id="custom-size" class="input-field"
+               placeholder="Свой размер (напр. 46)">
+    </div>
+
+    <!-- Год -->
+    <div class="input-label" style="margin-bottom: 8px;">Год поступления (необязательно)</div>
+    <div class="size-pills" id="year-pills">
+        <div class="size-pill" onclick="selectYear(this)">22</div>
+        <div class="size-pill" onclick="selectYear(this)">23</div>
+        <div class="size-pill" onclick="selectYear(this)">24</div>
+        <div class="size-pill" onclick="selectYear(this)">25</div>
+        <div class="size-pill" onclick="selectYear(this)">26</div>
+    </div>
+
+    <!-- Кол-во -->
+    <div class="input-label" style="margin-bottom: 8px;">Количество</div>
+    <div class="qty-control">
+        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <input type="number" class="qty-input" id="qty-input" value="1" min="1">
+        <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+
+    <button class="btn-main" style="margin-top: 16px;" onclick="addItem()">
+        Добавить в список
+    </button>
+</div>
+
+<!-- Список -->
+<div class="card">
+    <div class="card-title">
+        <span>Список вещей</span>
+        <span id="items-count" style="color: var(--primary);">0</span>
+    </div>
+    <div id="items-list">
+        <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>
+    </div>
+    <div id="items-summary" style="display: none; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Позиций:</span>
+            <strong id="sum-positions">0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Всего штук:</span>
+            <strong id="sum-qty">0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 16px;">
+            <span style="color: var(--text-muted);">Общая сумма:</span>
+            <strong id="sum-total" style="color: var(--success);">0 ₽</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Сохранённые ревизии -->
+<div class="card">
+    <div class="card-title">📋 Сохранённые ревизии</div>
+    <div id="revisions-list">
+        <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пока нет ревизий</div>
+    </div>
+</div>
+
+<div class="bottom-bar">
+    <button class="btn-main" style="background: var(--success);" onclick="saveInventory()">
+        ✓ Отправить ревизию
+    </button>
+</div>
+
+<div id="reader-hidden" style="display: none;"></div>
+
+<!-- ============ БАЗА ТОВАРОВ ============ -->
+<script>
+// ============================================================
+// catalog — база товаров. Добавляй свои штрихкоды по образцу.
+// Поля: sku, name, price, year (год можно не указывать)
+// ============================================================
+const catalog = {
+    // Примеры — замени на свои:
+    "4600123456789": {
+        sku: "KUR-001",
+        name: "Джинсы женские, синие",
+        price: 1999,
+        year: "24"
+    },
+    "4600123456790": {
+        sku: "KUR-002",
+        name: "Куртка зимняя женская, чёрная",
+        price: 5990,
+        year: "24"
+    }
+};
+</script>
+
+<!-- ============ ЛОГИКА ============ -->
+<script>
+// --- Сканер ---
+let html5QrCode = null;
+
+function startVideoScanner() {
+    document.querySelector('.scan-methods').style.display = 'none';
+    document.getElementById('scanner-container').style.display = 'block';
+
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 15, qrbox: { width: 300, height: 150 } };
+
+    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        stopVideoScanner();
+        fillProductByBarcode(decodedText);
+    }, () => {}).catch(() => {
+        alert("Ошибка камеры. Разрешите доступ.");
+        stopVideoScanner();
+    });
+}
+
+function stopVideoScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('scanner-container').style.display = 'none';
+            document.querySelector('.scan-methods').style.display = 'grid';
+        }).catch(() => {});
+    }
+}
+
+function processPhoto(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const btnPhoto = document.querySelectorAll('.scan-text')[1];
+        const originalText = btnPhoto.innerText;
+        btnPhoto.innerText = "Поиск...";
+
+        const html5QrCodeFile = new Html5Qrcode("reader-hidden");
+        html5QrCodeFile.scanFile(file, true)
+            .then(decodedText => {
+                btnPhoto.innerText = originalText;
+                fillProductByBarcode(decodedText);
+                input.value = '';
+            })
+            .catch(() => {
+                btnPhoto.innerText = originalText;
+                alert("Не удалось распознать штрихкод на фото.");
+                input.value = '';
+            });
+    }
+}
+
+function fillProductByBarcode(barcode) {
+    resetForm();
+
+    const product = catalog[barcode];
+    if (product) {
+        document.getElementById('prod-name').value = product.name || '';
+        document.getElementById('prod-price').value = product.price || '';
+        document.getElementById('prod-art').value = barcode;
+
+        if (product.year) {
+            document.querySelectorAll('#year-pills .size-pill').forEach(p => {
+                if (p.innerText === product.year) {
+                    p.classList.add('active');
+                    selectedYear = product.year;
+                }
+            });
+        }
+
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    } else {
+        document.getElementById('prod-art').value = barcode;
+        document.getElementById('prod-name').value = '';
+        document.getElementById('prod-price').value = '';
+        alert(`Штрихкод ${barcode} не найден в базе.\nЗаполните название и цену вручную.`);
+    }
+}
+
+// --- Форма ---
+let items = [];
+let selectedSize = '';
+let selectedYear = '';
+
+function resetForm() {
+    selectedSize = '';
+    selectedYear = '';
+    document.querySelectorAll('#size-pills .size-pill, #year-pills .size-pill')
+        .forEach(p => p.classList.remove('active'));
+    document.getElementById('custom-size').value = '';
+}
+
+function selectSize(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedSize = '';
+        return;
+    }
+    document.querySelectorAll('#size-pills .size-pill')
+        .forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedSize = el.innerText;
+    document.getElementById('custom-size').value = '';
+}
+
+function selectYear(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedYear = '';
+        return;
+    }
+    document.querySelectorAll('#year-pills .size-pill')
+        .forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedYear = el.innerText;
+}
+
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'custom-size' && e.target.value.trim() !== '') {
+        document.querySelectorAll('#size-pills .size-pill')
+            .forEach(p => p.classList.remove('active'));
+        selectedSize = '';
+    }
+});
+
+function changeQty(delta) {
+    const inp = document.getElementById('qty-input');
+    let v = parseInt(inp.value) || 1;
+    if (v + delta >= 1) inp.value = v + delta;
+}
+
+function addItem() {
+    const name = document.getElementById('prod-name').value.trim();
+    const art = document.getElementById('prod-art').value.trim();
+    const price = parseFloat(document.getElementById('prod-price').value) || 0;
+    const qty = parseInt(document.getElementById('qty-input').value) || 1;
+    const customSize = document.getElementById('custom-size').value.trim();
+    const finalSize = customSize || selectedSize || '—';
+    const finalYear = selectedYear || '—';
+
+    if (!name) { alert('Введите название!'); return; }
+
+    items.push({ name, article: art || '—', price, size: finalSize, year: finalYear, qty });
+    renderItems();
+
+    document.getElementById('prod-name').value = '';
+    document.getElementById('prod-art').value = '';
+    document.getElementById('prod-price').value = '';
+    document.getElementById('qty-input').value = 1;
+    resetForm();
+}
+
+function removeItem(i) {
+    items.splice(i, 1);
+    renderItems();
+}
+
+function renderItems() {
+    const list = document.getElementById('items-list');
+    const count = document.getElementById('items-count');
+    const summary = document.getElementById('items-summary');
+
+    if (items.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>';
+        count.textContent = '0';
+        summary.style.display = 'none';
+        return;
+    }
+
+    list.innerHTML = '';
+    let totalQty = 0;
+    let totalSum = 0;
+
+    items.forEach((item, i) => {
+        totalQty += item.qty;
+        totalSum += item.price * item.qty;
+
+        list.innerHTML += `
+        <div class="list-item">
+            <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    ШК: ${item.article} · Разм: ${item.size} · Год: ${item.year} · ${item.price} ₽
+                </div>
+            </div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 16px;">${item.qty} шт</div>
+            <button class="btn-del" onclick="removeItem(${i})">✕</button>
+        </div>`;
+    });
+
+    count.textContent = items.length;
+    document.getElementById('sum-positions').textContent = items.length;
+    document.getElementById('sum-qty').textContent = totalQty;
+    document.getElementById('sum-total').textContent = totalSum.toLocaleString('ru-RU') + ' ₽';
+    summary.style.display = 'block';
+}
+
+// --- Сохранение ревизии ---
+function saveInventory() {
+    if (items.length === 0) { alert('Список пуст!'); return; }
+
+    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions.push({
+        id: Date.now(),
+        date: new Date().toISOString(),
+        items: items.slice()
+    });
+    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+
+    const totalQty = items.reduce((s, it) => s + it.qty, 0);
+    const totalSum = items.reduce((s, it) => s + it.price * it.qty, 0);
+
+    alert(`✅ Ревизия сохранена!\n\nПозиций: ${items.length}\nВсего штук: ${totalQty}\nСумма: ${totalSum.toLocaleString('ru-RU')} ₽`);
+
+    items = [];
+    renderItems();
+    renderRevisions();
+}
+
+// --- Просмотр ревизий ---
+function renderRevisions() {
+    const container = document.getElementById('revisions-list');
+    if (!container) return;
+
+    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions.sort((a, b) => b.id - a.id);
+
+    if (revisions.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пока нет ревизий</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    revisions.forEach(rev => {
+        const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
+        const totalSum = rev.items.reduce((s, it) => s + it.price * it.qty, 0);
+        const dateStr = new Date(rev.date).toLocaleString('ru-RU', {
+            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+
+        container.innerHTML += `
+            <div class="list-item" style="cursor: pointer;" onclick="toggleDetails(${rev.id})">
+                <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: 600;">${dateStr}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        ${rev.items.length} поз. · ${totalQty} шт · ${totalSum.toLocaleString('ru-RU')} ₽
+                    </div>
+                </div>
+                <div style="font-size: 16px; color: var(--text-muted);">›</div>
+            </div>
+            <div id="rev-${rev.id}" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; margin: 8px 0;">
+                ${rev.items.map(it => `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px;">
+                        <div>
+                            <div style="font-weight: 600;">${it.name}</div>
+                            <div style="color: var(--text-muted); font-size: 11px;">
+                                ${it.article} · ${it.size} · ${it.year} · ${it.price} ₽
+                            </div>
+                        </div>
+                        <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
+                    </div>
+                `).join('')}
+                <button style="margin-top: 12px; background: #fee2e2; color: #991b1b; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteRevision(${rev.id})">Удалить ревизию</button>
+            </div>
+        `;
+    });
+}
+
+function toggleDetails(id) {
+    const el = document.getElementById('rev-' + id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function deleteRevision(id) {
+    if (!confirm('Удалить эту ревизию?')) return;
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions = revisions.filter(r => r.id !== id);
+    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+    renderRevisions();
+}
+
+// --- Старт ---
+window.onload = () => {
+    renderItems();
+    renderRevisions();
+};
+</script>
+
+</body>
+</html>
