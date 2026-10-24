@@ -56,7 +56,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
     <div class="scan-card" onclick="document.getElementById('camera-input').click()">
         <div class="scan-icon">📷</div>
-        <div class="scan-text">Сделать фото</div>
+        <div class="scan-text" id="photo-btn-text">Сделать фото</div>
     </div>
 </div>
 
@@ -156,11 +156,8 @@ fetch('1.json')
     .then(data => {
         data.forEach(item => {
             if (item.Штрихкод) {
-                // Очищаем штрихкод от лишних пробелов и точек с нулями (Excel часто добавляет .0)
                 let cleanBarcode = String(item.Штрихкод).trim();
-                if (cleanBarcode.includes('.')) {
-                    cleanBarcode = cleanBarcode.split('.')[0]; 
-                }
+                if (cleanBarcode.includes('.')) cleanBarcode = cleanBarcode.split('.')[0]; 
                 catalog[cleanBarcode] = { name: item.Владелец };
             }
         });
@@ -200,24 +197,58 @@ function stopVideoScanner() {
     }
 }
 
+// УМНАЯ ОБРАБОТКА ФОТО (сжатие перед распознаванием)
 function processPhoto(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
-        const btnPhoto = document.querySelectorAll('.scan-text')[1];
-        const originalText = btnPhoto.innerText;
-        btnPhoto.innerText = "Поиск...";
-        const html5QrCodeFile = new Html5Qrcode("reader-hidden");
-        html5QrCodeFile.scanFile(file, true)
-            .then(decodedText => {
-                btnPhoto.innerText = originalText;
-                fillProductByBarcode(decodedText);
-                input.value = '';
-            })
-            .catch(() => {
-                btnPhoto.innerText = originalText;
-                alert("Не удалось распознать штрихкод на фото.");
-                input.value = '';
-            });
+        const btnText = document.getElementById('photo-btn-text');
+        const originalText = btnText.innerText;
+        btnText.innerText = "Поиск...";
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                // Уменьшаем фото, чтобы сканер не зависал
+                const canvas = document.createElement('canvas');
+                const MAX_SIZE = 1000; // Оптимальный размер для сканера
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height && width > MAX_SIZE) {
+                    height *= MAX_SIZE / width;
+                    width = MAX_SIZE;
+                } else if (height > MAX_SIZE) {
+                    width *= MAX_SIZE / height;
+                    height = MAX_SIZE;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Конвертируем обратно в картинку для сканера
+                canvas.toBlob(function(blob) {
+                    const newFile = new File([blob], "scan.jpg", { type: "image/jpeg" });
+                    const html5QrCodeFile = new Html5Qrcode("reader-hidden");
+                    
+                    html5QrCodeFile.scanFile(newFile, true)
+                        .then(decodedText => {
+                            btnText.innerText = originalText;
+                            fillProductByBarcode(decodedText);
+                            input.value = '';
+                        })
+                        .catch(() => {
+                            btnText.innerText = originalText;
+                            alert("Не удалось распознать штрихкод на фото.\n\nСовет: держите телефон ровно, чтобы штрихкод был четким и занимал большую часть кадра.");
+                            input.value = '';
+                        });
+                }, 'image/jpeg', 0.8);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     }
 }
 
@@ -233,7 +264,6 @@ function fillProductByBarcode(barcode) {
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
         document.getElementById('prod-name').value = '';
-        // ДИАГНОСТИКА
         const total = Object.keys(catalog).length;
         const firstKeys = Object.keys(catalog).slice(0, 2).join(' | ');
         alert(`❌ Штрихкод "${barcode}" не найден.\n\nЗагружено товаров: ${total}\nПримеры кодов из вашей базы: ${firstKeys}`);
