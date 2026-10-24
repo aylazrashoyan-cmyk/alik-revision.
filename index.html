@@ -19,13 +19,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-.scan-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.scan-card { background: var(--white); border-radius: var(--radius); padding: 16px; text-align: center; border: 2px dashed var(--primary); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.scan-icon { font-size: 30px; margin-bottom: 8px; }
-.scan-text { font-size: 14px; font-weight: 600; color: var(--primary); }
-#scanner-container { display: none; background: #000; border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; position: relative; }
-#reader { width: 100%; }
-.close-scanner { position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.9); color: white; border: none; padding: 8px 12px; border-radius: 8px; z-index: 100; font-weight: bold; cursor: pointer; }
+
+/* Огромная кнопка для фото */
+.scan-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 40px 16px; text-align: center;
+    border: 3px dashed var(--primary); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; margin-bottom: 16px;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
+}
+.scan-icon { font-size: 50px; margin-bottom: 10px; }
+.scan-text { font-size: 20px; font-weight: 700; color: var(--primary); }
+
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
@@ -49,31 +55,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
 </div>
 
-<div class="scan-methods">
-    <div class="scan-card" onclick="startVideoScanner()">
-        <div class="scan-icon">📹</div>
-        <div class="scan-text">Видео (Авто)</div>
-    </div>
-    <div class="scan-card" onclick="document.getElementById('camera-input').click()">
-        <div class="scan-icon">📷</div>
-        <div class="scan-text" id="photo-btn-text">Сделать фото</div>
-    </div>
-</div>
-
+<!-- Кнопка вызова камеры (скрытый input) -->
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="processPhoto(this)">
 
-<div id="scanner-container">
-    <button class="close-scanner" onclick="stopVideoScanner()">Закрыть</button>
-    <div id="reader"></div>
+<!-- Огромная кнопка Сделать фото -->
+<div class="scan-card" id="scan-button" onclick="document.getElementById('camera-input').click()">
+    <div class="scan-icon">📸</div>
+    <div class="scan-text" id="scan-text">Сделать фото</div>
 </div>
 
 <div class="card">
     <div class="input-group">
         <label class="input-label">Наименование</label>
-        <input type="text" class="input-field" id="prod-name" placeholder="Отсканируйте товар...">
+        <input type="text" class="input-field" id="prod-name" placeholder="Сделайте фото товара...">
     </div>
     <div class="input-group">
-        <label class="input-label">Штрихкод</label>
+        <label class="input-label">Штрихкод (можно ввести вручную)</label>
         <input type="text" class="input-field" id="prod-art" placeholder="---">
     </div>
 
@@ -171,47 +168,21 @@ fetch('1.json')
         document.getElementById('load-status').style.color = 'var(--danger)';
     });
 
-let html5QrCode = null;
-
-function startVideoScanner() {
-    if (!catalogLoaded && !confirm('База еще загружается. Продолжить?')) return;
-    document.querySelector('.scan-methods').style.display = 'none';
-    document.getElementById('scanner-container').style.display = 'block';
-    html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 15, qrbox: { width: 300, height: 150 } };
-    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-        stopVideoScanner();
-        fillProductByBarcode(decodedText);
-    }, () => {}).catch(() => {
-        alert("Ошибка камеры. Разрешите доступ.");
-        stopVideoScanner();
-    });
-}
-
-function stopVideoScanner() {
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            document.getElementById('scanner-container').style.display = 'none';
-            document.querySelector('.scan-methods').style.display = 'grid';
-        }).catch(() => {});
-    }
-}
-
-// УМНАЯ ОБРАБОТКА ФОТО (сжатие перед распознаванием)
+// --- УМНАЯ И БЫСТРАЯ ОБРАБОТКА ФОТО ---
 function processPhoto(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
-        const btnText = document.getElementById('photo-btn-text');
+        const btnText = document.getElementById('scan-text');
         const originalText = btnText.innerText;
-        btnText.innerText = "Поиск...";
-
+        btnText.innerText = "Обработка...";
+        
         const reader = new FileReader();
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
-                // Уменьшаем фото, чтобы сканер не зависал
+                // Сжимаем фото для быстрого поиска
                 const canvas = document.createElement('canvas');
-                const MAX_SIZE = 1000; // Оптимальный размер для сканера
+                const MAX_SIZE = 1000; // Уменьшаем размер
                 let width = img.width;
                 let height = img.height;
 
@@ -228,7 +199,6 @@ function processPhoto(input) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Конвертируем обратно в картинку для сканера
                 canvas.toBlob(function(blob) {
                     const newFile = new File([blob], "scan.jpg", { type: "image/jpeg" });
                     const html5QrCodeFile = new Html5Qrcode("reader-hidden");
@@ -241,7 +211,7 @@ function processPhoto(input) {
                         })
                         .catch(() => {
                             btnText.innerText = originalText;
-                            alert("Не удалось распознать штрихкод на фото.\n\nСовет: держите телефон ровно, чтобы штрихкод был четким и занимал большую часть кадра.");
+                            alert("Не удалось распознать штрихкод.\n\nСовет: Держите телефон ровно, чтобы штрихкод был четким и занимал центр кадра.");
                             input.value = '';
                         });
                 }, 'image/jpeg', 0.8);
@@ -251,6 +221,13 @@ function processPhoto(input) {
         reader.readAsDataURL(file);
     }
 }
+
+// Ручной поиск при вводе штрихкода
+document.getElementById('prod-art').addEventListener('change', function() {
+    if (this.value.trim().length > 5) {
+        fillProductByBarcode(this.value);
+    }
+});
 
 function fillProductByBarcode(barcode) {
     resetForm();
@@ -264,9 +241,7 @@ function fillProductByBarcode(barcode) {
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
         document.getElementById('prod-name').value = '';
-        const total = Object.keys(catalog).length;
-        const firstKeys = Object.keys(catalog).slice(0, 2).join(' | ');
-        alert(`❌ Штрихкод "${barcode}" не найден.\n\nЗагружено товаров: ${total}\nПримеры кодов из вашей базы: ${firstKeys}`);
+        alert(`❌ Штрихкод "${barcode}" не найден в базе. Введите название вручную.`);
     }
 }
 
