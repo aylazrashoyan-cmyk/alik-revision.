@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Алик — Ревизия</title>
 
-<!-- Подключаем библиотеку сканера -->
-<script src="https://unpkg.com/html5-qrcode"></script>
-
 <style>
 :root {
     --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b;
@@ -21,25 +18,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-/* Огромная кнопка для фото */
-.scan-card {
-    background: var(--white); border-radius: var(--radius);
-    padding: 30px 16px; text-align: center;
-    border: 3px dashed var(--primary); cursor: pointer;
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; margin-bottom: 16px;
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
+/* Скрытое поле для ТСД (делаем его невидимым, но активным) */
+#prod-art { 
+    opacity: 0; 
+    position: absolute; 
+    top: 0;
+    left: 0;
+    width: 1px; 
+    height: 1px; 
+    border: none;
+    outline: none;
+    background: transparent;
 }
-.scan-icon { font-size: 40px; margin-bottom: 10px; }
-.scan-text { font-size: 18px; font-weight: 700; color: var(--primary); }
-
-/* Скрытый инпут для выбора фото */
-#camera-input { display: none; }
 
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
-.input-field:focus { border-color: var(--primary); background: #fff; }
+.input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
 
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
@@ -64,31 +58,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
 </div>
 
-<!-- ВЫБОР ФАЙЛА (КАМЕРА) -->
-<input type="file" id="camera-input" accept="image/*" capture="environment" onchange="processPhoto(this)">
-
-<!-- КНОПКА СКАНЕРА -->
-<div class="scan-card" onclick="document.getElementById('camera-input').click()">
-    <div class="scan-icon">📸</div>
-    <div class="scan-text" id="scan-text">Сканировать QR-код</div>
-    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: center;">
-        Нажмите и сделайте фото бирки
-    </div>
-</div>
+<!-- Скрытое поле для физического сканера ТСД -->
+<input type="text" id="prod-art" autocomplete="off">
 
 <div class="card">
-    <!-- Поле ручного ввода -->
-    <div class="input-group" style="background: #eff6ff; padding: 12px; border-radius: 8px; border: 1px solid #bfdbfe;">
-        <label class="input-label" style="color: #1e40af; font-weight: bold; font-size: 14px;">Введите цифры с бирки вручную</label>
-        <div style="display: flex; gap: 8px; margin-top: 4px;">
-            <input type="text" class="input-field" id="prod-art" placeholder="2200000139433" style="background: #fff; font-size: 18px; letter-spacing: 1px;">
-            <button class="btn-main" style="width: auto; padding: 0 20px;" onclick="searchManual()">Найти</button>
-        </div>
-    </div>
-
-    <div class="input-group" style="margin-top: 16px;">
+    <div class="input-group">
         <label class="input-label">Наименование</label>
-        <input type="text" class="input-field" id="prod-name" placeholder="Появится после поиска...">
+        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД и нажмите кнопку..." readonly>
     </div>
 
     <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
@@ -156,8 +132,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Отправить ревизию</button>
 </div>
 
-<div id="reader-hidden" style="display: none;"></div>
-
 <script>
 let catalog = {};
 let catalogLoaded = false;
@@ -186,87 +160,36 @@ fetch('1.json')
         document.getElementById('load-status').style.color = 'var(--danger)';
     });
 
-// --- УМНАЯ И БЫСТРАЯ ОБРАБОТКА ФОТО (QR и Штрихкод) ---
-function processPhoto(input) {
-    if (input.files && input.files[0]) {
-        const file = input.files[0];
-        const btnText = document.getElementById('scan-text');
-        const originalText = btnText.innerText;
-        btnText.innerText = "Ищем код...";
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const MAX_SIZE = 1200; // Увеличили для лучшего распознавания
-                let width = img.width;
-                let height = img.height;
+// --- ЛОГИКА ДЛЯ ТСД ---
+let tscdBarcode = '';
+let tscdTimer;
 
-                if (width > height && width > MAX_SIZE) {
-                    height *= MAX_SIZE / width;
-                    width = MAX_SIZE;
-                } else if (height > MAX_SIZE) {
-                    width *= MAX_SIZE / height;
-                    height = MAX_SIZE;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(function(blob) {
-                    const newFile = new File([blob], "scan.jpg", { type: "image/jpeg" });
-                    const html5QrCodeFile = new Html5Qrcode("reader-hidden");
-                    
-                    // Ограничиваем форматы: ищем и обычные штрихкоды, и QR-коды
-                    const config = { 
-                        formatsToSupport: [ 
-                            Html5QrcodeSupportedFormats.QR_CODE,
-                            Html5QrcodeSupportedFormats.EAN_13,
-                            Html5QrcodeSupportedFormats.EAN_8,
-                            Html5QrcodeSupportedFormats.CODE_128
-                        ] 
-                    };
-
-                    html5QrCodeFile.scanFile(newFile, config)
-                        .then(decodedText => {
-                            btnText.innerText = originalText;
-                            // Очищаем от лишних символов (если QR содержит текст)
-                            let cleanCode = decodedText.replace(/[^0-9]/g, '');
-                            
-                            // Если в QR был только текст и нет цифр, берем как есть
-                            if (cleanCode.length < 5) cleanCode = decodedText.trim();
-
-                            document.getElementById('prod-art').value = cleanCode;
-                            searchManual(); // Автоматически ищем товар
-                            input.value = '';
-                        })
-                        .catch(() => {
-                            btnText.innerText = originalText;
-                            alert("Не удалось распознать код.\n\nВведите цифры вручную в синее поле!");
-                            input.value = '';
-                        });
-                }, 'image/jpeg', 0.9);
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-}
+// Как только сканер "печатает" символы, мы ловим их здесь
+document.getElementById('prod-art').addEventListener('input', function(e) {
+    tscdBarcode = this.value;
+    clearTimeout(tscdTimer);
+    
+    // Ждем 200 мс после последнего символа (значит сканер закончил)
+    tscdTimer = setTimeout(() => {
+        if (tscdBarcode.length > 3) {
+            findProduct(tscdBarcode);
+            this.value = ''; // Очищаем скрытое поле для следующего сканирования
+            tscdBarcode = '';
+        }
+    }, 200);
+});
 
 // --- ПОИСК ПО БАЗЕ ---
-function searchManual() {
-    let barcode = document.getElementById('prod-art').value.trim();
-    const product = catalog[barcode];
-
+function findProduct(code) {
+    code = String(code).trim();
+    
+    const product = catalog[code];
     if (product) {
         document.getElementById('prod-name').value = product.name || '';
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
-        document.getElementById('prod-name').value = '';
-        alert(`❌ Код "${barcode}" не найден в базе.\nВведите название вручную или проверьте цифры.`);
+        document.getElementById('prod-name').value = '❌ Код ' + code + ' не найден в базе';
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]); // Двойная вибрация на ошибку
     }
 }
 
@@ -284,6 +207,7 @@ function selectSize(el) {
     el.classList.add('active');
     selectedSize = el.innerText;
     document.getElementById('custom-size').value = '';
+    refocusScanner(); // Возвращаем фокус сканеру
 }
 
 function selectYear(el) {
@@ -295,6 +219,7 @@ function selectYear(el) {
     document.querySelectorAll('#year-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     selectedYear = el.innerText;
+    refocusScanner(); // Возвращаем фокус сканеру
 }
 
 document.addEventListener('input', function(e) {
@@ -308,6 +233,7 @@ function changeQty(delta) {
     const inp = document.getElementById('qty-input');
     let v = parseInt(inp.value) || 1;
     if (v + delta >= 1) inp.value = v + delta;
+    refocusScanner(); // Возвращаем фокус сканеру
 }
 
 function addItem() {
@@ -318,12 +244,12 @@ function addItem() {
     const finalSize = customSize || selectedSize || '—';
     const finalYear = selectedYear || '—';
 
-    if (!name) { alert('Введите название!'); return; }
+    if (!name || name.includes('не найден')) { alert('Сначала отсканируйте товар!'); return; }
 
     items.push({ name, article: art || '—', size: finalSize, year: finalYear, qty });
     renderItems();
 
-    // Очищаем поля для следующего товара
+    // Очищаем для следующего товара
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-art').value = '';
     document.getElementById('qty-input').value = 1;
@@ -331,6 +257,8 @@ function addItem() {
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     selectedSize = '';
     selectedYear = '';
+    
+    refocusScanner(); // Возвращаем фокус, чтобы можно было сразу сканировать следующий
 }
 
 function removeItem(i) {
@@ -359,7 +287,7 @@ function renderItems() {
         <div class="list-item">
             <div style="flex: 1;">
                 <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ШК: ${item.article} · Разм: ${item.size} · Год: ${item.year}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Разм: ${item.size} · Год: ${item.year}</div>
             </div>
             <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 16px;">${item.qty} шт</div>
             <button class="btn-del" onclick="removeItem(${i})">✕</button>
@@ -412,7 +340,7 @@ function renderRevisions() {
                     <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px;">
                         <div>
                             <div style="font-weight: 600;">${it.name}</div>
-                            <div style="color: var(--text-muted); font-size: 11px;">${it.article} · ${it.size} · ${it.year}</div>
+                            <div style="color: var(--text-muted); font-size: 11px;">${it.size} · ${it.year}</div>
                         </div>
                         <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
                     </div>
@@ -436,10 +364,27 @@ function deleteRevision(id) {
     renderRevisions();
 }
 
+// --- УМНЫЙ АВТОФОКУС ДЛЯ ТСД ---
+function refocusScanner() {
+    // Ставим фокус на невидимое поле, чтобы сканеру было куда вводить
+    const hiddenInput = document.getElementById('prod-art');
+    hiddenInput.focus();
+}
+
 window.onload = () => {
     renderItems();
     renderRevisions();
+    // Сразу ставим фокус при загрузке
+    refocusScanner();
 };
+
+// Если пользователь случайно нажал на пустое место на экране, возвращаем фокус сканеру
+document.body.addEventListener('click', function(e) {
+    // Если клик был не по кнопкам, не по полям выбора, и не по списку - возвращаем фокус
+    if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('size-pill') && !e.target.classList.contains('qty-btn')) {
+        refocusScanner();
+    }
+});
 </script>
 </body>
 </html>
