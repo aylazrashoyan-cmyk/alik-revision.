@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Алик — Ревизия</title>
 
-<!-- Подключаем библиотеку для сканера -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
@@ -15,122 +14,32 @@
     --white: #ffffff; --border: #e2e8f0; --radius: 16px;
 }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg); color: var(--text); margin: 0; padding: 16px;
-    padding-bottom: 90px;
-}
-
-.header {
-    display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 16px;
-}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 90px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h1 { margin: 0; font-size: 20px; }
-
-.card {
-    background: var(--white); border-radius: var(--radius);
-    padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    margin-bottom: 16px;
-}
-.card-title {
-    font-size: 16px; font-weight: 700; margin-bottom: 12px;
-    display: flex; justify-content: space-between; align-items: center;
-}
-
-/* СКАНЕР */
-.scan-methods {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; margin-bottom: 16px;
-}
-.scan-card {
-    background: var(--white); border-radius: var(--radius);
-    padding: 16px; text-align: center;
-    border: 2px dashed var(--primary); cursor: pointer;
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center;
-}
+.card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
+.card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.scan-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.scan-card { background: var(--white); border-radius: var(--radius); padding: 16px; text-align: center; border: 2px dashed var(--primary); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .scan-icon { font-size: 30px; margin-bottom: 8px; }
 .scan-text { font-size: 14px; font-weight: 600; color: var(--primary); }
-#scanner-container {
-    display: none; background: #000; border-radius: var(--radius);
-    overflow: hidden; margin-bottom: 16px; position: relative;
-}
+#scanner-container { display: none; background: #000; border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; position: relative; }
 #reader { width: 100%; }
-.close-scanner {
-    position: absolute; top: 10px; right: 10px;
-    background: rgba(239, 68, 68, 0.9); color: white;
-    border: none; padding: 8px 12px; border-radius: 8px;
-    z-index: 100; font-weight: bold; cursor: pointer;
-}
-
-/* ФОРМА */
+.close-scanner { position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.9); color: white; border: none; padding: 8px 12px; border-radius: 8px; z-index: 100; font-weight: bold; cursor: pointer; }
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-.input-label {
-    font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
-}
-.input-field {
-    padding: 12px; border: 1px solid var(--border);
-    border-radius: 8px; font-size: 15px; font-weight: 500;
-    color: var(--text); outline: none; width: 100%;
-    background: #f8fafc;
-}
-
-/* ПИЛЮЛИ */
-.size-pills {
-    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
-}
-.size-pill {
-    padding: 8px 12px; border: 1px solid var(--border);
-    border-radius: 8px; font-size: 14px; font-weight: 600;
-    color: var(--text); background: var(--white); cursor: pointer;
-}
-.size-pill.active {
-    background: var(--primary); color: white; border-color: var(--primary);
-}
-
-/* КОЛИЧЕСТВО */
-.qty-control {
-    display: flex; align-items: center; gap: 12px; margin-top: 8px;
-}
-.qty-btn {
-    width: 48px; height: 48px; border-radius: 12px;
-    border: 1px solid var(--border); background: var(--white);
-    font-size: 24px; font-weight: bold;
-    display: flex; justify-content: center; align-items: center;
-    cursor: pointer; color: var(--text);
-}
-.qty-input {
-    flex: 1; height: 48px; text-align: center;
-    font-size: 20px; font-weight: 700;
-    border: 1px solid var(--border); border-radius: 12px;
-    background: #f8fafc; outline: none;
-}
-
-/* СПИСОК */
-.list-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0; border-bottom: 1px dashed var(--border);
-}
+.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
+.size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
+.size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+.qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
+.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .list-item:last-child { border-bottom: none; }
-.btn-del {
-    color: var(--danger); background: #fee2e2; border: none;
-    width: 32px; height: 32px; border-radius: 8px;
-    font-size: 16px; cursor: pointer;
-}
-
-/* КНОПКИ */
-.btn-main {
-    background: var(--primary); color: white; border: none;
-    padding: 16px; border-radius: 12px; font-size: 16px;
-    font-weight: 600; width: 100%; cursor: pointer;
-}
-
-/* НИЗ */
-.bottom-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--white); padding: 16px;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10;
-}
+.btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
 </style>
 </head>
 <body>
@@ -140,7 +49,6 @@ body {
     <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
 </div>
 
-<!-- Сканер -->
 <div class="scan-methods">
     <div class="scan-card" onclick="startVideoScanner()">
         <div class="scan-icon">📹</div>
@@ -152,27 +60,23 @@ body {
     </div>
 </div>
 
-<input type="file" id="camera-input" accept="image/*"
-       capture="environment" style="display: none;" onchange="processPhoto(this)">
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="processPhoto(this)">
 
 <div id="scanner-container">
     <button class="close-scanner" onclick="stopVideoScanner()">Закрыть</button>
     <div id="reader"></div>
 </div>
 
-<!-- Форма -->
 <div class="card">
     <div class="input-group">
         <label class="input-label">Наименование</label>
-        <input type="text" class="input-field" id="prod-name"
-               placeholder="Отсканируйте товар...">
+        <input type="text" class="input-field" id="prod-name" placeholder="Отсканируйте товар...">
     </div>
     <div class="input-group">
         <label class="input-label">Штрихкод</label>
         <input type="text" class="input-field" id="prod-art" placeholder="---">
     </div>
 
-    <!-- Размер -->
     <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
     <div class="size-pills" id="size-pills">
         <div class="size-pill" onclick="selectSize(this)">M</div>
@@ -185,11 +89,9 @@ body {
         <div class="size-pill" onclick="selectSize(this)">6XL</div>
     </div>
     <div class="input-group">
-        <input type="text" id="custom-size" class="input-field"
-               placeholder="Свой размер (напр. 46)">
+        <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (напр. 46)">
     </div>
 
-    <!-- Год -->
     <div class="input-label" style="margin-bottom: 8px;">Год поступления (необязательно)</div>
     <div class="size-pills" id="year-pills">
         <div class="size-pill" onclick="selectYear(this)">22</div>
@@ -199,7 +101,6 @@ body {
         <div class="size-pill" onclick="selectYear(this)">26</div>
     </div>
 
-    <!-- Кол-во -->
     <div class="input-label" style="margin-bottom: 8px;">Количество</div>
     <div class="qty-control">
         <button class="qty-btn" onclick="changeQty(-1)">−</button>
@@ -207,12 +108,9 @@ body {
         <button class="qty-btn" onclick="changeQty(1)">+</button>
     </div>
 
-    <button class="btn-main" style="margin-top: 16px;" onclick="addItem()">
-        Добавить в список
-    </button>
+    <button class="btn-main" style="margin-top: 16px;" onclick="addItem()">Добавить в список</button>
 </div>
 
-<!-- Список -->
 <div class="card">
     <div class="card-title">
         <span>Список вещей</span>
@@ -233,7 +131,6 @@ body {
     </div>
 </div>
 
-<!-- Сохранённые ревизии -->
 <div class="card">
     <div class="card-title">📋 Сохранённые ревизии</div>
     <div id="revisions-list">
@@ -242,30 +139,29 @@ body {
 </div>
 
 <div class="bottom-bar">
-    <button class="btn-main" style="background: var(--success);" onclick="saveInventory()">
-        ✓ Отправить ревизию
-    </button>
+    <button class="btn-main" style="background: var(--success);" onclick="saveInventory()">✓ Отправить ревизию</button>
 </div>
 
 <div id="reader-hidden" style="display: none;"></div>
 
-<!-- ============ ЛОГИКА И ЗАГРУЗКА БАЗЫ ============ -->
 <script>
 let catalog = {};
 let catalogLoaded = false;
 
-// Загружаем ваш файл 1.json при старте
 fetch('1.json')
     .then(response => {
         if (!response.ok) throw new Error('Файл не найден');
         return response.json();
     })
     .then(data => {
-        // Превращаем список из Excel в удобную базу
         data.forEach(item => {
             if (item.Штрихкод) {
-                const barcode = String(item.Штрихкод).trim();
-                catalog[barcode] = { name: item.Владелец };
+                // Очищаем штрихкод от лишних пробелов и точек с нулями (Excel часто добавляет .0)
+                let cleanBarcode = String(item.Штрихкод).trim();
+                if (cleanBarcode.includes('.')) {
+                    cleanBarcode = cleanBarcode.split('.')[0]; 
+                }
+                catalog[cleanBarcode] = { name: item.Владелец };
             }
         });
         catalogLoaded = true;
@@ -278,18 +174,14 @@ fetch('1.json')
         document.getElementById('load-status').style.color = 'var(--danger)';
     });
 
-// --- Сканер ---
 let html5QrCode = null;
 
 function startVideoScanner() {
     if (!catalogLoaded && !confirm('База еще загружается. Продолжить?')) return;
-
     document.querySelector('.scan-methods').style.display = 'none';
     document.getElementById('scanner-container').style.display = 'block';
-
     html5QrCode = new Html5Qrcode("reader");
     const config = { fps: 15, qrbox: { width: 300, height: 150 } };
-
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
         stopVideoScanner();
         fillProductByBarcode(decodedText);
@@ -314,7 +206,6 @@ function processPhoto(input) {
         const btnPhoto = document.querySelectorAll('.scan-text')[1];
         const originalText = btnPhoto.innerText;
         btnPhoto.innerText = "Поиск...";
-
         const html5QrCodeFile = new Html5Qrcode("reader-hidden");
         html5QrCodeFile.scanFile(file, true)
             .then(decodedText => {
@@ -342,11 +233,13 @@ function fillProductByBarcode(barcode) {
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
         document.getElementById('prod-name').value = '';
-        alert(`Штрихкод ${barcode} не найден в базе.\nВведите название вручную.`);
+        // ДИАГНОСТИКА
+        const total = Object.keys(catalog).length;
+        const firstKeys = Object.keys(catalog).slice(0, 2).join(' | ');
+        alert(`❌ Штрихкод "${barcode}" не найден.\n\nЗагружено товаров: ${total}\nПримеры кодов из вашей базы: ${firstKeys}`);
     }
 }
 
-// --- Форма ---
 let items = [];
 let selectedSize = '';
 let selectedYear = '';
@@ -354,8 +247,7 @@ let selectedYear = '';
 function resetForm() {
     selectedSize = '';
     selectedYear = '';
-    document.querySelectorAll('#size-pills .size-pill, #year-pills .size-pill')
-        .forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#size-pills .size-pill, #year-pills .size-pill').forEach(p => p.classList.remove('active'));
     document.getElementById('custom-size').value = '';
 }
 
@@ -365,8 +257,7 @@ function selectSize(el) {
         selectedSize = '';
         return;
     }
-    document.querySelectorAll('#size-pills .size-pill')
-        .forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     selectedSize = el.innerText;
     document.getElementById('custom-size').value = '';
@@ -378,16 +269,14 @@ function selectYear(el) {
         selectedYear = '';
         return;
     }
-    document.querySelectorAll('#year-pills .size-pill')
-        .forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#year-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     selectedYear = el.innerText;
 }
 
 document.addEventListener('input', function(e) {
     if (e.target.id === 'custom-size' && e.target.value.trim() !== '') {
-        document.querySelectorAll('#size-pills .size-pill')
-            .forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
         selectedSize = '';
     }
 });
@@ -443,9 +332,7 @@ function renderItems() {
         <div class="list-item">
             <div style="flex: 1;">
                 <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                    ШК: ${item.article} · Разм: ${item.size} · Год: ${item.year}
-                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ШК: ${item.article} · Разм: ${item.size} · Год: ${item.year}</div>
             </div>
             <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 16px;">${item.qty} шт</div>
             <button class="btn-del" onclick="removeItem(${i})">✕</button>
@@ -458,32 +345,21 @@ function renderItems() {
     summary.style.display = 'block';
 }
 
-// --- Сохранение ревизии ---
 function saveInventory() {
     if (items.length === 0) { alert('Список пуст!'); return; }
-
     const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    revisions.push({
-        id: Date.now(),
-        date: new Date().toISOString(),
-        items: items.slice()
-    });
+    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: items.slice() });
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
-
     const totalQty = items.reduce((s, it) => s + it.qty, 0);
-
     alert(`✅ Ревизия сохранена!\n\nПозиций: ${items.length}\nВсего штук: ${totalQty}`);
-
     items = [];
     renderItems();
     renderRevisions();
 }
 
-// --- Просмотр ревизий ---
 function renderRevisions() {
     const container = document.getElementById('revisions-list');
     if (!container) return;
-
     const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
     revisions.sort((a, b) => b.id - a.id);
 
@@ -495,17 +371,12 @@ function renderRevisions() {
     container.innerHTML = '';
     revisions.forEach(rev => {
         const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
-        const dateStr = new Date(rev.date).toLocaleString('ru-RU', {
-            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-        });
-
+        const dateStr = new Date(rev.date).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         container.innerHTML += `
             <div class="list-item" style="cursor: pointer;" onclick="toggleDetails(${rev.id})">
                 <div style="flex: 1;">
                     <div style="font-size: 14px; font-weight: 600;">${dateStr}</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                        ${rev.items.length} поз. · ${totalQty} шт
-                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${rev.items.length} поз. · ${totalQty} шт</div>
                 </div>
                 <div style="font-size: 16px; color: var(--text-muted);">›</div>
             </div>
@@ -514,9 +385,7 @@ function renderRevisions() {
                     <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px;">
                         <div>
                             <div style="font-weight: 600;">${it.name}</div>
-                            <div style="color: var(--text-muted); font-size: 11px;">
-                                ${it.article} · ${it.size} · ${it.year}
-                            </div>
+                            <div style="color: var(--text-muted); font-size: 11px;">${it.article} · ${it.size} · ${it.year}</div>
                         </div>
                         <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
                     </div>
@@ -540,12 +409,10 @@ function deleteRevision(id) {
     renderRevisions();
 }
 
-// --- Старт ---
 window.onload = () => {
     renderItems();
     renderRevisions();
 };
 </script>
-
 </body>
 </html>
