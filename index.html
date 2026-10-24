@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Алик — Ревизия</title>
 
+<!-- Подключаем библиотеку для сканера -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
@@ -63,12 +64,7 @@ body {
 }
 
 /* ФОРМА */
-.form-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 12px; margin-bottom: 12px;
-}
-.input-group { display: flex; flex-direction: column; }
-.input-group.full { grid-column: span 2; }
+.input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label {
     font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
 }
@@ -141,6 +137,7 @@ body {
 
 <div class="header">
     <h1>Ревизия · Алик</h1>
+    <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
 </div>
 
 <!-- Сканер -->
@@ -165,20 +162,14 @@ body {
 
 <!-- Форма -->
 <div class="card">
-    <div class="form-grid">
-        <div class="input-group full">
-            <label class="input-label">Наименование</label>
-            <input type="text" class="input-field" id="prod-name"
-                   placeholder="Отсканируйте товар...">
-        </div>
-        <div class="input-group">
-            <label class="input-label">Цена, ₽</label>
-            <input type="number" class="input-field" id="prod-price" placeholder="0">
-        </div>
-        <div class="input-group">
-            <label class="input-label">Штрихкод / SKU</label>
-            <input type="text" class="input-field" id="prod-art" placeholder="---">
-        </div>
+    <div class="input-group">
+        <label class="input-label">Наименование</label>
+        <input type="text" class="input-field" id="prod-name"
+               placeholder="Отсканируйте товар...">
+    </div>
+    <div class="input-group">
+        <label class="input-label">Штрихкод</label>
+        <input type="text" class="input-field" id="prod-art" placeholder="---">
     </div>
 
     <!-- Размер -->
@@ -193,7 +184,7 @@ body {
         <div class="size-pill" onclick="selectSize(this)">5XL</div>
         <div class="size-pill" onclick="selectSize(this)">6XL</div>
     </div>
-    <div class="input-group" style="margin-bottom: 12px;">
+    <div class="input-group">
         <input type="text" id="custom-size" class="input-field"
                placeholder="Свой размер (напр. 46)">
     </div>
@@ -235,13 +226,9 @@ body {
             <span style="color: var(--text-muted);">Позиций:</span>
             <strong id="sum-positions">0</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;">
-            <span style="color: var(--text-muted);">Всего штук:</span>
-            <strong id="sum-qty">0</strong>
-        </div>
         <div style="display: flex; justify-content: space-between; font-size: 16px;">
-            <span style="color: var(--text-muted);">Общая сумма:</span>
-            <strong id="sum-total" style="color: var(--success);">0 ₽</strong>
+            <span style="color: var(--text-muted);">Всего штук:</span>
+            <strong id="sum-qty" style="color: var(--success);">0</strong>
         </div>
     </div>
 </div>
@@ -262,35 +249,41 @@ body {
 
 <div id="reader-hidden" style="display: none;"></div>
 
-<!-- ============ БАЗА ТОВАРОВ ============ -->
+<!-- ============ ЛОГИКА И ЗАГРУЗКА БАЗЫ ============ -->
 <script>
-// ============================================================
-// catalog — база товаров. Добавляй свои штрихкоды по образцу.
-// Поля: sku, name, price, year (год можно не указывать)
-// ============================================================
-const catalog = {
-    // Примеры — замени на свои:
-    "4600123456789": {
-        sku: "KUR-001",
-        name: "Джинсы женские, синие",
-        price: 1999,
-        year: "24"
-    },
-    "4600123456790": {
-        sku: "KUR-002",
-        name: "Куртка зимняя женская, чёрная",
-        price: 5990,
-        year: "24"
-    }
-};
-</script>
+let catalog = {};
+let catalogLoaded = false;
 
-<!-- ============ ЛОГИКА ============ -->
-<script>
+// Загружаем ваш файл 1.json при старте
+fetch('1.json')
+    .then(response => {
+        if (!response.ok) throw new Error('Файл не найден');
+        return response.json();
+    })
+    .then(data => {
+        // Превращаем список из Excel в удобную базу
+        data.forEach(item => {
+            if (item.Штрихкод) {
+                const barcode = String(item.Штрихкод).trim();
+                catalog[barcode] = { name: item.Владелец };
+            }
+        });
+        catalogLoaded = true;
+        document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(catalog).length + ' шт.';
+        document.getElementById('load-status').style.color = 'var(--success)';
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки:', error);
+        document.getElementById('load-status').innerText = '❌ Ошибка базы';
+        document.getElementById('load-status').style.color = 'var(--danger)';
+    });
+
 // --- Сканер ---
 let html5QrCode = null;
 
 function startVideoScanner() {
+    if (!catalogLoaded && !confirm('База еще загружается. Продолжить?')) return;
+
     document.querySelector('.scan-methods').style.display = 'none';
     document.getElementById('scanner-container').style.display = 'block';
 
@@ -339,28 +332,17 @@ function processPhoto(input) {
 
 function fillProductByBarcode(barcode) {
     resetForm();
-
+    barcode = String(barcode).trim();
+    
     const product = catalog[barcode];
+    document.getElementById('prod-art').value = barcode;
+
     if (product) {
         document.getElementById('prod-name').value = product.name || '';
-        document.getElementById('prod-price').value = product.price || '';
-        document.getElementById('prod-art').value = barcode;
-
-        if (product.year) {
-            document.querySelectorAll('#year-pills .size-pill').forEach(p => {
-                if (p.innerText === product.year) {
-                    p.classList.add('active');
-                    selectedYear = product.year;
-                }
-            });
-        }
-
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
-        document.getElementById('prod-art').value = barcode;
         document.getElementById('prod-name').value = '';
-        document.getElementById('prod-price').value = '';
-        alert(`Штрихкод ${barcode} не найден в базе.\nЗаполните название и цену вручную.`);
+        alert(`Штрихкод ${barcode} не найден в базе.\nВведите название вручную.`);
     }
 }
 
@@ -419,7 +401,6 @@ function changeQty(delta) {
 function addItem() {
     const name = document.getElementById('prod-name').value.trim();
     const art = document.getElementById('prod-art').value.trim();
-    const price = parseFloat(document.getElementById('prod-price').value) || 0;
     const qty = parseInt(document.getElementById('qty-input').value) || 1;
     const customSize = document.getElementById('custom-size').value.trim();
     const finalSize = customSize || selectedSize || '—';
@@ -427,12 +408,11 @@ function addItem() {
 
     if (!name) { alert('Введите название!'); return; }
 
-    items.push({ name, article: art || '—', price, size: finalSize, year: finalYear, qty });
+    items.push({ name, article: art || '—', size: finalSize, year: finalYear, qty });
     renderItems();
 
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-art').value = '';
-    document.getElementById('prod-price').value = '';
     document.getElementById('qty-input').value = 1;
     resetForm();
 }
@@ -456,18 +436,15 @@ function renderItems() {
 
     list.innerHTML = '';
     let totalQty = 0;
-    let totalSum = 0;
 
     items.forEach((item, i) => {
         totalQty += item.qty;
-        totalSum += item.price * item.qty;
-
         list.innerHTML += `
         <div class="list-item">
             <div style="flex: 1;">
                 <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
                 <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                    ШК: ${item.article} · Разм: ${item.size} · Год: ${item.year} · ${item.price} ₽
+                    ШК: ${item.article} · Разм: ${item.size} · Год: ${item.year}
                 </div>
             </div>
             <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 16px;">${item.qty} шт</div>
@@ -478,7 +455,6 @@ function renderItems() {
     count.textContent = items.length;
     document.getElementById('sum-positions').textContent = items.length;
     document.getElementById('sum-qty').textContent = totalQty;
-    document.getElementById('sum-total').textContent = totalSum.toLocaleString('ru-RU') + ' ₽';
     summary.style.display = 'block';
 }
 
@@ -495,9 +471,8 @@ function saveInventory() {
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
 
     const totalQty = items.reduce((s, it) => s + it.qty, 0);
-    const totalSum = items.reduce((s, it) => s + it.price * it.qty, 0);
 
-    alert(`✅ Ревизия сохранена!\n\nПозиций: ${items.length}\nВсего штук: ${totalQty}\nСумма: ${totalSum.toLocaleString('ru-RU')} ₽`);
+    alert(`✅ Ревизия сохранена!\n\nПозиций: ${items.length}\nВсего штук: ${totalQty}`);
 
     items = [];
     renderItems();
@@ -520,7 +495,6 @@ function renderRevisions() {
     container.innerHTML = '';
     revisions.forEach(rev => {
         const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
-        const totalSum = rev.items.reduce((s, it) => s + it.price * it.qty, 0);
         const dateStr = new Date(rev.date).toLocaleString('ru-RU', {
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
         });
@@ -530,7 +504,7 @@ function renderRevisions() {
                 <div style="flex: 1;">
                     <div style="font-size: 14px; font-weight: 600;">${dateStr}</div>
                     <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                        ${rev.items.length} поз. · ${totalQty} шт · ${totalSum.toLocaleString('ru-RU')} ₽
+                        ${rev.items.length} поз. · ${totalQty} шт
                     </div>
                 </div>
                 <div style="font-size: 16px; color: var(--text-muted);">›</div>
@@ -541,7 +515,7 @@ function renderRevisions() {
                         <div>
                             <div style="font-weight: 600;">${it.name}</div>
                             <div style="color: var(--text-muted); font-size: 11px;">
-                                ${it.article} · ${it.size} · ${it.year} · ${it.price} ₽
+                                ${it.article} · ${it.size} · ${it.year}
                             </div>
                         </div>
                         <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
