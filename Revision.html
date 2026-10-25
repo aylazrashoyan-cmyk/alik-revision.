@@ -39,6 +39,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
+/* Уведомления (вместо системных алертов) */
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
+.toast.show { opacity: 1; }
+.toast.error { background: var(--danger); }
+.toast.success { background: var(--success); }
+
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
@@ -79,6 +85,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </style>
 </head>
 <body>
+
+<!-- Всплывающее уведомление -->
+<div id="toast" class="toast"></div>
 
 <!-- МОДАЛЬНОЕ ОКНО (Дубли) -->
 <div id="modal-dup" class="modal-overlay">
@@ -252,11 +261,17 @@ let selectedSize = '';
 let selectedYear = '';
 let selectedAudience = '';
 
-// Переменные для проверки дублей
 let pendingItem = null;
 let existingArticle = null;
 
-// Ждем загрузки Firebase (так как скрипт module грузится асинхронно)
+// Функция показа уведомлений (вместо alert)
+function showToast(msg, type = 'default') {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
 setInterval(() => {
     if (window.firebaseDB) {
         db = window.firebaseDB;
@@ -295,8 +310,8 @@ function selectShop(el, name) {
 
 function loginSeller() {
     const name = document.getElementById('seller-name').value.trim();
-    if (!shop) return alert('Выберите магазин!');
-    if (!name) return alert('Введите ваше имя!');
+    if (!shop) return showToast('Выберите магазин!', 'error');
+    if (!name) return showToast('Введите ваше имя!', 'error');
     
     seller = name;
     localStorage.setItem('rev_shop', shop);
@@ -312,7 +327,7 @@ function loginDirector() {
         document.getElementById('director-pin').value = '';
         showScreen('screen-director');
     } else {
-        alert('Неверный PIN');
+        showToast('Неверный PIN', 'error');
     }
 }
 
@@ -344,13 +359,12 @@ function showCustomCategory() {
     }
 }
 
-// Перехватываем ввод новой категории
 document.getElementById('new-category').addEventListener('change', function() {
     const name = this.value.trim();
     if (!name) return;
     
     if (categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
-        alert('Такая категория уже есть!');
+        showToast('Такая категория уже есть!', 'error');
         this.value = '';
         return;
     }
@@ -360,7 +374,6 @@ document.getElementById('new-category').addEventListener('change', function() {
     localStorage.setItem('rev_categories', JSON.stringify(categories));
     renderCategories();
     
-    // Выбираем её автоматически
     document.getElementById('prod-category').value = name;
     this.value = '';
     this.style.display = 'none';
@@ -376,7 +389,7 @@ function handlePhoto(input) {
         const img = new Image();
         img.onload = function() {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 600; // Сжимаем для экономии памяти
+            const MAX_WIDTH = 600;
             const scaleSize = MAX_WIDTH / img.width;
             canvas.width = MAX_WIDTH;
             canvas.height = img.height * scaleSize;
@@ -408,7 +421,6 @@ function selectSize(el) {
     document.getElementById('custom-size').value = '';
 }
 
-// Убираем выбранную кнопку размера, если начали печатать свой
 document.getElementById('custom-size').addEventListener('input', function() {
     if(this.value.trim() !== '') {
         document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
@@ -444,7 +456,7 @@ function changeQty(delta) {
     if (v + delta >= 1) inp.value = v + delta;
 }
 
-// --- ДОБАВЛЕНИЕ ТОВАРА С ПРОВЕРКОЙ ДУБЛЕЙ ---
+// --- ДОБАВЛЕНИЕ ТОВАРА ---
 async function addItem() {
     const category = document.getElementById('prod-category').value;
     const price = parseFloat(document.getElementById('prod-price').value);
@@ -453,20 +465,18 @@ async function addItem() {
     const qty = parseInt(document.getElementById('qty-input').value) || 1;
     const year = selectedYear || '—';
 
-    if (!currentPhotoBase64) return alert('Сделайте фото товара!');
-    if (!category) return alert('Выберите категорию!');
-    if (!selectedAudience) return alert('Выберите аудиторию (Муж/Жен/Дет)!');
-    if (!price || price <= 0) return alert('Введите корректную цену!');
+    if (!currentPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!selectedAudience) return showToast('Выберите аудиторию!', 'error');
+    if (!price || price <= 0) return showToast('Введите корректную цену!', 'error');
 
     const btn = document.getElementById('btn-add-item');
     btn.innerText = 'Проверка базы...';
     btn.disabled = true;
 
-    // Сохраняем данные для возможного дубля
     pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year };
 
     try {
-        // Ищем похожий товар в Firebase
         const q = fbFns.query(
             fbFns.collection(db, "revisions"), 
             fbFns.where("category", "==", category),
@@ -487,7 +497,6 @@ async function addItem() {
         });
 
         if (foundDup) {
-            // Показываем красивое модальное окно
             existingArticle = foundDup.article;
             document.getElementById('modal-img').src = foundDup.photo;
             document.getElementById('modal-shop').innerText = foundDup.shop;
@@ -498,13 +507,11 @@ async function addItem() {
             btn.innerText = 'Добавить в ревизию';
             btn.disabled = false;
         } else {
-            // Дублей нет, сразу добавляем
             finishAdd(null);
         }
     } catch (e) {
         console.error(e);
-        // Если ошибка сети (офлайн), добавляем без проверки
-        finishAdd(null);
+        finishAdd(null); // Если нет сети, добавляем без проверки
     }
 }
 
@@ -595,7 +602,7 @@ function renderItems() {
 
 // --- СОХРАНЕНИЕ РЕВИЗИИ ---
 async function saveInventory() {
-    if (items.length === 0) return alert('Список пуст!');
+    if (items.length === 0) return showToast('Список пуст!', 'error');
     
     const btn = document.querySelector('#screen-seller .bottom-bar .btn-main');
     btn.innerText = 'Отправка...';
@@ -610,7 +617,7 @@ async function saveInventory() {
 
     try {
         await fbFns.addDoc(fbFns.collection(db, "revisions"), revisionData);
-        alert('✅ Ревизия успешно отправлена А.А.!');
+        showToast('✅ Ревизия успешно отправлена!', 'success');
         items = [];
         renderItems();
     } catch (e) {
@@ -619,7 +626,7 @@ async function saveInventory() {
         offlineQueue.push(revisionData);
         localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
         
-        alert('⚠️ Нет интернета. Ревизия сохранена в память. Она отправится при появлении сети.');
+        showToast('⚠️ Нет интернета. Сохранено локально.', 'error');
         items = [];
         renderItems();
     } finally {
@@ -711,7 +718,7 @@ async function syncOffline() {
     
     if (success > 0) {
         localStorage.setItem('offline_revisions', JSON.stringify(queue.slice(success)));
-        alert(`✅ Успешно отправлено ${success} ревизий из оффлайн-очереди!`);
+        showToast(`✅ Отправлено ${success} ревизий из памяти!`, 'success');
         if (directorMode) loadMatrix();
     }
 }
