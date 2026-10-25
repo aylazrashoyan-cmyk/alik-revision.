@@ -22,7 +22,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   
-  // Сохраняем в window, чтобы главный скрипт мог их взять
   window.fbDB = db;
   window.fbFns = { collection, addDoc, getDocs, query, where };
 </script>
@@ -59,7 +58,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
 .qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
 
-.photo-preview { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; display: none; }
+.photo-preview { 
+    width: 100%; 
+    max-height: 350px; 
+    object-fit: contain; 
+    background: #f1f5f9; 
+    border-radius: 12px; 
+    margin-bottom: 12px; 
+    display: none; 
+    border: 1px solid var(--border);
+}
 
 .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .list-item:last-child { border-bottom: none; }
@@ -76,9 +84,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .matrix-col.zero { color: var(--danger); background: #fef2f2; }
 .matrix-col.has-stock { color: var(--success); background: #ecfdf5; }
 
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; }
 .modal-box { background: var(--white); border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; }
-.modal-img { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; }
+.modal-img { width: 150px; height: 150px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
 
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
 .pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
@@ -106,6 +114,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
 </div>
 
+<!-- Модальное окно дублей -->
 <div id="modal-dup" class="modal-overlay">
     <div class="modal-box">
         <h3 style="margin-top:0;">Похожий товар уже есть!</h3>
@@ -116,8 +125,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div><b>Кол-во:</b> <span id="modal-qty"></span> шт.</div>
         </div>
         <p style="font-size:14px; margin-bottom:20px;">Это та же модель?</p>
-        <button class="btn-main" style="background:var(--success); margin-bottom:10px;" onclick="confirmDup(true)">Да, использовать этот артикул</button>
-        <button class="btn-main" style="background:#64748b;" onclick="confirmDup(false)">Нет, создать новый</button>
+        <button class="btn-main" style="background:var(--success); margin-bottom:10px;" onclick="confirmDup(true)">Да, это она</button>
+        <button class="btn-main" style="background:#64748b;" onclick="confirmDup(false)">Нет, другая модель</button>
     </div>
 </div>
 
@@ -261,7 +270,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <script>
-// Глобальные переменные
 let shop = localStorage.getItem('rev_shop') || '';
 let seller = localStorage.getItem('rev_seller') || '';
 let directorMode = false;
@@ -284,11 +292,9 @@ let currentPhotoBase64 = '';
 let selectedSize = '';
 let selectedYear = '';
 let selectedAudience = '';
-
 let pendingItem = null;
 let existingArticle = null;
 
-// Функция уведомлений
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
     t.innerText = msg;
@@ -296,21 +302,16 @@ function showToast(msg, type = 'default') {
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
-// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    // Восстанавливаем имя
     document.getElementById('seller-name').value = seller;
     renderCategories();
     
-    // Проверяем, залогинен ли уже
     if (shop && seller && !directorMode) {
         document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
         showScreen('screen-seller');
     } else {
         showScreen('screen-auth');
     }
-    
-    // Пытаемся запустить синхронизацию
     setTimeout(syncOffline, 2000);
 });
 
@@ -320,7 +321,6 @@ function showScreen(id) {
     if(id === 'screen-director') loadMatrix();
 }
 
-// --- АВТОРИЗАЦИЯ ---
 function selectShop(el, name) {
     document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
@@ -370,7 +370,6 @@ function logout() {
     showScreen('screen-auth');
 }
 
-// --- КАТЕГОРИИ ---
 function renderCategories() {
     const sel = document.getElementById('prod-category');
     sel.innerHTML = '<option value="">Выберите категорию...</option>';
@@ -393,18 +392,15 @@ function showCustomCategory() {
 document.getElementById('new-category').addEventListener('change', function() {
     const name = this.value.trim();
     if (!name) return;
-    
     if (categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
         showToast('Такая категория уже есть!', 'error');
         this.value = '';
         return;
     }
-    
     const prefix = name.substring(0, 3).toUpperCase().replace(/[^А-ЯA-Z]/g, 'X');
     categories.push({ name: name, prefix: prefix });
     localStorage.setItem('rev_categories', JSON.stringify(categories));
     renderCategories();
-    
     document.getElementById('prod-category').value = name;
     this.value = '';
     this.style.display = 'none';
@@ -428,7 +424,7 @@ function handlePhoto(input) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
             
             const preview = document.getElementById('photo-preview');
             preview.src = currentPhotoBase64;
@@ -502,16 +498,33 @@ function addItem() {
 
     pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year };
     
-    // Сначала просто добавляем, а проверку дублей делаем в фоне (чтобы не тормозило)
-    finishAdd(null);
+    // Генерируем временный артикул
+    const tempArticle = generateArticle(pendingItem.category);
     
-    // Пытаемся проверить дубли, если есть Firebase
+    // Добавляем в список
+    items.push({
+        article: tempArticle,
+        category: pendingItem.category,
+        audience: pendingItem.audience,
+        price: pendingItem.price,
+        size: pendingItem.size,
+        year: pendingItem.year,
+        qty: pendingItem.qty,
+        photo: currentPhotoBase64
+    });
+
+    renderItems();
+    
+    // Показываем панель "Добавить еще размер?"
+    document.getElementById('action-panel').style.display = 'block';
+    
+    // В фоне проверяем дубли
     if (window.fbDB && window.fbFns) {
-        checkDupsInBackground(category, selectedAudience, price, finalSize);
+        checkDupsInBackground(category, selectedAudience, price, finalSize, tempArticle);
     }
 }
 
-async function checkDupsInBackground(category, audience, price, size) {
+async function checkDupsInBackground(category, audience, price, size, currentArticle) {
     try {
         const q = window.fbFns.query(
             window.fbFns.collection(window.fbDB, "revisions"), 
@@ -531,9 +544,17 @@ async function checkDupsInBackground(category, audience, price, size) {
             });
         });
 
-        if (foundDup) {
-            showToast('⚠️ Найден похожий товар!', 'error');
-            // Тут можно было бы показать модалку, но чтобы не ломать текущий процесс, просто предупреждаем
+        if (foundDup && foundDup.article !== currentArticle) {
+            // Показываем модальное окно поверх всего
+            existingArticle = foundDup.article;
+            document.getElementById('modal-img').src = foundDup.photo;
+            document.getElementById('modal-shop').innerText = foundDup.shop;
+            document.getElementById('modal-art').innerText = foundDup.article;
+            document.getElementById('modal-qty').innerText = foundDup.qty;
+            document.getElementById('modal-dup').style.display = 'flex';
+            
+            // Сохраняем временный артикул, чтобы потом заменить
+            pendingItem.tempArticle = currentArticle;
         }
     } catch (e) {
         console.log('Ошибка проверки дублей:', e);
@@ -542,6 +563,22 @@ async function checkDupsInBackground(category, audience, price, size) {
 
 function confirmDup(isSame) {
     document.getElementById('modal-dup').style.display = 'none';
+    
+    if (isSame && existingArticle) {
+        // Меняем артикул у последнего добавленного товара на тот, что в базе
+        const lastItem = items.find(it => it.article === pendingItem.tempArticle);
+        if (lastItem) {
+            lastItem.article = existingArticle;
+            renderItems();
+            showToast('Артикул обновлен на ' + existingArticle, 'success');
+        }
+    } else {
+        // Оставляем сгенерированный артикул
+        showToast('Создан новый артикул', 'success');
+    }
+    
+    pendingItem = null;
+    existingArticle = null;
 }
 
 function generateArticle(categoryName) {
@@ -552,30 +589,11 @@ function generateArticle(categoryName) {
     return prefix + String(count).padStart(3, '0');
 }
 
-function finishAdd(existingArt) {
-    const article = existingArt || generateArticle(pendingItem.category);
-    
-    items.push({
-        article: article,
-        category: pendingItem.category,
-        audience: pendingItem.audience,
-        price: pendingItem.price,
-        size: pendingItem.size,
-        year: pendingItem.year,
-        qty: pendingItem.qty,
-        photo: currentPhotoBase64
-    });
-
-    renderItems();
-    
-    // Показываем панель
-    document.getElementById('action-panel').style.display = 'block';
-    pendingItem = null;
-    existingArticle = null;
-}
-
 function continueSameModel() {
     document.getElementById('action-panel').style.display = 'none';
+    
+    // Закрываем модалку, если она открыта
+    document.getElementById('modal-dup').style.display = 'none';
     
     document.getElementById('custom-size').value = '';
     document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
@@ -587,6 +605,7 @@ function continueSameModel() {
 
 function finishModel() {
     document.getElementById('action-panel').style.display = 'none';
+    document.getElementById('modal-dup').style.display = 'none';
     
     document.getElementById('prod-photo').value = '';
     document.getElementById('photo-preview').style.display = 'none';
@@ -619,7 +638,7 @@ function renderItems() {
         list.innerHTML += `
         <div class="list-item" style="align-items: flex-start;">
             <div style="flex: 1; display:flex; gap:10px;">
-                <img src="${item.photo}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
+                <img src="${item.photo}" style="width:50px; height:50px; border-radius:8px; object-fit:contain; background:#f1f5f9;">
                 <div>
                     <div style="font-size: 13px; font-weight: 600;">${item.category} (${item.article})</div>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${item.audience} · ${item.size} · ${item.year} г. · ${item.price}₽</div>
@@ -645,9 +664,9 @@ async function saveInventory() {
         shop: shop,
         seller: seller,
         date: new Date().toISOString(),
-        items: items    };
+        items: items
+    };
 
-    // Пытаемся отправить в Firebase
     if (window.fbDB && window.fbFns) {
         try {
             await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), revisionData);
@@ -662,7 +681,6 @@ async function saveInventory() {
         }
     }
     
-    // Если Firebase нет или ошибка — сохраняем локально
     let offlineQueue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
     offlineQueue.push(revisionData);
     localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
@@ -725,7 +743,7 @@ async function loadMatrix() {
             <div class="matrix-row" style="align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
                 <div class="matrix-col name">
                     <div style="display:flex; gap:8px;">
-                        <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">
+                        <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
                         <div>
                             <div style="font-weight:700;">${art}</div>
                             <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes} р.</div>
@@ -746,7 +764,7 @@ async function loadMatrix() {
 
 // --- СИНХРОНИЗАЦИЯ ---
 async function syncOffline() {
-    if (!window.fbDB || !window.fbFns) return; // Ждем Firebase
+    if (!window.fbDB || !window.fbFns) return; 
     
     const queue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
     if (queue.length === 0) return;
