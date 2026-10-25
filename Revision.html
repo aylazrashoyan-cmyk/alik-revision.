@@ -8,7 +8,7 @@
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -22,9 +22,8 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   
-  // Экспортируем в глобальную область для доступа из обычного скрипта
   window.firebaseDB = db;
-  window.firebaseFns = { collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc };
+  window.firebaseFns = { collection, addDoc, getDocs, query, where };
 </script>
 
 <style>
@@ -44,6 +43,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
 .input-field.error { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
+.input-field:focus { border-color: var(--primary); background: #fff; }
 
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
@@ -71,9 +71,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .matrix-col.name { flex: 2; text-align: left; font-size: 13px;}
 .matrix-col.zero { color: var(--danger); background: #fef2f2; }
 .matrix-col.has-stock { color: var(--success); background: #ecfdf5; }
+
+/* Модальное окно для дублей */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
+.modal-box { background: var(--white); border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; }
+.modal-img { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
+
+<!-- МОДАЛЬНОЕ ОКНО (Дубли) -->
+<div id="modal-dup" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">Похожий товар уже есть!</h3>
+        <img id="modal-img" class="modal-img" src="">
+        <div style="font-size:14px; margin-bottom:16px; text-align:left; background:#f8fafc; padding:10px; border-radius:8px;">
+            <div style="margin-bottom:4px;"><b>Магазин:</b> <span id="modal-shop"></span></div>
+            <div style="margin-bottom:4px;"><b>Артикул:</b> <span id="modal-art"></span></div>
+            <div><b>Кол-во:</b> <span id="modal-qty"></span> шт.</div>
+        </div>
+        <p style="font-size:14px; margin-bottom:20px;">Это та же модель?</p>
+        <button class="btn-main" style="background:var(--success); margin-bottom:10px;" onclick="confirmDup(true)">Да, использовать этот артикул</button>
+        <button class="btn-main" style="background:#64748b;" onclick="confirmDup(false)">Нет, создать новый</button>
+    </div>
+</div>
 
 <!-- ЭКРАН 1: АВТОРИЗАЦИЯ -->
 <div id="screen-auth" class="screen active">
@@ -87,11 +108,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         
         <div class="input-group" style="margin-top: 20px;">
             <label class="input-label">Ваше имя (Продавец)</label>
-            <input type="text" class="input-field" id="seller-name" placeholder="Введите имя">
+            <input type="text" class="input-field" id="seller-name" placeholder="Введите имя" autocomplete="off">
         </div>
 
         <button class="btn-main" onclick="loginSeller()">Войти как продавец</button>
-        <button class="btn-main" style="background: #1e293b; margin-top: 10px;" onclick="loginDirector()">Вход для А.А.</button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0; font-size:16px;">Вход для А.А.</h3>
+        <div class="input-group">
+            <input type="password" class="input-field" id="director-pin" placeholder="Введите PIN-код" autocomplete="off">
+        </div>
+        <button class="btn-main" style="background: #1e293b;" onclick="loginDirector()">Войти в панель А.А.</button>
     </div>
 </div>
 
@@ -112,9 +140,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <div class="input-group">
             <label class="input-label" style="display:flex; justify-content:space-between;">
                 Категория 
-                <span class="btn-add-cat" onclick="addCustomCategory()">+ Своя</span>
+                <span class="btn-add-cat" onclick="showCustomCategory()">+ Своя</span>
             </label>
             <select class="input-field" id="prod-category"></select>
+            <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
         </div>
 
         <div class="input-label" style="margin-bottom: 8px;">Аудитория</div>
@@ -141,7 +170,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div class="size-pill" onclick="selectSize(this)">6XL</div>
         </div>
         <div class="input-group">
-            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер" readonly onclick="promptCustomSize()">
+            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (введите если нет в списке)">
         </div>
 
         <div class="input-label" style="margin-bottom: 8px;">Год завоза</div>
@@ -159,11 +188,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <div class="input-label" style="margin-bottom: 8px;">Количество</div>
         <div class="qty-control">
             <button class="qty-btn" onclick="changeQty(-1)">−</button>
-            <input type="number" class="qty-input" id="qty-input" value="1" min="1" readonly onclick="promptQty()">
+            <input type="number" class="qty-input" id="qty-input" value="1" min="1">
             <button class="qty-btn" onclick="changeQty(1)">+</button>
         </div>
 
-        <button class="btn-main" style="margin-top: 20px; background: var(--success);" onclick="addItem()">Добавить в ревизию</button>
+        <button class="btn-main" style="margin-top: 20px; background: var(--success);" id="btn-add-item" onclick="addItem()">Добавить в ревизию</button>
     </div>
 
     <div class="card">
@@ -223,6 +252,10 @@ let selectedSize = '';
 let selectedYear = '';
 let selectedAudience = '';
 
+// Переменные для проверки дублей
+let pendingItem = null;
+let existingArticle = null;
+
 // Ждем загрузки Firebase (так как скрипт module грузится асинхронно)
 setInterval(() => {
     if (window.firebaseDB) {
@@ -240,7 +273,7 @@ function initApp() {
     document.getElementById('seller-name').value = seller;
     renderCategories();
     
-    if (shop && seller) {
+    if (shop && seller && !directorMode) {
         showScreen('screen-seller');
     } else {
         showScreen('screen-auth');
@@ -273,9 +306,10 @@ function loginSeller() {
 }
 
 function loginDirector() {
-    const pin = prompt('Введите PIN-код для А.А.:');
+    const pin = document.getElementById('director-pin').value.trim();
     if (pin === '1988') {
         directorMode = true;
+        document.getElementById('director-pin').value = '';
         showScreen('screen-director');
     } else {
         alert('Неверный PIN');
@@ -285,7 +319,7 @@ function loginDirector() {
 function logout() {
     localStorage.removeItem('rev_shop');
     localStorage.removeItem('rev_seller');
-    shop = ''; seller = '';
+    shop = ''; seller = ''; directorMode = false;
     showScreen('screen-auth');
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
 }
@@ -299,21 +333,38 @@ function renderCategories() {
     });
 }
 
-function addCustomCategory() {
-    const name = prompt('Введите название новой категории:');
+function showCustomCategory() {
+    const inp = document.getElementById('new-category');
+    if (inp.style.display === 'none') {
+        inp.style.display = 'block';
+        inp.focus();
+    } else {
+        inp.style.display = 'none';
+        inp.value = '';
+    }
+}
+
+// Перехватываем ввод новой категории
+document.getElementById('new-category').addEventListener('change', function() {
+    const name = this.value.trim();
     if (!name) return;
     
-    // Проверка на дубли
     if (categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
-        return alert('Такая категория уже есть!');
+        alert('Такая категория уже есть!');
+        this.value = '';
+        return;
     }
     
     const prefix = name.substring(0, 3).toUpperCase().replace(/[^А-ЯA-Z]/g, 'X');
     categories.push({ name: name, prefix: prefix });
     localStorage.setItem('rev_categories', JSON.stringify(categories));
     renderCategories();
-    alert('Категория добавлена!');
-}
+    
+    // Выбираем её автоматически
+    document.getElementById('prod-category').value = name;
+    this.value = '';
+    this.style.display = 'none';
+});
 
 // --- ФОТО ---
 function handlePhoto(input) {
@@ -357,14 +408,13 @@ function selectSize(el) {
     document.getElementById('custom-size').value = '';
 }
 
-function promptCustomSize() {
-    let size = prompt("Введите свой размер:");
-    if (size) {
-        document.getElementById('custom-size').value = size;
+// Убираем выбранную кнопку размера, если начали печатать свой
+document.getElementById('custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') {
         document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
         selectedSize = '';
     }
-}
+});
 
 function selectYear(el) {
     if (el.classList.contains('active')) {
@@ -394,13 +444,6 @@ function changeQty(delta) {
     if (v + delta >= 1) inp.value = v + delta;
 }
 
-function promptQty() {
-    let qty = prompt("Введите количество:", document.getElementById('qty-input').value);
-    if (qty && parseInt(qty) > 0) {
-        document.getElementById('qty-input').value = parseInt(qty);
-    }
-}
-
 // --- ДОБАВЛЕНИЕ ТОВАРА С ПРОВЕРКОЙ ДУБЛЕЙ ---
 async function addItem() {
     const category = document.getElementById('prod-category').value;
@@ -415,10 +458,12 @@ async function addItem() {
     if (!selectedAudience) return alert('Выберите аудиторию (Муж/Жен/Дет)!');
     if (!price || price <= 0) return alert('Введите корректную цену!');
 
-    // Блокируем кнопку пока идет проверка
-    const btn = document.querySelector('#screen-seller .btn-main[onclick="addItem()"]');
+    const btn = document.getElementById('btn-add-item');
     btn.innerText = 'Проверка базы...';
     btn.disabled = true;
+
+    // Сохраняем данные для возможного дубля
+    pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year };
 
     try {
         // Ищем похожий товар в Firebase
@@ -430,61 +475,67 @@ async function addItem() {
         );
         
         const snapshot = await fbFns.getDocs(q);
-        let existingItems = [];
+        let foundDup = null;
         
         snapshot.forEach(doc => {
             const data = doc.data();
             data.items.forEach(it => {
                 if (it.size === finalSize || it.size === '—') {
-                    existingItems.push({ shop: data.shop, seller: data.seller, article: it.article, photo: it.photo, qty: it.qty });
+                    foundDup = { shop: data.shop, article: it.article, photo: it.photo, qty: it.qty };
                 }
             });
         });
 
-        if (existingItems.length > 0) {
-            // Нашли дубль!
-            const ex = existingItems[0];
-            const imgHtml = `<img src="${ex.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; margin-bottom:10px;">`;
-            const msg = `⚠️ Похожий товар уже есть!\n\nМагазин: ${ex.shop}\nАртикул: ${ex.article}\nКол-во: ${ex.qty} шт.\n\nЭто та же модель? (ОК = Да, использовать ${ex.article}. Отмена = Нет, создать новый).`;
+        if (foundDup) {
+            // Показываем красивое модальное окно
+            existingArticle = foundDup.article;
+            document.getElementById('modal-img').src = foundDup.photo;
+            document.getElementById('modal-shop').innerText = foundDup.shop;
+            document.getElementById('modal-art').innerText = foundDup.article;
+            document.getElementById('modal-qty').innerText = foundDup.qty;
+            document.getElementById('modal-dup').style.display = 'flex';
             
-            // Визуально показать фото (alert не поддерживает картинки, поэтому выводим через confirm, а фото - отдельно в консоль)
-            // Для простоты используем confirm
-            if (confirm(msg)) {
-                finishAdd(ex.article, category, selectedAudience, price, finalSize, qty, year);
-            } else {
-                finishAdd(null, category, selectedAudience, price, finalSize, qty, year);
-            }
+            btn.innerText = 'Добавить в ревизию';
+            btn.disabled = false;
         } else {
-            // Дублей нет
-            finishAdd(null, category, selectedAudience, price, finalSize, qty, year);
+            // Дублей нет, сразу добавляем
+            finishAdd(null);
         }
     } catch (e) {
         console.error(e);
-        alert('Ошибка сети, добавляем локально...');
-        finishAdd(null, category, selectedAudience, price, finalSize, qty, year);
+        // Если ошибка сети (офлайн), добавляем без проверки
+        finishAdd(null);
+    }
+}
+
+function confirmDup(isSame) {
+    document.getElementById('modal-dup').style.display = 'none';
+    if (isSame) {
+        finishAdd(existingArticle);
+    } else {
+        finishAdd(null);
     }
 }
 
 function generateArticle(categoryName) {
     const cat = categories.find(c => c.name === categoryName);
     const prefix = cat ? cat.prefix : 'OTH';
-    // Считаем сколько таких уже в localStorage
     let count = parseInt(localStorage.getItem('art_count_' + prefix) || '0') + 1;
     localStorage.setItem('art_count_' + prefix, count);
     return prefix + String(count).padStart(3, '0');
 }
 
-function finishAdd(existingArticle, category, audience, price, size, qty, year) {
-    const article = existingArticle || generateArticle(category);
+function finishAdd(existingArt) {
+    const article = existingArt || generateArticle(pendingItem.category);
     
     items.push({
         article: article,
-        category: category,
-        audience: audience,
-        price: price,
-        size: size,
-        year: year,
-        qty: qty,
+        category: pendingItem.category,
+        audience: pendingItem.audience,
+        price: pendingItem.price,
+        size: pendingItem.size,
+        year: pendingItem.year,
+        qty: pendingItem.qty,
         photo: currentPhotoBase64
     });
 
@@ -501,10 +552,12 @@ function finishAdd(existingArticle, category, audience, price, size, qty, year) 
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     selectedSize = ''; selectedYear = ''; selectedAudience = '';
     
-    // Разблокировка кнопки
-    const btn = document.querySelector('#screen-seller .btn-main[onclick="addItem()"]');
+    const btn = document.getElementById('btn-add-item');
     btn.innerText = 'Добавить в ревизию';
     btn.disabled = false;
+    
+    pendingItem = null;
+    existingArticle = null;
 }
 
 function removeItem(i) {
@@ -562,12 +615,11 @@ async function saveInventory() {
         renderItems();
     } catch (e) {
         console.error(e);
-        // Сохраняем локально в очередь, если нет интернета
         let offlineQueue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
         offlineQueue.push(revisionData);
         localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
         
-        alert('⚠️ Нет интернета. Ревизия сохранена в память телефона. Она отправится при появлении сети (откройте приложение с интернетом).');
+        alert('⚠️ Нет интернета. Ревизия сохранена в память. Она отправится при появлении сети.');
         items = [];
         renderItems();
     } finally {
@@ -583,7 +635,7 @@ async function loadMatrix() {
 
     try {
         const snapshot = await fbFns.getDocs(fbFns.collection(db, "revisions"));
-        let allItems = {}; // Группируем по артикулу
+        let allItems = {}; 
 
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -612,9 +664,8 @@ async function loadMatrix() {
             const s = info.shops;
             const sizes = Array.from(info.sizes).join(', ');
             
-            // Подсветка
             const getClass = (val, other1, other2) => {
-                if (val === 0 && (other1 > 0 || other2 > 0)) return 'zero'; // Нужно перевезти
+                if (val === 0 && (other1 > 0 || other2 > 0)) return 'zero';
                 if (val > 0) return 'has-stock';
                 return '';
             };
