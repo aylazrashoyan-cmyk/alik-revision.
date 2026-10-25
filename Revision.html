@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ревизия сети</title>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
+    authDomain: "revisionset.firebaseapp.com",
+    projectId: "revisionset",
+    storageBucket: "revisionset.firebasestorage.app",
+    messagingSenderId: "904187992853",
+    appId: "1:904187992853:web:c009614e1cf718d950271c"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  // Экспортируем в глобальную область для доступа из обычного скрипта
+  window.firebaseDB = db;
+  window.firebaseFns = { collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc };
+</script>
+
+<style>
+:root {
+    --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b;
+    --primary: #2563eb; --success: #10b981; --danger: #ef4444;
+    --white: #ffffff; --border: #e2e8f0; --radius: 16px;
+}
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 90px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.header h1 { margin: 0; font-size: 20px; }
+.card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
+.card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+.input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+.input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
+.input-field.error { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
+
+.size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
+.size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+.btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+.qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
+.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
+
+.photo-preview { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; display: none; }
+
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+.list-item:last-child { border-bottom: none; }
+.btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
+
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Стили для матрицы А.А. */
+.matrix-row { display: flex; border-bottom: 1px solid var(--border); padding: 8px 0; align-items: center;}
+.matrix-col { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
+.matrix-col.name { flex: 2; text-align: left; font-size: 13px;}
+.matrix-col.zero { color: var(--danger); background: #fef2f2; }
+.matrix-col.has-stock { color: var(--success); background: #ecfdf5; }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН 1: АВТОРИЗАЦИЯ -->
+<div id="screen-auth" class="screen active">
+    <div class="card">
+        <h2 style="text-align: center; margin-top: 0;">Выбор магазина</h2>
+        <div class="size-pills" style="justify-content: center;">
+            <div class="size-pill" onclick="selectShop(this, 'Алик')">Алик</div>
+            <div class="size-pill" onclick="selectShop(this, 'Мода')">Мода</div>
+            <div class="size-pill" onclick="selectShop(this, 'Твой стиль')">Твой стиль</div>
+        </div>
+        
+        <div class="input-group" style="margin-top: 20px;">
+            <label class="input-label">Ваше имя (Продавец)</label>
+            <input type="text" class="input-field" id="seller-name" placeholder="Введите имя">
+        </div>
+
+        <button class="btn-main" onclick="loginSeller()">Войти как продавец</button>
+        <button class="btn-main" style="background: #1e293b; margin-top: 10px;" onclick="loginDirector()">Вход для А.А.</button>
+    </div>
+</div>
+
+<!-- ЭКРАН 2: ФОРМА ПРОДАВЦА -->
+<div id="screen-seller" class="screen">
+    <div class="header">
+        <h1 id="shop-title">Ревизия</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
+    </div>
+
+    <div class="card">
+        <div class="input-group">
+            <label class="input-label">Фото товара (Обязательно)</label>
+            <input type="file" accept="image/*" capture="environment" class="input-field" id="prod-photo" onchange="handlePhoto(this)">
+            <img id="photo-preview" class="photo-preview">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label" style="display:flex; justify-content:space-between;">
+                Категория 
+                <span class="btn-add-cat" onclick="addCustomCategory()">+ Своя</span>
+            </label>
+            <select class="input-field" id="prod-category"></select>
+        </div>
+
+        <div class="input-label" style="margin-bottom: 8px;">Аудитория</div>
+        <div class="size-pills" id="audience-pills">
+            <div class="size-pill" onclick="selectAudience(this)">Муж</div>
+            <div class="size-pill" onclick="selectAudience(this)">Жен</div>
+            <div class="size-pill" onclick="selectAudience(this)">Дет</div>
+        </div>
+
+        <div class="input-group" style="margin-top: 12px;">
+            <label class="input-label">Цена (за штуку)</label>
+            <input type="number" class="input-field" id="prod-price" placeholder="0">
+        </div>
+
+        <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
+        <div class="size-pills" id="size-pills">
+            <div class="size-pill" onclick="selectSize(this)">M</div>
+            <div class="size-pill" onclick="selectSize(this)">L</div>
+            <div class="size-pill" onclick="selectSize(this)">XL</div>
+            <div class="size-pill" onclick="selectSize(this)">2XL</div>
+            <div class="size-pill" onclick="selectSize(this)">3XL</div>
+            <div class="size-pill" onclick="selectSize(this)">4XL</div>
+            <div class="size-pill" onclick="selectSize(this)">5XL</div>
+            <div class="size-pill" onclick="selectSize(this)">6XL</div>
+        </div>
+        <div class="input-group">
+            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер" readonly onclick="promptCustomSize()">
+        </div>
+
+        <div class="input-label" style="margin-bottom: 8px;">Год завоза</div>
+        <div class="size-pills" id="year-pills">
+            <div class="size-pill" onclick="selectYear(this)">21</div>
+            <div class="size-pill" onclick="selectYear(this)">22</div>
+            <div class="size-pill" onclick="selectYear(this)">23</div>
+            <div class="size-pill" onclick="selectYear(this)">24</div>
+            <div class="size-pill" onclick="selectYear(this)">25</div>
+            <div class="size-pill" onclick="selectYear(this)">26</div>
+            <div class="size-pill" onclick="selectYear(this)">27</div>
+            <div class="size-pill" onclick="selectYear(this)">28</div>
+        </div>
+
+        <div class="input-label" style="margin-bottom: 8px;">Количество</div>
+        <div class="qty-control">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <input type="number" class="qty-input" id="qty-input" value="1" min="1" readonly onclick="promptQty()">
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+        </div>
+
+        <button class="btn-main" style="margin-top: 20px; background: var(--success);" onclick="addItem()">Добавить в ревизию</button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>Текущая ревизия</span>
+            <span id="items-count" style="color: var(--primary);">0</span>
+        </div>
+        <div id="items-list"><div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div></div>
+    </div>
+
+    <div class="bottom-bar">
+        <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить и отправить</button>
+    </div>
+</div>
+
+<!-- ЭКРАН 3: А.А. (МАТРИЦА) -->
+<div id="screen-director" class="screen">
+    <div class="header">
+        <h1>А.А. · Остатки</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
+    </div>
+    <div class="card" style="padding: 8px;">
+        <div class="matrix-row" style="font-weight: bold; background: #f8fafc; margin-bottom: 8px; border-radius: 8px;">
+            <div class="matrix-col name">Товар (Артикул)</div>
+            <div class="matrix-col">Алик</div>
+            <div class="matrix-col">Мода</div>
+            <div class="matrix-col">Твой</div>
+        </div>
+        <div id="matrix-list">
+            <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- КОНФИГ И БАЗА ---
+let db, fbFns;
+let shop = localStorage.getItem('rev_shop') || '';
+let seller = localStorage.getItem('rev_seller') || '';
+let directorMode = false;
+
+const DEFAULT_CATEGORIES = [
+    { name: 'Куртки', prefix: 'KUR' },
+    { name: 'Костюмы спортивные', prefix: 'KOS' },
+    { name: 'Костюмы классические', prefix: 'KOK' },
+    { name: 'Кофты', prefix: 'KOF' },
+    { name: 'Худи', prefix: 'HUD' },
+    { name: 'Кроссовки', prefix: 'KRO' },
+    { name: 'Ботинки', prefix: 'BOT' },
+    { name: 'Полусапожки', prefix: 'POL' }
+];
+
+let categories = JSON.parse(localStorage.getItem('rev_categories')) || DEFAULT_CATEGORIES;
+let items = [];
+let currentPhotoBase64 = '';
+let selectedSize = '';
+let selectedYear = '';
+let selectedAudience = '';
+
+// Ждем загрузки Firebase (так как скрипт module грузится асинхронно)
+setInterval(() => {
+    if (window.firebaseDB) {
+        db = window.firebaseDB;
+        fbFns = window.firebaseFns;
+        clearInterval(this);
+        initApp();
+    }
+}, 100);
+
+function initApp() {
+    const shopTitle = document.getElementById('shop-title');
+    if (shop) shopTitle.innerText = 'Ревизия · ' + shop;
+    
+    document.getElementById('seller-name').value = seller;
+    renderCategories();
+    
+    if (shop && seller) {
+        showScreen('screen-seller');
+    } else {
+        showScreen('screen-auth');
+    }
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(id === 'screen-director') loadMatrix();
+}
+
+// --- АВТОРИЗАЦИЯ ---
+function selectShop(el, name) {
+    document.querySelectorAll('#screen-auth .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    shop = name;
+}
+
+function loginSeller() {
+    const name = document.getElementById('seller-name').value.trim();
+    if (!shop) return alert('Выберите магазин!');
+    if (!name) return alert('Введите ваше имя!');
+    
+    seller = name;
+    localStorage.setItem('rev_shop', shop);
+    localStorage.setItem('rev_seller', seller);
+    document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
+    showScreen('screen-seller');
+}
+
+function loginDirector() {
+    const pin = prompt('Введите PIN-код для А.А.:');
+    if (pin === '1988') {
+        directorMode = true;
+        showScreen('screen-director');
+    } else {
+        alert('Неверный PIN');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('rev_shop');
+    localStorage.removeItem('rev_seller');
+    shop = ''; seller = '';
+    showScreen('screen-auth');
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+}
+
+// --- КАТЕГОРИИ ---
+function renderCategories() {
+    const sel = document.getElementById('prod-category');
+    sel.innerHTML = '<option value="">Выберите категорию...</option>';
+    categories.forEach(c => {
+        sel.innerHTML += `<option value="${c.name}" data-prefix="${c.prefix}">${c.name}</option>`;
+    });
+}
+
+function addCustomCategory() {
+    const name = prompt('Введите название новой категории:');
+    if (!name) return;
+    
+    // Проверка на дубли
+    if (categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+        return alert('Такая категория уже есть!');
+    }
+    
+    const prefix = name.substring(0, 3).toUpperCase().replace(/[^А-ЯA-Z]/g, 'X');
+    categories.push({ name: name, prefix: prefix });
+    localStorage.setItem('rev_categories', JSON.stringify(categories));
+    renderCategories();
+    alert('Категория добавлена!');
+}
+
+// --- ФОТО ---
+function handlePhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 600; // Сжимаем для экономии памяти
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            
+            const preview = document.getElementById('photo-preview');
+            preview.src = currentPhotoBase64;
+            preview.style.display = 'block';
+        }
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+// --- ВЫБОР ОПЦИЙ ---
+function selectSize(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedSize = '';
+        return;
+    }
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedSize = el.innerText;
+    document.getElementById('custom-size').value = '';
+}
+
+function promptCustomSize() {
+    let size = prompt("Введите свой размер:");
+    if (size) {
+        document.getElementById('custom-size').value = size;
+        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+        selectedSize = '';
+    }
+}
+
+function selectYear(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedYear = '';
+        return;
+    }
+    document.querySelectorAll('#year-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedYear = el.innerText;
+}
+
+function selectAudience(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedAudience = '';
+        return;
+    }
+    document.querySelectorAll('#audience-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedAudience = el.innerText;
+}
+
+function changeQty(delta) {
+    const inp = document.getElementById('qty-input');
+    let v = parseInt(inp.value) || 1;
+    if (v + delta >= 1) inp.value = v + delta;
+}
+
+function promptQty() {
+    let qty = prompt("Введите количество:", document.getElementById('qty-input').value);
+    if (qty && parseInt(qty) > 0) {
+        document.getElementById('qty-input').value = parseInt(qty);
+    }
+}
+
+// --- ДОБАВЛЕНИЕ ТОВАРА С ПРОВЕРКОЙ ДУБЛЕЙ ---
+async function addItem() {
+    const category = document.getElementById('prod-category').value;
+    const price = parseFloat(document.getElementById('prod-price').value);
+    const customSize = document.getElementById('custom-size').value.trim();
+    const finalSize = customSize || selectedSize || '—';
+    const qty = parseInt(document.getElementById('qty-input').value) || 1;
+    const year = selectedYear || '—';
+
+    if (!currentPhotoBase64) return alert('Сделайте фото товара!');
+    if (!category) return alert('Выберите категорию!');
+    if (!selectedAudience) return alert('Выберите аудиторию (Муж/Жен/Дет)!');
+    if (!price || price <= 0) return alert('Введите корректную цену!');
+
+    // Блокируем кнопку пока идет проверка
+    const btn = document.querySelector('#screen-seller .btn-main[onclick="addItem()"]');
+    btn.innerText = 'Проверка базы...';
+    btn.disabled = true;
+
+    try {
+        // Ищем похожий товар в Firebase
+        const q = fbFns.query(
+            fbFns.collection(db, "revisions"), 
+            fbFns.where("category", "==", category),
+            fbFns.where("audience", "==", selectedAudience),
+            fbFns.where("price", "==", price)
+        );
+        
+        const snapshot = await fbFns.getDocs(q);
+        let existingItems = [];
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.items.forEach(it => {
+                if (it.size === finalSize || it.size === '—') {
+                    existingItems.push({ shop: data.shop, seller: data.seller, article: it.article, photo: it.photo, qty: it.qty });
+                }
+            });
+        });
+
+        if (existingItems.length > 0) {
+            // Нашли дубль!
+            const ex = existingItems[0];
+            const imgHtml = `<img src="${ex.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; margin-bottom:10px;">`;
+            const msg = `⚠️ Похожий товар уже есть!\n\nМагазин: ${ex.shop}\nАртикул: ${ex.article}\nКол-во: ${ex.qty} шт.\n\nЭто та же модель? (ОК = Да, использовать ${ex.article}. Отмена = Нет, создать новый).`;
+            
+            // Визуально показать фото (alert не поддерживает картинки, поэтому выводим через confirm, а фото - отдельно в консоль)
+            // Для простоты используем confirm
+            if (confirm(msg)) {
+                finishAdd(ex.article, category, selectedAudience, price, finalSize, qty, year);
+            } else {
+                finishAdd(null, category, selectedAudience, price, finalSize, qty, year);
+            }
+        } else {
+            // Дублей нет
+            finishAdd(null, category, selectedAudience, price, finalSize, qty, year);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Ошибка сети, добавляем локально...');
+        finishAdd(null, category, selectedAudience, price, finalSize, qty, year);
+    }
+}
+
+function generateArticle(categoryName) {
+    const cat = categories.find(c => c.name === categoryName);
+    const prefix = cat ? cat.prefix : 'OTH';
+    // Считаем сколько таких уже в localStorage
+    let count = parseInt(localStorage.getItem('art_count_' + prefix) || '0') + 1;
+    localStorage.setItem('art_count_' + prefix, count);
+    return prefix + String(count).padStart(3, '0');
+}
+
+function finishAdd(existingArticle, category, audience, price, size, qty, year) {
+    const article = existingArticle || generateArticle(category);
+    
+    items.push({
+        article: article,
+        category: category,
+        audience: audience,
+        price: price,
+        size: size,
+        year: year,
+        qty: qty,
+        photo: currentPhotoBase64
+    });
+
+    renderItems();
+
+    // Сброс формы
+    document.getElementById('prod-photo').value = '';
+    document.getElementById('photo-preview').style.display = 'none';
+    currentPhotoBase64 = '';
+    document.getElementById('prod-category').value = '';
+    document.getElementById('prod-price').value = '';
+    document.getElementById('qty-input').value = 1;
+    document.getElementById('custom-size').value = '';
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    selectedSize = ''; selectedYear = ''; selectedAudience = '';
+    
+    // Разблокировка кнопки
+    const btn = document.querySelector('#screen-seller .btn-main[onclick="addItem()"]');
+    btn.innerText = 'Добавить в ревизию';
+    btn.disabled = false;
+}
+
+function removeItem(i) {
+    items.splice(i, 1);
+    renderItems();
+}
+
+function renderItems() {
+    const list = document.getElementById('items-list');
+    const count = document.getElementById('items-count');
+
+    if (items.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>';
+        count.textContent = '0';
+        return;
+    }
+
+    list.innerHTML = '';
+    items.forEach((item, i) => {
+        list.innerHTML += `
+        <div class="list-item" style="align-items: flex-start;">
+            <div style="flex: 1; display:flex; gap:10px;">
+                <img src="${item.photo}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
+                <div>
+                    <div style="font-size: 13px; font-weight: 600;">${item.category} (${item.article})</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${item.audience} · ${item.size} · ${item.year} г. · ${item.price}₽</div>
+                </div>
+            </div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 8px;">${item.qty} шт</div>
+            <button class="btn-del" onclick="removeItem(${i})">✕</button>
+        </div>`;
+    });
+    count.textContent = items.length;
+}
+
+// --- СОХРАНЕНИЕ РЕВИЗИИ ---
+async function saveInventory() {
+    if (items.length === 0) return alert('Список пуст!');
+    
+    const btn = document.querySelector('#screen-seller .bottom-bar .btn-main');
+    btn.innerText = 'Отправка...';
+    btn.disabled = true;
+
+    const revisionData = {
+        shop: shop,
+        seller: seller,
+        date: new Date().toISOString(),
+        items: items
+    };
+
+    try {
+        await fbFns.addDoc(fbFns.collection(db, "revisions"), revisionData);
+        alert('✅ Ревизия успешно отправлена А.А.!');
+        items = [];
+        renderItems();
+    } catch (e) {
+        console.error(e);
+        // Сохраняем локально в очередь, если нет интернета
+        let offlineQueue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
+        offlineQueue.push(revisionData);
+        localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
+        
+        alert('⚠️ Нет интернета. Ревизия сохранена в память телефона. Она отправится при появлении сети (откройте приложение с интернетом).');
+        items = [];
+        renderItems();
+    } finally {
+        btn.innerText = '✓ Сохранить и отправить';
+        btn.disabled = false;
+    }
+}
+
+// --- МАТРИЦА А.А. ---
+async function loadMatrix() {
+    const list = document.getElementById('matrix-list');
+    list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>';
+
+    try {
+        const snapshot = await fbFns.getDocs(fbFns.collection(db, "revisions"));
+        let allItems = {}; // Группируем по артикулу
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.items.forEach(item => {
+                if (!allItems[item.article]) {
+                    allItems[item.article] = {
+                        category: item.category,
+                        photo: item.photo,
+                        price: item.price,
+                        sizes: new Set(),
+                        shops: { 'Алик': 0, 'Мода': 0, 'Твой стиль': 0 }
+                    };
+                }
+                allItems[item.article].sizes.add(item.size);
+                allItems[item.article].shops[data.shop] += item.qty;
+            });
+        });
+
+        if (Object.keys(allItems).length === 0) {
+            list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Ревизий пока нет.</div>';
+            return;
+        }
+
+        list.innerHTML = '';
+        for (const [art, info] of Object.entries(allItems)) {
+            const s = info.shops;
+            const sizes = Array.from(info.sizes).join(', ');
+            
+            // Подсветка
+            const getClass = (val, other1, other2) => {
+                if (val === 0 && (other1 > 0 || other2 > 0)) return 'zero'; // Нужно перевезти
+                if (val > 0) return 'has-stock';
+                return '';
+            };
+
+            list.innerHTML += `
+            <div class="matrix-row" style="align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
+                <div class="matrix-col name">
+                    <div style="display:flex; gap:8px;">
+                        <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">
+                        <div>
+                            <div style="font-weight:700;">${art}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes} р.</div>
+                            <div style="font-size:11px; color:var(--primary);">${info.price} ₽</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="matrix-col ${getClass(s['Алик'], s['Мода'], s['Твой стиль'])}" style="padding-top:10px;">${s['Алик'] > 0 ? s['Алик'] : (s['Мода'] > 0 || s['Твой стиль'] > 0 ? '0!' : '0')}</div>
+                <div class="matrix-col ${getClass(s['Мода'], s['Алик'], s['Твой стиль'])}" style="padding-top:10px;">${s['Мода'] > 0 ? s['Мода'] : (s['Алик'] > 0 || s['Твой стиль'] > 0 ? '0!' : '0')}</div>
+                <div class="matrix-col ${getClass(s['Твой стиль'], s['Алик'], s['Мода'])}" style="padding-top:10px;">${s['Твой стиль'] > 0 ? s['Твой стиль'] : (s['Алик'] > 0 || s['Мода'] > 0 ? '0!' : '0')}</div>
+            </div>`;
+        }
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = '<div style="text-align
