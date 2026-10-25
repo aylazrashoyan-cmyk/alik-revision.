@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ревизия сети</title>
+<title>Заказы между магазинами</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -32,11 +32,10 @@
     --white: #ffffff; --border: #e2e8f0; --radius: 16px;
 }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 100px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 30px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
-.card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
 .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
 .toast.show { opacity: 1; }
@@ -51,112 +50,47 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
-.btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
-.qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
-.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
-
-.photo-preview { width: 100%; max-height: 350px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; display: none; border: 1px solid var(--border); }
-
-.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
-.list-item:last-child { border-bottom: none; }
-.btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center;}
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
-
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
-.bottom-bar button { flex: 1; margin: 0; }
+.btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
 
 .screen { display: none; }
 .screen.active { display: block; }
-
-.matrix-row { display: flex; border-bottom: 1px solid var(--border); padding: 8px 0; align-items: center;}
-.matrix-col { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
-.matrix-col.name { flex: 2; text-align: left; font-size: 13px;}
-.matrix-col.zero { color: var(--danger); background: #fef2f2; }
-.matrix-col.has-stock { color: var(--success); background: #ecfdf5; }
-
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; }
-.modal-box { background: var(--white); border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; max-height: 90vh; overflow-y: auto;}
-.modal-img { width: 150px; height: 150px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
 
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
 .pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
 .pin-btn:active { background: #e2e8f0; }
 .pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
 
-.action-panel { display: none; position: fixed; bottom: 90px; left: 16px; right: 16px; background: var(--white); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 50; border: 2px solid var(--success); }
-.action-panel h4 { margin: 0 0 10px 0; text-align: center; color: var(--success); }
-.action-btns { display: flex; gap: 10px; }
-.action-btns button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
-.btn-continue { background: #dcfce7; color: #166534; }
-.btn-finish { background: #f1f5f9; color: #475569; }
-
-#dup-results { display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
-.dup-item { display: flex; gap: 10px; background: white; padding: 8px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer; align-items: center;}
-.dup-item:active { background: #e2e8f0; }
-
-.merge-select { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; margin-bottom: 20px;}
-
 .badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
-.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; gap:10px; }
+.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; flex-direction: column; gap:10px; }
 .order-card.pending { border-left: 4px solid var(--primary); }
 .order-card.accepted { border-left: 4px solid var(--success); }
 .order-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
-.order-content { flex:1; }
+
 .order-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
-.order-title { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
-.order-actions { display: flex; gap: 10px; margin-top: 10px; }
-.order-actions button { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.order-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+.order-details { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.order-actions { display: flex; gap: 10px; margin-top: 5px; }
+.order-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;}
 .btn-accept { background: #dcfce7; color: #166534; }
 .btn-reject { background: #fee2e2; color: #991b1b; }
-.order-photo { width:50px; height:50px; border-radius:8px; object-fit:contain; background:#f1f5f9; flex-shrink:0; }
+
+.order-photo { width: 100%; max-height: 200px; object-fit: contain; background:#f1f5f9; border-radius: 8px; margin-bottom: 5px;}
+
+/* Вкладки */
+.tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;}
+.tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
+.tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 </style>
 </head>
 <body>
 
 <div id="toast" class="toast"></div>
 
-<div id="action-panel" class="action-panel">
-    <h4>Товар добавлен в список!</h4>
-    <p style="font-size:12px; text-align:center; color:var(--text-muted); margin-bottom:12px;">Добавить эту же модель в другом размере?</p>
-    <div class="action-btns">
-        <button class="btn-continue" onclick="continueSameModel()">+ Ещё размер</button>
-        <button class="btn-finish" onclick="finishModel()">Завершить</button>
-    </div>
-</div>
-
-<div id="modal-dup" class="modal-overlay">
-    <div class="modal-box">
-        <h3 style="margin-top:0;">Похожий товар уже есть!</h3>
-        <img id="modal-img" class="modal-img" src="">
-        <div style="font-size:14px; margin-bottom:16px; text-align:left; background:#f8fafc; padding:10px; border-radius:8px;">
-            <div style="margin-bottom:4px;"><b>Магазин:</b> <span id="modal-shop"></span></div>
-            <div style="margin-bottom:4px;"><b>Артикул:</b> <span id="modal-art"></span></div>
-            <div><b>Кол-во:</b> <span id="modal-qty"></span> шт.</div>
-        </div>
-        <p style="font-size:14px; margin-bottom:20px;">Это та же модель?</p>
-        <button class="btn-main" style="background:var(--success); margin-bottom:10px;" onclick="confirmDup(true)">Да, это она</button>
-        <button class="btn-main" style="background:#64748b;" onclick="confirmDup(false)">Нет, другая модель</button>
-    </div>
-</div>
-
-<div id="modal-merge" class="modal-overlay">
-    <div class="modal-box">
-        <h3 style="margin-top:0;">Объединение артикулов</h3>
-        <p style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">
-            Вы хотите объединить артикул <b id="merge-source-name" style="color:var(--danger);"></b> в другой артикул.
-        </p>
-        <p style="font-size:14px; margin-bottom:10px;">Выберите целевой артикул:</p>
-        <select id="merge-target-select" class="merge-select"></select>
-        <button class="btn-main" style="background:var(--primary); margin-bottom:10px;" onclick="executeMerge()">Объединить</button>
-        <button class="btn-main" style="background:#64748b;" onclick="document.getElementById('modal-merge').style.display='none'">Отмена</button>
-    </div>
-</div>
-
 <div id="screen-auth" class="screen active">
     <div class="card">
-        <h2 style="text-align: center; margin-top: 0;">Выбор магазина</h2>
+        <h2 style="text-align: center; margin-top: 0;">Вход в систему заказов</h2>
         <div class="size-pills" style="justify-content: center;" id="shop-pills">
             <div class="size-pill" onclick="selectShop(this, 'Алик')">Алик</div>
             <div class="size-pill" onclick="selectShop(this, 'Мода')">Мода</div>
@@ -193,108 +127,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 <div id="screen-seller" class="screen">
     <div class="header">
-        <h1 id="shop-title">Ревизия</h1>
-        <div>
-            <span id="order-badge" class="badge" style="display:none;">0</span>
-            <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; margin-left:10px;">Выйти</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="input-group">
-            <label class="input-label">Фото товара (Обязательно)</label>
-            <input type="file" accept="image/*" capture="environment" class="input-field" id="prod-photo" onchange="handlePhoto(this)">
-            <img id="photo-preview" class="photo-preview">
-        </div>
-
-        <div class="input-group">
-            <label class="input-label" style="display:flex; justify-content:space-between;">
-                Категория 
-                <span class="btn-add-cat" onclick="showCustomCategory()">+ Своя</span>
-            </label>
-            <select class="input-field" id="prod-category" onchange="searchDubs()"></select>
-            <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
-        </div>
-
-        <div id="dup-results">
-            <div style="font-size:12px; font-weight:bold; color:var(--primary); margin-bottom:8px;">Найдены похожие товары. Нажмите на нужный, чтобы использовать его артикул:</div>
-            <div id="dup-list"></div>
-            <div style="text-align:center; margin-top:8px;">
-                <button style="background:none; border:none; color:var(--text-muted); font-size:12px; text-decoration:underline;" onclick="hideDups()">Скрыть / Создать новый</button>
-            </div>
-        </div>
-
-        <div class="input-label" style="margin-bottom: 8px;">Аудитория</div>
-        <div class="size-pills" id="audience-pills">
-            <div class="size-pill" onclick="selectAudience(this); searchDubs();">Муж</div>
-            <div class="size-pill" onclick="selectAudience(this); searchDubs();">Жен</div>
-            <div class="size-pill" onclick="selectAudience(this); searchDubs();">Дет</div>
-        </div>
-
-        <div class="input-group" style="margin-top: 12px;">
-            <label class="input-label">Цена (за штуку)</label>
-            <input type="number" class="input-field" id="prod-price" placeholder="0" oninput="searchDubs()">
-        </div>
-
-        <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
-        <div class="size-pills" id="size-pills">
-            <div class="size-pill" onclick="selectSize(this)">M</div>
-            <div class="size-pill" onclick="selectSize(this)">L</div>
-            <div class="size-pill" onclick="selectSize(this)">XL</div>
-            <div class="size-pill" onclick="selectSize(this)">2XL</div>
-            <div class="size-pill" onclick="selectSize(this)">3XL</div>
-            <div class="size-pill" onclick="selectSize(this)">4XL</div>
-            <div class="size-pill" onclick="selectSize(this)">5XL</div>
-            <div class="size-pill" onclick="selectSize(this)">6XL</div>
-        </div>
-        <div class="input-group">
-            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (введите если нет в списке)" oninput="searchDubs()">
-        </div>
-
-        <div class="input-label" style="margin-bottom: 8px;">Год завоза</div>
-        <div class="size-pills" id="year-pills">
-            <div class="size-pill" onclick="selectYear(this)">21</div>
-            <div class="size-pill" onclick="selectYear(this)">22</div>
-            <div class="size-pill" onclick="selectYear(this)">23</div>
-            <div class="size-pill" onclick="selectYear(this)">24</div>
-            <div class="size-pill" onclick="selectYear(this)">25</div>
-            <div class="size-pill" onclick="selectYear(this)">26</div>
-            <div class="size-pill" onclick="selectYear(this)">27</div>
-            <div class="size-pill" onclick="selectYear(this)">28</div>
-        </div>
-
-        <div class="input-label" style="margin-bottom: 8px;">Количество</div>
-        <div class="qty-control">
-            <button class="qty-btn" onclick="changeQty(-1)">−</button>
-            <input type="number" class="qty-input" id="qty-input" value="1" min="1">
-            <button class="qty-btn" onclick="changeQty(1)">+</button>
-        </div>
-
-        <button class="btn-main" style="margin-top: 20px; background: var(--success);" id="btn-add-item" onclick="addItem()">Добавить в ревизию</button>
-    </div>
-
-    <div class="card">
-        <div class="card-title">
-            <span>Текущая ревизия</span>
-            <span id="items-count" style="color: var(--primary);">0</span>
-        </div>
-        <div id="items-list"><div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div></div>
-    </div>
-
-    <div class="bottom-bar">
-        <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить</button>
-        <button class="btn-main" style="background: var(--primary);" onclick="showScreen('screen-orders')">📦 Заказы <span id="bottom-order-badge" class="badge" style="display:none;">0</span></button>
-    </div>
-</div>
-
-<div id="screen-orders" class="screen">
-    <div class="header">
-        <h1>Заказы</h1>
-        <button onclick="showScreen('screen-seller')" style="background:none; border:none; color:var(--primary); font-weight:bold;">← Назад</button>
+        <h1 id="shop-title">Заказы</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
     </div>
 
     <div class="card">
         <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
+        
         <div class="input-group">
             <label class="input-label">Кому (Магазин)</label>
             <select id="order-to-shop" class="input-field">
@@ -303,20 +142,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 <option value="Твой стиль">Твой стиль</option>
             </select>
         </div>
+
         <div class="input-group">
-            <label class="input-label">Какой товар нужен (Артикул)</label>
-            <select id="order-article" class="input-field">
-                <option value="">Загрузка артикулов...</option>
+            <label class="input-label">Отдел</label>
+            <select id="order-dept" class="input-field">
+                <option value="Мужской">Мужской</option>
+                <option value="Женский">Женский</option>
+                <option value="Детский">Детский</option>
+                <option value="Обувь">Обувь</option>
             </select>
         </div>
+
         <div class="input-group">
-            <label class="input-label">Сколько штук</label>
+            <label class="input-label">Фото (Сделать снимок)</label>
+            <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handleOrderPhoto(this)">
+            <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Размер</label>
+            <input type="text" id="order-size" class="input-field" placeholder="Например: 2XL или 48">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Сколько штук нужно</label>
             <input type="number" id="order-qty" class="input-field" value="1" min="1">
         </div>
+
         <div class="input-group">
-            <label class="input-label">Комментарий</label>
+            <label class="input-label">Комментарий (что угодно)</label>
             <input type="text" id="order-comment" class="input-field" placeholder="Например: Заберите у нас KOS001">
         </div>
+        
         <button class="btn-main" onclick="createOrder()">Отправить запрос</button>
         
         <div id="offline-orders-block" style="display:none; margin-top:15px; text-align:center;">
@@ -326,7 +183,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
 
     <div class="card">
-        <h3 style="margin-top:0;">Входящие запросы (Вам)</h3>
+        <h3 style="margin-top:0;">Входящие запросы (Вам) <span id="order-badge" class="badge" style="display:none;">0</span></h3>
+        
+        <div class="tabs" id="incoming-tabs">
+            <div class="tab active" onclick="switchIncomingTab('all', this)">Все</div>
+            <div class="tab" onclick="switchIncomingTab('Мужской', this)">Муж</div>
+            <div class="tab" onclick="switchIncomingTab('Женский', this)">Жен</div>
+            <div class="tab" onclick="switchIncomingTab('Детский', this)">Дет</div>
+            <div class="tab" onclick="switchIncomingTab('Обувь', this)">Обувь</div>
+        </div>
+
         <div id="orders-incoming-list">
             <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Загрузка...</div>
         </div>
@@ -342,68 +208,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 <div id="screen-director" class="screen">
     <div class="header">
-        <h1>А.А. · Остатки</h1>
+        <h1>А.А. · Все заказы</h1>
         <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
     </div>
     
-    <div class="size-pills" style="justify-content: center; margin-bottom: 16px;">
-        <div class="size-pill active" onclick="switchDirectorTab('matrix', this)">Матрица</div>
-        <div class="size-pill" onclick="switchDirectorTab('orders', this)">Все заказы</div>
-    </div>
-
-    <div id="director-tab-matrix">
-        <div class="card" style="padding: 8px;">
-            <div class="matrix-row" style="font-weight: bold; background: #f8fafc; margin-bottom: 8px; border-radius: 8px;">
-                <div class="matrix-col name">Товар (Артикул)</div>
-                <div class="matrix-col">Алик</div>
-                <div class="matrix-col">Мода</div>
-                <div class="matrix-col">Твой</div>
-            </div>
-            <div id="matrix-list">
-                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="director-tab-orders" style="display:none;">
-        <div class="card">
-            <h3 style="margin-top:0;">Все запросы между магазинами</h3>
-            <div id="director-orders-list">
-                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div>
-            </div>
+    <div class="card">
+        <div id="director-orders-list">
+            <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div>
         </div>
     </div>
 </div>
 
 <script>
-let shop = localStorage.getItem('rev_shop') || '';
-let seller = localStorage.getItem('rev_seller') || '';
+let shop = localStorage.getItem('ord_shop') || '';
+let seller = localStorage.getItem('ord_seller') || '';
 let directorMode = false;
 let currentPin = '';
-
-const DEFAULT_CATEGORIES = [
-    { name: 'Куртки', prefix: 'KUR' },
-    { name: 'Костюмы спортивные', prefix: 'KOS' },
-    { name: 'Костюмы классические', prefix: 'KOK' },
-    { name: 'Кофты', prefix: 'KOF' },
-    { name: 'Худи', prefix: 'HUD' },
-    { name: 'Кроссовки', prefix: 'KRO' },
-    { name: 'Ботинки', prefix: 'BOT' },
-    { name: 'Полусапожки', prefix: 'POL' }
-];
-
-let categories = JSON.parse(localStorage.getItem('rev_categories')) || DEFAULT_CATEGORIES;
-let items = [];
-let currentPhotoBase64 = '';
-let selectedSize = '';
-let selectedYear = '';
-let selectedAudience = '';
-let pendingItem = null;
-let existingArticle = null;
-let forcedArticle = null;
-let allMatrixItems = {}; 
-let mergeSourceArticle = null;
-let allArticlesCache = [];
+let currentOrderPhotoBase64 = '';
+let allIncomingOrders = []; // Для фильтрации по вкладкам
 
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
@@ -414,34 +236,22 @@ function showToast(msg, type = 'default') {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('seller-name').value = seller;
-    renderCategories();
     
     if (shop && seller && !directorMode) {
-        document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
+        document.getElementById('shop-title').innerText = 'Заказы · ' + shop;
         showScreen('screen-seller');
+        loadMyOrders();
         checkOrderBadge();
     } else {
         showScreen('screen-auth');
     }
-    setTimeout(() => {
-        syncOffline();
-        syncOrdersOffline(false);
-    }, 2000);
+    setTimeout(() => syncOrdersOffline(false), 2000);
 });
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    if(id === 'screen-director') {
-        loadMatrix();
-        loadDirectorOrders();
-    }
-    if(id === 'screen-orders') {
-        loadArticlesForOrder();
-        loadMyOrders();
-        checkOrderBadge();
-        checkOfflineOrdersUI();
-    }
+    if(id === 'screen-director') loadDirectorOrders();
 }
 
 function selectShop(el, name) {
@@ -456,10 +266,11 @@ function loginSeller() {
     if (!name) return showToast('Введите ваше имя!', 'error');
     
     seller = name;
-    localStorage.setItem('rev_shop', shop);
-    localStorage.setItem('rev_seller', seller);
-    document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
+    localStorage.setItem('ord_shop', shop);
+    localStorage.setItem('ord_seller', seller);
+    document.getElementById('shop-title').innerText = 'Заказы · ' + shop;
     showScreen('screen-seller');
+    loadMyOrders();
     checkOrderBadge();
 }
 
@@ -483,63 +294,42 @@ function checkPin() {
 }
 
 function logout() {
-    localStorage.removeItem('rev_shop');
-    localStorage.removeItem('rev_seller');
+    localStorage.removeItem('ord_shop');
+    localStorage.removeItem('ord_seller');
     shop = ''; seller = ''; directorMode = false;
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     document.getElementById('seller-name').value = '';
     showScreen('screen-auth');
 }
 
-// --- ЗАКАЗЫ ---
+// --- ФОТО ---
+function handleOrderPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
 
-// Функция для получения фото (из заказа или из ревизии)
-function getOrderPhoto(order) {
-    if (order.photo) return order.photo;
-    if (allArticlesCache[order.article]) return allArticlesCache[order.article].photo;
-    return '';
-}
-
-function renderOrderCard(o, isDirector = false) {
-    const photoSrc = getOrderPhoto(o);
-    const photoHtml = photoSrc 
-        ? `<img src="${photoSrc}" class="order-photo">` 
-        : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; font-size:20px; color:#cbd5e1;">📦</div>`;
-
-    const header = isDirector 
-        ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>`
-        : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
-
-    let actionsHtml = '';
-    if (o.status === 'pending') {
-        if (o.toShop === shop) {
-            actionsHtml = `
-                <div class="order-actions">
-                    <button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button>
-                    <button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
-                </div>`;
-        } else {
-            actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 600;
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            currentOrderPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            const preview = document.getElementById('order-photo-preview');
+            preview.src = currentOrderPhotoBase64;
+            preview.style.display = 'block';
         }
-    } else {
-        actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
+        img.src = e.target.result;
     }
-
-    return `
-    <div class="order-card ${o.status}">
-        ${photoHtml}
-        <div class="order-content">
-            <div class="order-header">
-                ${header}
-                <span>${new Date(o.date).toLocaleDateString()}</span>
-            </div>
-            <div class="order-title">${o.article} — ${o.qty} шт.</div>
-            ${o.comment ? `<div style="font-size:12px; color:var(--text-muted);">💬 ${o.comment}</div>` : ''}
-            ${actionsHtml}
-        </div>
-    </div>`;
+    reader.readAsDataURL(file);
 }
 
+// --- ОФЛАЙН ЗАКАЗЫ ---
 function checkOfflineOrdersUI() {
     const queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
     const block = document.getElementById('offline-orders-block');
@@ -569,13 +359,14 @@ async function syncOrdersOffline(showToastMsg = true) {
     if (success > 0) {
         localStorage.setItem('offline_orders', JSON.stringify(queue.slice(success)));
         if (showToastMsg) showToast(`✅ Отправлено ${success} заказов!`, 'success');
-        if (document.getElementById('screen-orders').classList.contains('active')) {
+        if (document.getElementById('screen-seller').classList.contains('active')) {
             loadMyOrders();
         }
         checkOfflineOrdersUI();
     }
 }
 
+// --- ЗАКАЗЫ ---
 async function checkOrderBadge() {
     if (!shop || !window.fbDB) return;
     try {
@@ -588,68 +379,33 @@ async function checkOrderBadge() {
         const count = snap.size;
         
         const badge = document.getElementById('order-badge');
-        const bottomBadge = document.getElementById('bottom-order-badge');
-        
         if (count > 0) {
             badge.innerText = count;
             badge.style.display = 'inline-block';
-            bottomBadge.innerText = count;
-            bottomBadge.style.display = 'inline-block';
         } else {
             badge.style.display = 'none';
-            bottomBadge.style.display = 'none';
         }
-    } catch(e) { 
-        console.log(e); 
-    }
-}
-
-async function loadArticlesForOrder() {
-    if (!window.fbDB) return;
-    const select = document.getElementById('order-article');
-    select.innerHTML = '<option value="">Загрузка...</option>';
-    
-    try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
-        let artMap = {};
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            data.items.forEach(it => {
-                if (!artMap[it.article]) {
-                    artMap[it.article] = { photo: it.photo, category: it.category };
-                }
-            });
-        });
-        
-        allArticlesCache = artMap;
-        select.innerHTML = '<option value="">Выберите артикул...</option>';
-        Object.keys(artMap).sort().forEach(art => {
-            select.innerHTML += `<option value="${art}">${art} — ${artMap[art].category}</option>`;
-        });
-    } catch(e) {
-        console.log(e);
-        select.innerHTML = '<option value="">Ошибка загрузки (нет сети)</option>';
-    }
+    } catch(e) { console.log(e); }
 }
 
 async function createOrder() {
     const toShop = document.getElementById('order-to-shop').value;
-    const article = document.getElementById('order-article').value;
+    const dept = document.getElementById('order-dept').value;
+    const size = document.getElementById('order-size').value.trim();
     const qty = parseInt(document.getElementById('order-qty').value) || 1;
     const comment = document.getElementById('order-comment').value.trim();
     
     if (toShop === shop) return showToast('Нельзя заказать у самого себя', 'error');
-    if (!article) return showToast('Выберите артикул', 'error');
+    if (!currentOrderPhotoBase64) return showToast('Сделайте фото товара!', 'error');
     if (qty < 1) return showToast('Укажите количество', 'error');
 
-    const photo = allArticlesCache[article] ? allArticlesCache[article].photo : '';
     const orderData = {
         fromShop: shop,
         toShop: toShop,
         seller: seller,
-        article: article,
-        photo: photo,
+        dept: dept,
+        photo: currentOrderPhotoBase64,
+        size: size || 'Без размера',
         qty: qty,
         comment: comment,
         status: 'pending',
@@ -666,10 +422,85 @@ async function createOrder() {
         showToast('⚠️ Нет сети. Заказ сохранен и будет отправлен позже.', 'error');
     }
     
+    // Очистка формы
+    document.getElementById('order-photo-file').value = '';
+    document.getElementById('order-photo-preview').style.display = 'none';
+    currentOrderPhotoBase64 = '';
+    document.getElementById('order-size').value = '';
     document.getElementById('order-comment').value = '';
     document.getElementById('order-qty').value = '1';
+    
     loadMyOrders();
     checkOfflineOrdersUI();
+}
+
+function renderOrderCard(o, isDirector = false) {
+    const photoHtml = o.photo 
+        ? `<img src="${o.photo}" class="order-photo">` 
+        : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; font-size:20px; color:#cbd5e1;">📦</div>`;
+
+    const header = isDirector 
+        ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>`
+        : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
+
+    let actionsHtml = '';
+    if (o.status === 'pending') {
+        if (o.toShop === shop && !isDirector) {
+            actionsHtml = `
+                <div class="order-actions">
+                    <button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button>
+                    <button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
+                </div>`;
+        } else {
+            actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
+        }
+    } else {
+        actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
+    }
+
+    // Кнопка удаления для А.А.
+    let deleteBtn = '';
+    if (isDirector) {
+        deleteBtn = `<button class="btn-del" onclick="deleteOrder('${o.id}')">Удалить</button>`;
+    }
+
+    return `
+    <div class="order-card ${o.status}">
+        ${photoHtml}
+        <div class="order-header">
+            ${header}
+            <span>${new Date(o.date).toLocaleDateString()}</span>
+        </div>
+        <div class="order-title">Отдел: ${o.dept} | Размер: ${o.size}</div>
+        <div class="order-details">Количество: <b>${o.qty} шт.</b></div>
+        ${o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">💬 ${o.comment}</div>` : ''}
+        ${actionsHtml}
+        <div style="text-align:right; margin-top:10px;">${deleteBtn}</div>
+    </div>`;
+}
+
+let currentIncomingTab = 'all';
+
+function switchIncomingTab(dept, el) {
+    document.querySelectorAll('#incoming-tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentIncomingTab = dept;
+    renderIncomingOrders();
+}
+
+function renderIncomingOrders() {
+    const listIn = document.getElementById('orders-incoming-list');
+    let filtered = allIncomingOrders;
+    
+    if (currentIncomingTab !== 'all') {
+        filtered = allIncomingOrders.filter(o => o.dept === currentIncomingTab);
+    }
+    
+    if (filtered.length === 0) {
+        listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет запросов в этом отделе</div>';
+    } else {
+        listIn.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+    }
 }
 
 async function loadMyOrders() {
@@ -682,17 +513,12 @@ async function loadMyOrders() {
             window.fbFns.where("toShop", "==", shop)
         );
         const snapIn = await window.fbFns.getDocs(qIn);
-        const listIn = document.getElementById('orders-incoming-list');
         
-        let ordersIn = [];
-        snapIn.forEach(d => ordersIn.push({id: d.id, ...d.data()}));
-        ordersIn.sort((a,b) => new Date(b.date) - new Date(a.date));
+        allIncomingOrders = [];
+        snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
+        allIncomingOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
         
-        if (ordersIn.length === 0) {
-            listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет входящих запросов</div>';
-        } else {
-            listIn.innerHTML = ordersIn.map(o => renderOrderCard(o)).join('');
-        }
+        renderIncomingOrders();
     } catch(e) { 
         console.log(e); 
         document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Нет соединения с базой</div>';
@@ -756,604 +582,15 @@ async function loadDirectorOrders() {
     }
 }
 
-function switchDirectorTab(tab, el) {
-    document.querySelectorAll('#screen-director .size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    
-    if (tab === 'matrix') {
-        document.getElementById('director-tab-matrix').style.display = 'block';
-        document.getElementById('director-tab-orders').style.display = 'none';
-    } else {
-        document.getElementById('director-tab-matrix').style.display = 'none';
-        document.getElementById('director-tab-orders').style.display = 'block';
+async function deleteOrder(orderId) {
+    if (!confirm('Удалить этот заказ?')) return;
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
+        showToast('Заказ удален', 'success');
         loadDirectorOrders();
-    }
-}
-
-// --- ОСТАЛЬНЫЕ ФУНКЦИИ ---
-function renderCategories() {
-    const sel = document.getElementById('prod-category');
-    sel.innerHTML = '<option value="">Выберите категорию...</option>';
-    categories.forEach(c => {
-        sel.innerHTML += `<option value="${c.name}" data-prefix="${c.prefix}">${c.name}</option>`;
-    });
-}
-
-function showCustomCategory() {
-    const inp = document.getElementById('new-category');
-    if (inp.style.display === 'none') {
-        inp.style.display = 'block';
-        inp.focus();
-    } else {
-        inp.style.display = 'none';
-        inp.value = '';
-    }
-}
-
-document.getElementById('new-category').addEventListener('change', function() {
-    const name = this.value.trim();
-    if (!name) return;
-    if (categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
-        showToast('Такая категория уже есть!', 'error');
-        this.value = '';
-        return;
-    }
-    const prefix = name.substring(0, 3).toUpperCase().replace(/[^А-ЯA-Z]/g, 'X');
-    categories.push({ name: name, prefix: prefix });
-    localStorage.setItem('rev_categories', JSON.stringify(categories));
-    renderCategories();
-    document.getElementById('prod-category').value = name;
-    this.value = '';
-    this.style.display = 'none';
-    showToast('Категория добавлена', 'success');
-});
-
-function handlePhoto(input) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 600;
-            const scaleSize = MAX_WIDTH / img.width;
-            canvas.width = MAX_WIDTH;
-            canvas.height = img.height * scaleSize;
-
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-            
-            const preview = document.getElementById('photo-preview');
-            preview.src = currentPhotoBase64;
-            preview.style.display = 'block';
-        }
-        img.src = e.target.result;
-    }
-    reader.readAsDataURL(file);
-}
-
-function selectSize(el) {
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        selectedSize = '';
-        return;
-    }
-    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    selectedSize = el.innerText;
-    document.getElementById('custom-size').value = '';
-}
-
-document.getElementById('custom-size').addEventListener('input', function() {
-    if(this.value.trim() !== '') {
-        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
-        selectedSize = '';
-    }
-});
-
-function selectYear(el) {
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        selectedYear = '';
-        return;
-    }
-    document.querySelectorAll('#year-pills .size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    selectedYear = el.innerText;
-}
-
-function selectAudience(el) {
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        selectedAudience = '';
-        return;
-    }
-    document.querySelectorAll('#audience-pills .size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    selectedAudience = el.innerText;
-}
-
-function changeQty(delta) {
-    const inp = document.getElementById('qty-input');
-    let v = parseInt(inp.value) || 1;
-    if (v + delta >= 1) inp.value = v + delta;
-}
-
-let searchTimeout = null;
-function searchDubs() {
-    forcedArticle = null;
-    const category = document.getElementById('prod-category').value;
-    const audience = selectedAudience;
-    const price = parseFloat(document.getElementById('prod-price').value);
-    
-    if (!category || !audience) {
-        hideDups();
-        return;
-    }
-
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(async () => {
-        if (!window.fbDB || !window.fbFns) return;
-
-        try {
-            const q = window.fbFns.query(
-                window.fbFns.collection(window.fbDB, "revisions"), 
-                window.fbFns.where("category", "==", category),
-                window.fbFns.where("audience", "==", audience)
-            );
-            const snapshot = await window.fbFns.getDocs(q);
-            
-            let matches = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                data.items.forEach(it => {
-                    if (!matches.find(m => m.article === it.article)) {
-                        if (!price || it.price === price) {
-                            matches.push({ ...it, shop: data.shop });
-                        }
-                    }
-                });
-            });
-
-            const resBox = document.getElementById('dup-results');
-            const list = document.getElementById('dup-list');
-            
-            if (matches.length > 0) {
-                list.innerHTML = '';
-                matches.forEach(m => {
-                    list.innerHTML += `
-                    <div class="dup-item" onclick="useExistingArticle('${m.article}')">
-                        <img src="${m.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
-                        <div style="flex:1;">
-                            <div style="font-size:13px; font-weight:700; color:var(--primary);">${m.article}</div>
-                            <div style="font-size:11px; color:var(--text-muted);">${m.shop} · Размер: ${m.size} · ${m.qty} шт. · ${m.price}₽</div>
-                        </div>
-                        <div style="font-size:12px; color:var(--success); font-weight:bold;">Выбрать</div>
-                    </div>`;
-                });
-                resBox.style.display = 'block';
-            } else {
-                hideDups();
-            }
-        } catch (e) {
-            console.log('Ошибка поиска:', e);
-        }
-    }, 500);
-}
-
-function hideDups() {
-    document.getElementById('dup-results').style.display = 'none';
-}
-
-function useExistingArticle(art) {
-    forcedArticle = art;
-    hideDups();
-    showToast(`Выбран артикул: ${art}. Теперь укажите размер и кол-во.`, 'success');
-    document.getElementById('btn-add-item').scrollIntoView({ behavior: 'smooth' });
-}
-
-function addItem() {
-    const category = document.getElementById('prod-category').value;
-    const price = parseFloat(document.getElementById('prod-price').value);
-    const customSize = document.getElementById('custom-size').value.trim();
-    const finalSize = customSize || selectedSize || 'Без размера';
-    const qty = parseInt(document.getElementById('qty-input').value) || 1;
-    const year = selectedYear || '—';
-
-    if (!currentPhotoBase64) return showToast('Сделайте фото товара!', 'error');
-    if (!category) return showToast('Выберите категорию!', 'error');
-    if (!selectedAudience) return showToast('Выберите аудиторию!', 'error');
-    if (!price || price <= 0) return showToast('Введите корректную цену!', 'error');
-
-    let articleToUse = forcedArticle || generateArticle(category);
-    pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year, article: articleToUse };
-    
-    items.push({
-        article: articleToUse,
-        category: pendingItem.category,
-        audience: pendingItem.audience,
-        price: pendingItem.price,
-        size: pendingItem.size,
-        year: pendingItem.year,
-        qty: pendingItem.qty,
-        photo: currentPhotoBase64
-    });
-
-    renderItems();
-    document.getElementById('action-panel').style.display = 'block';
-    
-    if (!forcedArticle && window.fbDB && window.fbFns) {
-        checkDupsInBackground(category, selectedAudience, price, finalSize, articleToUse);
-    }
-    
-    forcedArticle = null;
-}
-
-async function checkDupsInBackground(category, audience, price, size, currentArticle) {
-    try {
-        const q = window.fbFns.query(
-            window.fbFns.collection(window.fbDB, "revisions"), 
-            window.fbFns.where("category", "==", category),
-            window.fbFns.where("audience", "==", audience),
-            window.fbFns.where("price", "==", price)
-        );
-        const snapshot = await window.fbFns.getDocs(q);
-        let foundDup = null;
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            data.items.forEach(it => {
-                if (it.size === size || it.size === 'Без размера') {
-                    foundDup = { shop: data.shop, article: it.article, photo: it.photo, qty: it.qty };
-                }
-            });
-        });
-
-        if (foundDup && foundDup.article !== currentArticle) {
-            existingArticle = foundDup.article;
-            document.getElementById('modal-img').src = foundDup.photo;
-            document.getElementById('modal-shop').innerText = foundDup.shop;
-            document.getElementById('modal-art').innerText = foundDup.article;
-            document.getElementById('modal-qty').innerText = foundDup.qty;
-            document.getElementById('modal-dup').style.display = 'flex';
-            
-            pendingItem.tempArticle = currentArticle;
-        }
-    } catch (e) {
-        console.log('Ошибка проверки дублей:', e);
-    }
-}
-
-function confirmDup(isSame) {
-    document.getElementById('modal-dup').style.display = 'none';
-    
-    if (isSame && existingArticle) {
-        const lastItem = items.find(it => it.article === pendingItem.tempArticle);
-        if (lastItem) {
-            lastItem.article = existingArticle;
-            renderItems();
-            showToast('Артикул обновлен на ' + existingArticle, 'success');
-        }
-    } else {
-        showToast('Создан новый артикул', 'success');
-    }
-    
-    pendingItem = null;
-    existingArticle = null;
-}
-
-function generateArticle(categoryName) {
-    const cat = categories.find(c => c.name === categoryName);
-    const prefix = cat ? cat.prefix : 'OTH';
-    let count = parseInt(localStorage.getItem('art_count_' + prefix) || '0') + 1;
-    localStorage.setItem('art_count_' + prefix, count);
-    return prefix + String(count).padStart(3, '0');
-}
-
-function continueSameModel() {
-    document.getElementById('action-panel').style.display = 'none';
-    document.getElementById('modal-dup').style.display = 'none';
-    
-    document.getElementById('custom-size').value = '';
-    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
-    selectedSize = '';
-    document.getElementById('qty-input').value = 1;
-    
-    showToast('Выберите новый размер', 'success');
-}
-
-function finishModel() {
-    document.getElementById('action-panel').style.display = 'none';
-    document.getElementById('modal-dup').style.display = 'none';
-    
-    document.getElementById('prod-photo').value = '';
-    document.getElementById('photo-preview').style.display = 'none';
-    currentPhotoBase64 = '';
-    document.getElementById('prod-category').value = '';
-    document.getElementById('prod-price').value = '';
-    document.getElementById('qty-input').value = 1;
-    document.getElementById('custom-size').value = '';
-    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    selectedSize = ''; selectedYear = ''; selectedAudience = '';
-    hideDups();
-}
-
-function removeItem(i) {
-    items.splice(i, 1);
-    renderItems();
-}
-
-function renderItems() {
-    const list = document.getElementById('items-list');
-    const count = document.getElementById('items-count');
-
-    if (items.length === 0) {
-        list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>';
-        count.textContent = '0';
-        return;
-    }
-
-    list.innerHTML = '';
-    items.forEach((item, i) => {
-        list.innerHTML += `
-        <div class="list-item" style="align-items: flex-start;">
-            <div style="flex: 1; display:flex; gap:10px;">
-                <img src="${item.photo}" style="width:50px; height:50px; border-radius:8px; object-fit:contain; background:#f1f5f9;">
-                <div>
-                    <div style="font-size: 13px; font-weight: 600;">${item.category} (${item.article})</div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${item.audience} · ${item.size} · ${item.year} г. · ${item.price}₽</div>
-                </div>
-            </div>
-            <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 8px;">${item.qty} шт</div>
-            <button class="btn-del" onclick="removeItem(${i})">✕</button>
-        </div>`;
-    });
-    count.textContent = items.length;
-}
-
-async function saveInventory() {
-    if (items.length === 0) return showToast('Список пуст!', 'error');
-    
-    const btn = document.querySelector('#screen-seller .bottom-bar .btn-main');
-    const oldText = btn.innerText;
-    btn.innerText = 'Отправка...';
-    btn.disabled = true;
-
-    const revisionData = { shop: shop, seller: seller, date: new Date().toISOString(), items: items };
-
-    if (window.fbDB && window.fbFns) {
-        try {
-            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), revisionData);
-            showToast('✅ Ревизия отправлена!', 'success');
-            items = [];
-            renderItems();
-            btn.innerText = oldText;
-            btn.disabled = false;
-            return;
-        } catch (e) {
-            console.error(e);
-        }
-    }
-    
-    let offlineQueue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
-    offlineQueue.push(revisionData);
-    localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
-    
-    showToast('⚠️ Сохранено локально (нет сети)', 'error');
-    items = [];
-    renderItems();
-    btn.innerText = oldText;
-    btn.disabled = false;
-}
-
-async function loadMatrix() {
-    const list = document.getElementById('matrix-list');
-    list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>';
-
-    if (!window.fbDB || !window.fbFns) {
-        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Нет подключения к базе</div>';
-        return;
-    }
-
-    try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
-        allMatrixItems = {}; 
-
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            data.items.forEach(item => {
-                if (!allMatrixItems[item.article]) {
-                    allMatrixItems[item.article] = {
-                        article: item.article,
-                        category: item.category,
-                        photo: item.photo,
-                        price: item.price,
-                        sizes: new Set(),
-                        shops: { 'Алик': 0, 'Мода': 0, 'Твой стиль': 0 }
-                    };
-                }
-                if (item.size) allMatrixItems[item.article].sizes.add(item.size);
-                allMatrixItems[item.article].shops[data.shop] += item.qty;
-            });
-        });
-
-        if (Object.keys(allMatrixItems).length === 0) {
-            list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Ревизий пока нет.</div>';
-            return;
-        }
-
-        list.innerHTML = '';
-        for (const [art, info] of Object.entries(allMatrixItems)) {
-            const s = info.shops;
-            const sizes = Array.from(info.sizes).join(', ') || 'Без размера';
-            
-            const getClass = (val, other1, other2) => {
-                if (val === 0 && (other1 > 0 || other2 > 0)) return 'zero';
-                if (val > 0) return 'has-stock';
-                return '';
-            };
-
-            list.innerHTML += `
-            <div class="matrix-row" style="align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
-                <div class="matrix-col name">
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
-                        <div style="flex:1;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                <div style="font-weight:700;">${art}</div>
-                                <div style="display:flex; gap:6px;">
-                                    <span title="Объединить" style="color:var(--primary); cursor:pointer; font-size:16px;" onclick="openMergeModal('${art}')">🔀</span>
-                                    <span title="Удалить" style="color:var(--danger); cursor:pointer; font-size:16px;" onclick="deleteItemFromMatrix('${art}')">🗑</span>
-                                </div>
-                            </div>
-                            <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes}</div>
-                            <div style="font-size:11px; color:var(--primary);">${info.price} ₽</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="matrix-col ${getClass(s['Алик'], s['Мода'], s['Твой стиль'])}" style="padding-top:10px;">${s['Алик'] > 0 ? s['Алик'] : (s['Мода'] > 0 || s['Твой стиль'] > 0 ? '0!' : '0')}</div>
-                <div class="matrix-col ${getClass(s['Мода'], s['Алик'], s['Твой стиль'])}" style="padding-top:10px;">${s['Мода'] > 0 ? s['Мода'] : (s['Алик'] > 0 || s['Твой стиль'] > 0 ? '0!' : '0')}</div>
-                <div class="matrix-col ${getClass(s['Твой стиль'], s['Алик'], s['Мода'])}" style="padding-top:10px;">${s['Твой стиль'] > 0 ? s['Твой стиль'] : (s['Алик'] > 0 || s['Мода'] > 0 ? '0!' : '0')}</div>
-            </div>`;
-        }
-    } catch (e) {
-        console.error(e);
-        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки (нет интернета?)</div>';
-    }
-}
-
-async function deleteItemFromMatrix(article) {
-    if (!confirm(`Удалить артикул ${article} из базы? Он исчезнет из всех ревизий.`)) return;
-    if (!window.fbDB || !window.fbFns) return showToast('Нет подключения', 'error');
-    
-    try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
-        let updatedCount = 0;
-        let deletedCount = 0;
-        
-        for (const docSnap of snapshot.docs) {
-            const data = docSnap.data();
-            const hasArticle = data.items.some(it => it.article === article);
-            
-            if (hasArticle) {
-                const newItems = data.items.filter(it => it.article !== article);
-                if (newItems.length === 0) {
-                    await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "revisions", docSnap.id));
-                    deletedCount++;
-                } else {
-                    await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "revisions", docSnap.id), { items: newItems });
-                    updatedCount++;
-                }
-            }
-        }
-        showToast(`✅ Удалено. Обновлено: ${updatedCount}, удалено док-ов: ${deletedCount}`, 'success');
-        loadMatrix();
-    } catch (e) {
-        console.error(e);
-        showToast('Ошибка удаления: ' + e.message, 'error');
-    }
-}
-
-function openMergeModal(sourceArticle) {
-    mergeSourceArticle = sourceArticle;
-    document.getElementById('merge-source-name').innerText = sourceArticle;
-    
-    const select = document.getElementById('merge-target-select');
-    select.innerHTML = '';
-    
-    for (const art of Object.keys(allMatrixItems)) {
-        if (art !== sourceArticle) {
-            const info = allMatrixItems[art];
-            select.innerHTML += `<option value="${art}">${art} — ${info.category} (${info.price}₽)</option>`;
-        }
-    }
-    
-    if (select.innerHTML === '') {
-        showToast('Нет других артикулов для объединения', 'error');
-        return;
-    }
-    
-    document.getElementById('modal-merge').style.display = 'flex';
-}
-
-async function executeMerge() {
-    const targetArticle = document.getElementById('merge-target-select').value;
-    if (!targetArticle || !mergeSourceArticle) return;
-    if (targetArticle === mergeSourceArticle) return showToast('Нельзя объединить в себя', 'error');
-    
-    if (!confirm(`Объединить ${mergeSourceArticle} в ${targetArticle}? Остатки перейдут на целевой артикул.`)) return;
-    
-    document.getElementById('modal-merge').style.display = 'none';
-    
-    if (!window.fbDB || !window.fbFns) return showToast('Нет подключения', 'error');
-    
-    try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
-        let updatedCount = 0;
-        
-        for (const docSnap of snapshot.docs) {
-            const data = docSnap.data();
-            let changed = false;
-            
-            const renamedItems = data.items.map(it => {
-                if (it.article === mergeSourceArticle) {
-                    changed = true;
-                    return { ...it, article: targetArticle };
-                }
-                return it;
-            });
-            
-            const mergedItems = [];
-            renamedItems.forEach(it => {
-                const existing = mergedItems.find(m => 
-                    m.article === it.article && m.size === it.size
-                );
-                if (existing) {
-                    existing.qty += it.qty;
-                } else {
-                    mergedItems.push({ ...it });
-                }
-            });
-            
-            if (changed) {
-                await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "revisions", docSnap.id), { items: mergedItems });
-                updatedCount++;
-            }
-        }
-        
-        showToast(`✅ Объединено! Обновлено ревизий: ${updatedCount}`, 'success');
-        loadMatrix();
-    } catch (e) {
-        console.error(e);
-        showToast('Ошибка объединения: ' + e.message, 'error');
-    }
-}
-
-async function syncOffline() {
-    if (!window.fbDB || !window.fbFns) return; 
-    
-    const queue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
-    if (queue.length === 0) return;
-    
-    let success = 0;
-    for (const rev of queue) {
-        try {
-            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), rev);
-            success++;
-        } catch (e) {
-            console.error('Sync error', e);
-            break;
-        }
-    }
-    
-    if (success > 0) {
-        localStorage.setItem('offline_revisions', JSON.stringify(queue.slice(success)));
-        showToast(`✅ Отправлено ${success} ревизий!`, 'success');
-        if (directorMode) loadMatrix();
+    } catch(e) {
+        console.log(e);
+        showToast('Ошибка удаления', 'error');
     }
 }
 </script>
