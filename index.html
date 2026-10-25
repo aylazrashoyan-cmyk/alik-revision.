@@ -53,7 +53,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <div class="card">
     <div class="input-group">
         <label class="input-label">Наименование</label>
-        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД и нажмите кнопку..." readonly onclick="manualAddItem()">
+        <!-- Убрали onclick, чтобы не было всплывающих окон -->
+        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД и нажмите кнопку..." readonly>
     </div>
 
     <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
@@ -126,7 +127,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 let catalog = {};
 let catalogLoaded = false;
 
-// Загрузка базы с защитой от кэша
+// Загрузка базы
 fetch('1.json', { cache: 'no-store' })
     .then(response => {
         if (!response.ok) throw new Error('Файл не найден');
@@ -150,26 +151,41 @@ fetch('1.json', { cache: 'no-store' })
         document.getElementById('load-status').style.color = 'var(--danger)';
     });
 
-// --- ЛОГИКА ДЛЯ ТСД ---
+// --- УМНЫЙ ПЕРЕХВАТ СКАНЕРА (БЕЗ ЛИШНИХ СИМВОЛОВ) ---
 let tscdBarcode = '';
-let tscdTimer;
+let tscdTimer = null;
 
-document.getElementById('prod-art').addEventListener('input', function(e) {
-    tscdBarcode = this.value;
-    clearTimeout(tscdTimer);
-    
-    tscdTimer = setTimeout(() => {
-        if (tscdBarcode.length > 3) {
+document.addEventListener('keydown', function(e) {
+    // Если сканер прислал Enter - ищем товар
+    if (e.key === 'Enter') {
+        if (tscdBarcode.length > 2) {
             findProduct(tscdBarcode);
-            this.value = ''; 
             tscdBarcode = '';
         }
-    }, 150);
+        return;
+    }
+
+    // Если нажата цифра или буква (некоторые штрихкоды буквенные)
+    if (e.key.length === 1 && e.key !== ' ') {
+        tscdBarcode += e.key;
+        clearTimeout(tscdTimer);
+        
+        // Ждем 100 мс. Если тишина - значит сканер закончил
+        tscdTimer = setTimeout(() => {
+            if (tscdBarcode.length > 2) {
+                findProduct(tscdBarcode);
+                tscdBarcode = '';
+            }
+        }, 100);
+    }
 });
 
 // --- ПОИСК ПО БАЗАМ ---
 function findProduct(code) {
-    code = String(code).trim();
+    // Очищаем код от всего, кроме цифр и букв
+    code = String(code).replace(/[^a-zA-Z0-9]/g, '');
+    if (code.length < 3) return;
+
     const nameInput = document.getElementById('prod-name');
     
     nameInput.classList.remove('error');
@@ -188,32 +204,11 @@ function findProduct(code) {
         nameInput.value = product.name || '';
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
-        nameInput.value = '❌ Код ' + code + ' не найден';
+        // Если товар не найден, пишем об этом и НЕ ВЫЗЫВАЕМ клавиатуру
+        nameInput.value = '❌ Код ' + code + ' не найден в базе';
         nameInput.classList.add('error');
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        
-        manualAddItem(code);
     }
-}
-
-// --- РУЧНОЕ ДОБАВЛЕНИЕ ТОВАРА ---
-function manualAddItem(scannedCode) {
-    let code = scannedCode || prompt("Введите ШТРИХКОД для нового товара:");
-    if (!code) return;
-
-    let name = prompt("Введите НАЗВАНИЕ для товара с кодом " + code + ":");
-    if (!name) return;
-
-    let customCatalog = JSON.parse(localStorage.getItem('custom_catalog') || '{}');
-    customCatalog[code] = { name: name };
-    localStorage.setItem('custom_catalog', JSON.stringify(customCatalog));
-
-    const nameInput = document.getElementById('prod-name');
-    nameInput.value = name;
-    nameInput.classList.remove('error');
-    
-    alert('✅ Товар добавлен в память телефона!');
-    refocusScanner();
 }
 
 let items = [];
@@ -398,22 +393,11 @@ function deleteRevision(id) {
     renderRevisions();
 }
 
-function refocusScanner() {
-    const hiddenInput = document.getElementById('prod-art');
-    hiddenInput.focus();
-}
-
+// Убираем автофокус на скрытое поле, чтобы не вылезала клавиатура
 window.onload = () => {
     renderItems();
     renderRevisions();
-    refocusScanner();
 };
-
-document.body.addEventListener('click', function(e) {
-    if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('size-pill') && !e.target.classList.contains('qty-btn')) {
-        refocusScanner();
-    }
-});
 </script>
 </body>
 </html>
