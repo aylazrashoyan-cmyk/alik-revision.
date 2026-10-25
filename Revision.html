@@ -318,7 +318,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
         <button class="btn-main" onclick="createOrder()">Отправить запрос</button>
         
-        <!-- Кнопка ручной синхронизации заказов -->
         <div id="offline-orders-block" style="display:none; margin-top:15px; text-align:center;">
             <p style="color:var(--danger); font-size:12px; margin-bottom:8px;">У вас есть неотправленные заказы (нет сети)</p>
             <button class="btn-main" style="background:var(--success); padding:12px; font-size:14px;" onclick="syncOrdersOffline(true)">🔄 Попробовать отправить сейчас</button>
@@ -491,8 +490,7 @@ function logout() {
     showScreen('screen-auth');
 }
 
-// --- ЗАКАЗЫ (с офлайн-логикой) ---
-
+// --- ЗАКАЗЫ ---
 function checkOfflineOrdersUI() {
     const queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
     const block = document.getElementById('offline-orders-block');
@@ -515,7 +513,7 @@ async function syncOrdersOffline(showToastMsg = true) {
             success++;
         } catch (e) {
             console.error("Sync order error", e);
-            break; // Если сеть пропала снова, останавливаемся
+            break;
         }
     }
 
@@ -554,7 +552,6 @@ async function checkOrderBadge() {
         }
     } catch(e) { 
         console.log(e); 
-        // Если нет сети, бейдж просто не обновится, это не критично
     }
 }
 
@@ -611,11 +608,9 @@ async function createOrder() {
     };
 
     try {
-        // Пробуем отправить сразу
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
         showToast('✅ Запрос отправлен!', 'success');
     } catch (e) {
-        // Если ошибка (нет сети) — сохраняем в локальную очередь
         let queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
         queue.push(orderData);
         localStorage.setItem('offline_orders', JSON.stringify(queue));
@@ -631,7 +626,6 @@ async function createOrder() {
 async function loadMyOrders() {
     if (!window.fbDB) return;
     
-    // Входящие
     try {
         const qIn = window.fbFns.query(
             window.fbFns.collection(window.fbDB, "orders"),
@@ -672,7 +666,6 @@ async function loadMyOrders() {
         document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Нет соединения с базой</div>';
     }
 
-    // Исходящие
     try {
         const qOut = window.fbFns.query(
             window.fbFns.collection(window.fbDB, "orders"),
@@ -1345,4 +1338,20 @@ async function syncOffline() {
     let success = 0;
     for (const rev of queue) {
         try {
-            await window.fbF
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), rev);
+            success++;
+        } catch (e) {
+            console.error('Sync error', e);
+            break;
+        }
+    }
+    
+    if (success > 0) {
+        localStorage.setItem('offline_revisions', JSON.stringify(queue.slice(success)));
+        showToast(`✅ Отправлено ${success} ревизий!`, 'success');
+        if (directorMode) loadMatrix();
+    }
+}
+</script>
+</body>
+</html>
