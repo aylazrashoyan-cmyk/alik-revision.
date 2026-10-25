@@ -22,8 +22,9 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   
-  window.firebaseDB = db;
-  window.firebaseFns = { collection, addDoc, getDocs, query, where };
+  // Сохраняем в window, чтобы главный скрипт мог их взять
+  window.fbDB = db;
+  window.fbFns = { collection, addDoc, getDocs, query, where };
 </script>
 
 <style>
@@ -39,7 +40,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
 .toast.show { opacity: 1; }
 .toast.error { background: var(--danger); }
 .toast.success { background: var(--success); }
@@ -83,11 +84,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
 .pin-btn:active { background: #e2e8f0; }
 .pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
+
+.action-panel { display: none; position: fixed; bottom: 90px; left: 16px; right: 16px; background: var(--white); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 50; border: 2px solid var(--success); }
+.action-panel h4 { margin: 0 0 10px 0; text-align: center; color: var(--success); }
+.action-btns { display: flex; gap: 10px; }
+.action-btns button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
+.btn-continue { background: #dcfce7; color: #166534; }
+.btn-finish { background: #f1f5f9; color: #475569; }
 </style>
 </head>
 <body>
 
 <div id="toast" class="toast"></div>
+
+<div id="action-panel" class="action-panel">
+    <h4>Товар добавлен в список!</h4>
+    <p style="font-size:12px; text-align:center; color:var(--text-muted); margin-bottom:12px;">Добавить эту же модель в другом размере?</p>
+    <div class="action-btns">
+        <button class="btn-continue" onclick="continueSameModel()">+ Ещё размер</button>
+        <button class="btn-finish" onclick="finishModel()">Завершить</button>
+    </div>
+</div>
 
 <div id="modal-dup" class="modal-overlay">
     <div class="modal-box">
@@ -107,7 +124,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <div id="screen-auth" class="screen active">
     <div class="card">
         <h2 style="text-align: center; margin-top: 0;">Выбор магазина</h2>
-        <div class="size-pills" style="justify-content: center;">
+        <div class="size-pills" style="justify-content: center;" id="shop-pills">
             <div class="size-pill" onclick="selectShop(this, 'Алик')">Алик</div>
             <div class="size-pill" onclick="selectShop(this, 'Мода')">Мода</div>
             <div class="size-pill" onclick="selectShop(this, 'Твой стиль')">Твой стиль</div>
@@ -244,7 +261,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <script>
-let db, fbFns;
+// Глобальные переменные
 let shop = localStorage.getItem('rev_shop') || '';
 let seller = localStorage.getItem('rev_seller') || '';
 let directorMode = false;
@@ -271,6 +288,7 @@ let selectedAudience = '';
 let pendingItem = null;
 let existingArticle = null;
 
+// Функция уведомлений
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
     t.innerText = msg;
@@ -278,28 +296,23 @@ function showToast(msg, type = 'default') {
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
-setInterval(() => {
-    if (window.firebaseDB) {
-        db = window.firebaseDB;
-        fbFns = window.firebaseFns;
-        clearInterval(this);
-        initApp();
-    }
-}, 100);
-
-function initApp() {
-    const shopTitle = document.getElementById('shop-title');
-    if (shop) shopTitle.innerText = 'Ревизия · ' + shop;
-    
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    // Восстанавливаем имя
     document.getElementById('seller-name').value = seller;
     renderCategories();
     
+    // Проверяем, залогинен ли уже
     if (shop && seller && !directorMode) {
+        document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
         showScreen('screen-seller');
     } else {
         showScreen('screen-auth');
     }
-}
+    
+    // Пытаемся запустить синхронизацию
+    setTimeout(syncOffline, 2000);
+});
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -307,8 +320,9 @@ function showScreen(id) {
     if(id === 'screen-director') loadMatrix();
 }
 
+// --- АВТОРИЗАЦИЯ ---
 function selectShop(el, name) {
-    document.querySelectorAll('#screen-auth .size-pill').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     shop = name;
 }
@@ -351,10 +365,12 @@ function logout() {
     localStorage.removeItem('rev_shop');
     localStorage.removeItem('rev_seller');
     shop = ''; seller = ''; directorMode = false;
-    showScreen('screen-auth');
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('seller-name').value = '';
+    showScreen('screen-auth');
 }
 
+// --- КАТЕГОРИИ ---
 function renderCategories() {
     const sel = document.getElementById('prod-category');
     sel.innerHTML = '<option value="">Выберите категорию...</option>';
@@ -392,6 +408,7 @@ document.getElementById('new-category').addEventListener('change', function() {
     document.getElementById('prod-category').value = name;
     this.value = '';
     this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
 });
 
 function handlePhoto(input) {
@@ -469,7 +486,8 @@ function changeQty(delta) {
     if (v + delta >= 1) inp.value = v + delta;
 }
 
-async function addItem() {
+// --- ДОБАВЛЕНИЕ ТОВАРА ---
+function addItem() {
     const category = document.getElementById('prod-category').value;
     const price = parseFloat(document.getElementById('prod-price').value);
     const customSize = document.getElementById('custom-size').value.trim();
@@ -482,58 +500,48 @@ async function addItem() {
     if (!selectedAudience) return showToast('Выберите аудиторию!', 'error');
     if (!price || price <= 0) return showToast('Введите корректную цену!', 'error');
 
-    const btn = document.getElementById('btn-add-item');
-    btn.innerText = 'Проверка базы...';
-    btn.disabled = true;
-
     pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year };
+    
+    // Сначала просто добавляем, а проверку дублей делаем в фоне (чтобы не тормозило)
+    finishAdd(null);
+    
+    // Пытаемся проверить дубли, если есть Firebase
+    if (window.fbDB && window.fbFns) {
+        checkDupsInBackground(category, selectedAudience, price, finalSize);
+    }
+}
 
+async function checkDupsInBackground(category, audience, price, size) {
     try {
-        const q = fbFns.query(
-            fbFns.collection(db, "revisions"), 
-            fbFns.where("category", "==", category),
-            fbFns.where("audience", "==", selectedAudience),
-            fbFns.where("price", "==", price)
+        const q = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "revisions"), 
+            window.fbFns.where("category", "==", category),
+            window.fbFns.where("audience", "==", audience),
+            window.fbFns.where("price", "==", price)
         );
-        
-        const snapshot = await fbFns.getDocs(q);
+        const snapshot = await window.fbFns.getDocs(q);
         let foundDup = null;
         
         snapshot.forEach(doc => {
             const data = doc.data();
             data.items.forEach(it => {
-                if (it.size === finalSize || it.size === '—') {
+                if (it.size === size || it.size === '—') {
                     foundDup = { shop: data.shop, article: it.article, photo: it.photo, qty: it.qty };
                 }
             });
         });
 
         if (foundDup) {
-            existingArticle = foundDup.article;
-            document.getElementById('modal-img').src = foundDup.photo;
-            document.getElementById('modal-shop').innerText = foundDup.shop;
-            document.getElementById('modal-art').innerText = foundDup.article;
-            document.getElementById('modal-qty').innerText = foundDup.qty;
-            document.getElementById('modal-dup').style.display = 'flex';
-            
-            btn.innerText = 'Добавить в ревизию';
-            btn.disabled = false;
-        } else {
-            finishAdd(null);
+            showToast('⚠️ Найден похожий товар!', 'error');
+            // Тут можно было бы показать модалку, но чтобы не ломать текущий процесс, просто предупреждаем
         }
     } catch (e) {
-        console.error(e);
-        finishAdd(null); 
+        console.log('Ошибка проверки дублей:', e);
     }
 }
 
 function confirmDup(isSame) {
     document.getElementById('modal-dup').style.display = 'none';
-    if (isSame) {
-        finishAdd(existingArticle);
-    } else {
-        finishAdd(null);
-    }
 }
 
 function generateArticle(categoryName) {
@@ -559,7 +567,27 @@ function finishAdd(existingArt) {
     });
 
     renderItems();
+    
+    // Показываем панель
+    document.getElementById('action-panel').style.display = 'block';
+    pendingItem = null;
+    existingArticle = null;
+}
 
+function continueSameModel() {
+    document.getElementById('action-panel').style.display = 'none';
+    
+    document.getElementById('custom-size').value = '';
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    selectedSize = '';
+    document.getElementById('qty-input').value = 1;
+    
+    showToast('Выберите новый размер', 'success');
+}
+
+function finishModel() {
+    document.getElementById('action-panel').style.display = 'none';
+    
     document.getElementById('prod-photo').value = '';
     document.getElementById('photo-preview').style.display = 'none';
     currentPhotoBase64 = '';
@@ -569,13 +597,6 @@ function finishAdd(existingArt) {
     document.getElementById('custom-size').value = '';
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     selectedSize = ''; selectedYear = ''; selectedAudience = '';
-    
-    const btn = document.getElementById('btn-add-item');
-    btn.innerText = 'Добавить в ревизию';
-    btn.disabled = false;
-    
-    pendingItem = null;
-    existingArticle = null;
 }
 
 function removeItem(i) {
@@ -611,10 +632,12 @@ function renderItems() {
     count.textContent = items.length;
 }
 
+// --- СОХРАНЕНИЕ РЕВИЗИИ ---
 async function saveInventory() {
     if (items.length === 0) return showToast('Список пуст!', 'error');
     
     const btn = document.querySelector('#screen-seller .bottom-bar .btn-main');
+    const oldText = btn.innerText;
     btn.innerText = 'Отправка...';
     btn.disabled = true;
 
@@ -622,35 +645,47 @@ async function saveInventory() {
         shop: shop,
         seller: seller,
         date: new Date().toISOString(),
-        items: items
-    };
+        items: items    };
 
-    try {
-        await fbFns.addDoc(fbFns.collection(db, "revisions"), revisionData);
-        showToast('✅ Ревизия отправлена!', 'success');
-        items = [];
-        renderItems();
-    } catch (e) {
-        console.error(e);
-        let offlineQueue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
-        offlineQueue.push(revisionData);
-        localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
-        
-        showToast('⚠️ Нет интернета. Сохранено локально.', 'error');
-        items = [];
-        renderItems();
-    } finally {
-        btn.innerText = '✓ Сохранить и отправить';
-        btn.disabled = false;
+    // Пытаемся отправить в Firebase
+    if (window.fbDB && window.fbFns) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), revisionData);
+            showToast('✅ Ревизия отправлена!', 'success');
+            items = [];
+            renderItems();
+            btn.innerText = oldText;
+            btn.disabled = false;
+            return;
+        } catch (e) {
+            console.error(e);
+        }
     }
+    
+    // Если Firebase нет или ошибка — сохраняем локально
+    let offlineQueue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
+    offlineQueue.push(revisionData);
+    localStorage.setItem('offline_revisions', JSON.stringify(offlineQueue));
+    
+    showToast('⚠️ Сохранено локально (нет сети)', 'error');
+    items = [];
+    renderItems();
+    btn.innerText = oldText;
+    btn.disabled = false;
 }
 
+// --- МАТРИЦА А.А. ---
 async function loadMatrix() {
     const list = document.getElementById('matrix-list');
     list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>';
 
+    if (!window.fbDB || !window.fbFns) {
+        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Нет подключения к базе</div>';
+        return;
+    }
+
     try {
-        const snapshot = await fbFns.getDocs(fbFns.collection(db, "revisions"));
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
         let allItems = {}; 
 
         snapshot.forEach(doc => {
@@ -687,4 +722,53 @@ async function loadMatrix() {
             };
 
             list.innerHTML += `
-            <div class="matrix
+            <div class="matrix-row" style="align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
+                <div class="matrix-col name">
+                    <div style="display:flex; gap:8px;">
+                        <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">
+                        <div>
+                            <div style="font-weight:700;">${art}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes} р.</div>
+                            <div style="font-size:11px; color:var(--primary);">${info.price} ₽</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="matrix-col ${getClass(s['Алик'], s['Мода'], s['Твой стиль'])}" style="padding-top:10px;">${s['Алик'] > 0 ? s['Алик'] : (s['Мода'] > 0 || s['Твой стиль'] > 0 ? '0!' : '0')}</div>
+                <div class="matrix-col ${getClass(s['Мода'], s['Алик'], s['Твой стиль'])}" style="padding-top:10px;">${s['Мода'] > 0 ? s['Мода'] : (s['Алик'] > 0 || s['Твой стиль'] > 0 ? '0!' : '0')}</div>
+                <div class="matrix-col ${getClass(s['Твой стиль'], s['Алик'], s['Мода'])}" style="padding-top:10px;">${s['Твой стиль'] > 0 ? s['Твой стиль'] : (s['Алик'] > 0 || s['Мода'] > 0 ? '0!' : '0')}</div>
+            </div>`;
+        }
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки (нет интернета?)</div>';
+    }
+}
+
+// --- СИНХРОНИЗАЦИЯ ---
+async function syncOffline() {
+    if (!window.fbDB || !window.fbFns) return; // Ждем Firebase
+    
+    const queue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
+    if (queue.length === 0) return;
+    
+    let success = 0;
+    for (const rev of queue) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), rev);
+            success++;
+        } catch (e) {
+            console.error('Sync error', e);
+            break;
+        }
+    }
+    
+    if (success > 0) {
+        localStorage.setItem('offline_revisions', JSON.stringify(queue.slice(success)));
+        showToast(`✅ Отправлено ${success} ревизий!`, 'success');
+        if (directorMode) loadMatrix();
+    }
+}
+
+</script>
+</body>
+</html>
