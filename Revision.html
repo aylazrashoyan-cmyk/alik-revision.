@@ -43,13 +43,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .toast.success { background: var(--success); }
 
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
 .input-field:focus { border-color: var(--primary); background: #fff; }
 
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
+.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
 
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
 .btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
@@ -78,7 +82,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 .order-photo { width: 100%; max-height: 200px; object-fit: contain; background:#f1f5f9; border-radius: 8px; margin-bottom: 5px;}
 
-/* Вкладки */
 .tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;}
 .tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
 .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -143,14 +146,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             </select>
         </div>
 
-        <div class="input-group">
-            <label class="input-label">Отдел</label>
-            <select id="order-dept" class="input-field">
-                <option value="Мужской">Мужской</option>
-                <option value="Женский">Женский</option>
-                <option value="Детский">Детский</option>
-                <option value="Обувь">Обувь</option>
-            </select>
+        <div class="input-label">Отдел</div>
+        <div class="size-pills" id="dept-pills">
+            <div class="size-pill" onclick="selectDept(this, 'Муж')">Муж</div>
+            <div class="size-pill" onclick="selectDept(this, 'Жен')">Жен</div>
+            <div class="size-pill" onclick="selectDept(this, 'Дет')">Дет</div>
+            <div class="size-pill" onclick="selectDept(this, 'Обувь')">Обувь</div>
         </div>
 
         <div class="input-group">
@@ -159,22 +160,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
         </div>
 
+        <div class="input-label">Размер (необязательно)</div>
+        <div class="size-pills" id="size-pills">
+            <div class="size-pill" onclick="selectSize(this)">M</div>
+            <div class="size-pill" onclick="selectSize(this)">L</div>
+            <div class="size-pill" onclick="selectSize(this)">XL</div>
+            <div class="size-pill" onclick="selectSize(this)">2XL</div>
+            <div class="size-pill" onclick="selectSize(this)">3XL</div>
+            <div class="size-pill" onclick="selectSize(this)">4XL</div>
+            <div class="size-pill" onclick="selectSize(this)">5XL</div>
+            <div class="size-pill" onclick="selectSize(this)">6XL</div>
+        </div>
         <div class="input-group">
-            <label class="input-label">Размер</label>
-            <input type="text" id="order-size" class="input-field" placeholder="Например: 2XL или 48">
+            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (введите если нет в списке)">
         </div>
 
-        <div class="input-group">
-            <label class="input-label">Сколько штук нужно</label>
-            <input type="number" id="order-qty" class="input-field" value="1" min="1">
+        <div class="input-label">Количество</div>
+        <div class="qty-control">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <input type="number" class="qty-input" id="order-qty" value="1" min="1">
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
         </div>
 
-        <div class="input-group">
-            <label class="input-label">Комментарий (что угодно)</label>
-            <input type="text" id="order-comment" class="input-field" placeholder="Например: Заберите у нас KOS001">
+        <div class="input-group" style="margin-top: 12px;">
+            <input type="text" id="order-comment" class="input-field" placeholder="Комментарий">
         </div>
         
-        <button class="btn-main" onclick="createOrder()">Отправить запрос</button>
+        <button class="btn-main" onclick="createOrder()" style="margin-top: 10px;">Отправить запрос</button>
         
         <div id="offline-orders-block" style="display:none; margin-top:15px; text-align:center;">
             <p style="color:var(--danger); font-size:12px; margin-bottom:8px;">У вас есть неотправленные заказы (нет сети)</p>
@@ -187,9 +199,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         
         <div class="tabs" id="incoming-tabs">
             <div class="tab active" onclick="switchIncomingTab('all', this)">Все</div>
-            <div class="tab" onclick="switchIncomingTab('Мужской', this)">Муж</div>
-            <div class="tab" onclick="switchIncomingTab('Женский', this)">Жен</div>
-            <div class="tab" onclick="switchIncomingTab('Детский', this)">Дет</div>
+            <div class="tab" onclick="switchIncomingTab('Муж', this)">Муж</div>
+            <div class="tab" onclick="switchIncomingTab('Жен', this)">Жен</div>
+            <div class="tab" onclick="switchIncomingTab('Дет', this)">Дет</div>
             <div class="tab" onclick="switchIncomingTab('Обувь', this)">Обувь</div>
         </div>
 
@@ -225,7 +237,11 @@ let seller = localStorage.getItem('ord_seller') || '';
 let directorMode = false;
 let currentPin = '';
 let currentOrderPhotoBase64 = '';
-let allIncomingOrders = []; // Для фильтрации по вкладкам
+let allIncomingOrders = [];
+
+// Переменные для формы
+let selectedDept = '';
+let selectedSize = '';
 
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
@@ -300,6 +316,43 @@ function logout() {
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     document.getElementById('seller-name').value = '';
     showScreen('screen-auth');
+}
+
+// --- ВЫБОР ОПЦИЙ ФОРМЫ ---
+function selectDept(el, dept) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedDept = '';
+        return;
+    }
+    document.querySelectorAll('#dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedDept = dept;
+}
+
+function selectSize(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedSize = '';
+        return;
+    }
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedSize = el.innerText;
+    document.getElementById('custom-size').value = '';
+}
+
+document.getElementById('custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') {
+        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+        selectedSize = '';
+    }
+});
+
+function changeQty(delta) {
+    const inp = document.getElementById('order-qty');
+    let v = parseInt(inp.value) || 1;
+    if (v + delta >= 1) inp.value = v + delta;
 }
 
 // --- ФОТО ---
@@ -390,12 +443,13 @@ async function checkOrderBadge() {
 
 async function createOrder() {
     const toShop = document.getElementById('order-to-shop').value;
-    const dept = document.getElementById('order-dept').value;
-    const size = document.getElementById('order-size').value.trim();
+    const customSize = document.getElementById('custom-size').value.trim();
+    const finalSize = customSize || selectedSize || 'Без размера';
     const qty = parseInt(document.getElementById('order-qty').value) || 1;
     const comment = document.getElementById('order-comment').value.trim();
     
     if (toShop === shop) return showToast('Нельзя заказать у самого себя', 'error');
+    if (!selectedDept) return showToast('Выберите отдел!', 'error');
     if (!currentOrderPhotoBase64) return showToast('Сделайте фото товара!', 'error');
     if (qty < 1) return showToast('Укажите количество', 'error');
 
@@ -403,9 +457,9 @@ async function createOrder() {
         fromShop: shop,
         toShop: toShop,
         seller: seller,
-        dept: dept,
+        dept: selectedDept,
         photo: currentOrderPhotoBase64,
-        size: size || 'Без размера',
+        size: finalSize,
         qty: qty,
         comment: comment,
         status: 'pending',
@@ -426,9 +480,12 @@ async function createOrder() {
     document.getElementById('order-photo-file').value = '';
     document.getElementById('order-photo-preview').style.display = 'none';
     currentOrderPhotoBase64 = '';
-    document.getElementById('order-size').value = '';
+    document.getElementById('custom-size').value = '';
     document.getElementById('order-comment').value = '';
     document.getElementById('order-qty').value = '1';
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    selectedSize = '';
+    selectedDept = '';
     
     loadMyOrders();
     checkOfflineOrdersUI();
@@ -458,7 +515,6 @@ function renderOrderCard(o, isDirector = false) {
         actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
     }
 
-    // Кнопка удаления для А.А.
     let deleteBtn = '';
     if (isDirector) {
         deleteBtn = `<button class="btn-del" onclick="deleteOrder('${o.id}')">Удалить</button>`;
