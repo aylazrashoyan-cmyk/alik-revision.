@@ -32,56 +32,84 @@
     --white: #ffffff; --border: #e2e8f0; --radius: 16px;
 }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 90px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 100px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
 .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
 .toast.show { opacity: 1; }
 .toast.error { background: var(--danger); }
 .toast.success { background: var(--success); }
+
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
 .input-field:focus { border-color: var(--primary); background: #fff; }
+
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
 .btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
 .qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
 .qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
+
 .photo-preview { width: 100%; max-height: 350px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; display: none; border: 1px solid var(--border); }
+
 .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .list-item:last-child { border-bottom: none; }
 .btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center;}
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
+
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
+.bottom-bar button { flex: 1; margin: 0; }
+
 .screen { display: none; }
 .screen.active { display: block; }
+
 .matrix-row { display: flex; border-bottom: 1px solid var(--border); padding: 8px 0; align-items: center;}
 .matrix-col { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
 .matrix-col.name { flex: 2; text-align: left; font-size: 13px;}
 .matrix-col.zero { color: var(--danger); background: #fef2f2; }
 .matrix-col.has-stock { color: var(--success); background: #ecfdf5; }
+
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; }
 .modal-box { background: var(--white); border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; max-height: 90vh; overflow-y: auto;}
 .modal-img { width: 150px; height: 150px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
+
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
 .pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
 .pin-btn:active { background: #e2e8f0; }
 .pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
+
 .action-panel { display: none; position: fixed; bottom: 90px; left: 16px; right: 16px; background: var(--white); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 50; border: 2px solid var(--success); }
 .action-panel h4 { margin: 0 0 10px 0; text-align: center; color: var(--success); }
 .action-btns { display: flex; gap: 10px; }
 .action-btns button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
 .btn-continue { background: #dcfce7; color: #166534; }
 .btn-finish { background: #f1f5f9; color: #475569; }
+
 #dup-results { display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
 .dup-item { display: flex; gap: 10px; background: white; padding: 8px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer; align-items: center;}
 .dup-item:active { background: #e2e8f0; }
+
 .merge-select { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; margin-bottom: 20px;}
+
+/* Стили для заказов */
+.badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
+.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.order-card.pending { border-left: 4px solid var(--primary); }
+.order-card.accepted { border-left: 4px solid var(--success); }
+.order-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
+.order-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
+.order-title { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+.order-actions { display: flex; gap: 10px; margin-top: 10px; }
+.order-actions button { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.btn-accept { background: #dcfce7; color: #166534; }
+.btn-reject { background: #fee2e2; color: #991b1b; }
 </style>
 </head>
 <body>
@@ -162,10 +190,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
 </div>
 
+<!-- Экран Продавца -->
 <div id="screen-seller" class="screen">
     <div class="header">
         <h1 id="shop-title">Ревизия</h1>
-        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
+        <div>
+            <span id="order-badge" class="badge" style="display:none;">0</span>
+            <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; margin-left:10px;">Выйти</button>
+        </div>
     </div>
 
     <div class="card">
@@ -249,25 +281,94 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <div id="items-list"><div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div></div>
     </div>
 
+    <!-- Новые кнопки внизу -->
     <div class="bottom-bar">
-        <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить и отправить</button>
+        <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить</button>
+        <button class="btn-main" style="background: var(--primary);" onclick="showScreen('screen-orders')">📦 Заказы <span id="bottom-order-badge" class="badge" style="display:none;">0</span></button>
     </div>
 </div>
 
+<!-- Экран Заказов (для продавцов) -->
+<div id="screen-orders" class="screen">
+    <div class="header">
+        <h1>Заказы</h1>
+        <button onclick="showScreen('screen-seller')" style="background:none; border:none; color:var(--primary); font-weight:bold;">← Назад</button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
+        <div class="input-group">
+            <label class="input-label">Кому (Магазин)</label>
+            <select id="order-to-shop" class="input-field">
+                <option value="Алик">Алик</option>
+                <option value="Мода">Мода</option>
+                <option value="Твой стиль">Твой стиль</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label class="input-label">Какой товар нужен (Артикул)</label>
+            <select id="order-article" class="input-field">
+                <option value="">Загрузка артикулов...</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label class="input-label">Сколько штук</label>
+            <input type="number" id="order-qty" class="input-field" value="1" min="1">
+        </div>
+        <div class="input-group">
+            <label class="input-label">Комментарий (что взамен или детали)</label>
+            <input type="text" id="order-comment" class="input-field" placeholder="Например: Заберите у нас KOS001">
+        </div>
+        <button class="btn-main" onclick="createOrder()">Отправить запрос</button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Входящие запросы (Вам)</h3>
+        <div id="orders-incoming-list">
+            <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Загрузка...</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Ваши отправленные запросы</h3>
+        <div id="orders-outgoing-list">
+            <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Загрузка...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Экран А.А. -->
 <div id="screen-director" class="screen">
     <div class="header">
         <h1>А.А. · Остатки</h1>
         <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
     </div>
-    <div class="card" style="padding: 8px;">
-        <div class="matrix-row" style="font-weight: bold; background: #f8fafc; margin-bottom: 8px; border-radius: 8px;">
-            <div class="matrix-col name">Товар (Артикул)</div>
-            <div class="matrix-col">Алик</div>
-            <div class="matrix-col">Мода</div>
-            <div class="matrix-col">Твой</div>
+    
+    <div class="size-pills" style="justify-content: center; margin-bottom: 16px;">
+        <div class="size-pill active" onclick="switchDirectorTab('matrix', this)">Матрица</div>
+        <div class="size-pill" onclick="switchDirectorTab('orders', this)">Все заказы</div>
+    </div>
+
+    <div id="director-tab-matrix">
+        <div class="card" style="padding: 8px;">
+            <div class="matrix-row" style="font-weight: bold; background: #f8fafc; margin-bottom: 8px; border-radius: 8px;">
+                <div class="matrix-col name">Товар (Артикул)</div>
+                <div class="matrix-col">Алик</div>
+                <div class="matrix-col">Мода</div>
+                <div class="matrix-col">Твой</div>
+            </div>
+            <div id="matrix-list">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>
+            </div>
         </div>
-        <div id="matrix-list">
-            <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>
+    </div>
+
+    <div id="director-tab-orders" style="display:none;">
+        <div class="card">
+            <h3 style="margin-top:0;">Все запросы между магазинами</h3>
+            <div id="director-orders-list">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -315,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (shop && seller && !directorMode) {
         document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
         showScreen('screen-seller');
+        checkOrderBadge();
     } else {
         showScreen('screen-auth');
     }
@@ -324,7 +426,15 @@ document.addEventListener('DOMContentLoaded', () => {
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    if(id === 'screen-director') loadMatrix();
+    if(id === 'screen-director') {
+        loadMatrix();
+        loadDirectorOrders();
+    }
+    if(id === 'screen-orders') {
+        loadArticlesForOrder();
+        loadMyOrders();
+        checkOrderBadge();
+    }
 }
 
 function selectShop(el, name) {
@@ -343,6 +453,7 @@ function loginSeller() {
     localStorage.setItem('rev_seller', seller);
     document.getElementById('shop-title').innerText = 'Ревизия · ' + shop;
     showScreen('screen-seller');
+    checkOrderBadge();
 }
 
 function pressPin(num) {
@@ -373,6 +484,219 @@ function logout() {
     showScreen('screen-auth');
 }
 
+// --- ЗАКАЗЫ ---
+async function checkOrderBadge() {
+    if (!shop || !window.fbDB) return;
+    try {
+        const q = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "orders"),
+            window.fbFns.where("toShop", "==", shop),
+            window.fbFns.where("status", "==", "pending")
+        );
+        const snap = await window.fbFns.getDocs(q);
+        const count = snap.size;
+        
+        const badge = document.getElementById('order-badge');
+        const bottomBadge = document.getElementById('bottom-order-badge');
+        
+        if (count > 0) {
+            badge.innerText = count;
+            badge.style.display = 'inline-block';
+            bottomBadge.innerText = count;
+            bottomBadge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+            bottomBadge.style.display = 'none';
+        }
+    } catch(e) { console.log(e); }
+}
+
+async function loadArticlesForOrder() {
+    if (!window.fbDB) return;
+    const select = document.getElementById('order-article');
+    select.innerHTML = '<option value="">Загрузка...</option>';
+    
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
+        let allArticles = new Set();
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.items.forEach(it => allArticles.add(it.article));
+        });
+        
+        select.innerHTML = '<option value="">Выберите артикул...</option>';
+        Array.from(allArticles).sort().forEach(art => {
+            select.innerHTML += `<option value="${art}">${art}</option>`;
+        });
+    } catch(e) {
+        console.log(e);
+        select.innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+async function createOrder() {
+    const toShop = document.getElementById('order-to-shop').value;
+    const article = document.getElementById('order-article').value;
+    const qty = parseInt(document.getElementById('order-qty').value) || 1;
+    const comment = document.getElementById('order-comment').value.trim();
+    
+    if (toShop === shop) return showToast('Нельзя заказать у самого себя', 'error');
+    if (!article) return showToast('Выберите артикул', 'error');
+    if (qty < 1) return showToast('Укажите количество', 'error');
+
+    try {
+        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), {
+            fromShop: shop,
+            toShop: toShop,
+            seller: seller,
+            article: article,
+            qty: qty,
+            comment: comment,
+            status: 'pending',
+            date: new Date().toISOString()
+        });
+        showToast('✅ Запрос отправлен!', 'success');
+        document.getElementById('order-comment').value = '';
+        document.getElementById('order-qty').value = '1';
+        loadMyOrders();
+    } catch(e) {
+        console.log(e);
+        showToast('Ошибка отправки', 'error');
+    }
+}
+
+async function loadMyOrders() {
+    if (!window.fbDB) return;
+    
+    // Входящие
+    try {
+        const qIn = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "orders"),
+            window.fbFns.where("toShop", "==", shop)
+        );
+        const snapIn = await window.fbFns.getDocs(qIn);
+        const listIn = document.getElementById('orders-incoming-list');
+        
+        let ordersIn = [];
+        snapIn.forEach(d => ordersIn.push({id: d.id, ...d.data()}));
+        ordersIn.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (ordersIn.length === 0) {
+            listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет входящих запросов</div>';
+        } else {
+            listIn.innerHTML = ordersIn.map(o => `
+                <div class="order-card ${o.status}">
+                    <div class="order-header">
+                        <span>От: <b>${o.fromShop}</b> (${o.seller})</span>
+                        <span>${new Date(o.date).toLocaleDateString()}</span>
+                    </div>
+                    <div class="order-title">${o.article} — ${o.qty} шт.</div>
+                    ${o.comment ? `<div style="font-size:12px; color:var(--text-muted);">💬 ${o.comment}</div>` : ''}
+                    ${o.status === 'pending' ? `
+                        <div class="order-actions">
+                            <button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button>
+                            <button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
+                        </div>
+                    ` : `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`}
+                </div>
+            `).join('');
+        }
+    } catch(e) { console.log(e); }
+
+    // Исходящие
+    try {
+        const qOut = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "orders"),
+            window.fbFns.where("fromShop", "==", shop)
+        );
+        const snapOut = await window.fbFns.getDocs(qOut);
+        const listOut = document.getElementById('orders-outgoing-list');
+        
+        let ordersOut = [];
+        snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
+        ordersOut.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (ordersOut.length === 0) {
+            listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Вы еще не отправляли запросы</div>';
+        } else {
+            listOut.innerHTML = ordersOut.map(o => `
+                <div class="order-card ${o.status}">
+                    <div class="order-header">
+                        <span>Кому: <b>${o.toShop}</b></span>
+                        <span>${new Date(o.date).toLocaleDateString()}</span>
+                    </div>
+                    <div class="order-title">${o.article} — ${o.qty} шт.</div>
+                    <div style="font-size:12px; margin-top:6px; color:var(--text-muted);">
+                        Статус: ${o.status === 'pending' ? '⏳ Ожидает' : (o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен')}
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch(e) { console.log(e); }
+}
+
+async function updateOrderStatus(orderId, status) {
+    try {
+        await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
+        showToast(status === 'accepted' ? '✅ Заказ принят' : '❌ Заказ отклонен', 'success');
+        loadMyOrders();
+        checkOrderBadge();
+    } catch(e) {
+        console.log(e);
+        showToast('Ошибка', 'error');
+    }
+}
+
+async function loadDirectorOrders() {
+    if (!window.fbDB) return;
+    const list = document.getElementById('director-orders-list');
+    
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
+        let orders = [];
+        snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
+        orders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (orders.length === 0) {
+            list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Заказов пока нет</div>';
+            return;
+        }
+        
+        list.innerHTML = orders.map(o => `
+            <div class="order-card ${o.status}">
+                <div class="order-header">
+                    <span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>
+                    <span>${new Date(o.date).toLocaleDateString()}</span>
+                </div>
+                <div class="order-title">${o.article} — ${o.qty} шт.</div>
+                ${o.comment ? `<div style="font-size:12px; color:var(--text-muted);">💬 ${o.comment}</div>` : ''}
+                <div style="font-size:12px; margin-top:6px; color:var(--text-muted);">
+                    Статус: ${o.status === 'pending' ? '⏳ Ожидает' : (o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен')}
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        console.log(e);
+        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>';
+    }
+}
+
+function switchDirectorTab(tab, el) {
+    document.querySelectorAll('#screen-director .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    
+    if (tab === 'matrix') {
+        document.getElementById('director-tab-matrix').style.display = 'block';
+        document.getElementById('director-tab-orders').style.display = 'none';
+    } else {
+        document.getElementById('director-tab-matrix').style.display = 'none';
+        document.getElementById('director-tab-orders').style.display = 'block';
+        loadDirectorOrders();
+    }
+}
+
+// --- ОСТАЛЬНЫЕ ФУНКЦИИ (без изменений) ---
 function renderCategories() {
     const sel = document.getElementById('prod-category');
     sel.innerHTML = '<option value="">Выберите категорию...</option>';
@@ -485,7 +809,6 @@ function changeQty(delta) {
     if (v + delta >= 1) inp.value = v + delta;
 }
 
-// --- ПОИСК ДУБЛЕЙ В РЕАЛЬНОМ ВРЕМЕНИ ---
 let searchTimeout = null;
 function searchDubs() {
     forcedArticle = null;
@@ -559,7 +882,6 @@ function useExistingArticle(art) {
     document.getElementById('btn-add-item').scrollIntoView({ behavior: 'smooth' });
 }
 
-// --- ДОБАВЛЕНИЕ ТОВАРА ---
 function addItem() {
     const category = document.getElementById('prod-category').value;
     const price = parseFloat(document.getElementById('prod-price').value);
@@ -719,7 +1041,6 @@ function renderItems() {
     count.textContent = items.length;
 }
 
-// --- СОХРАНЕНИЕ РЕВИЗИИ ---
 async function saveInventory() {
     if (items.length === 0) return showToast('Список пуст!', 'error');
     
@@ -755,7 +1076,6 @@ async function saveInventory() {
     btn.disabled = false;
 }
 
-// --- МАТРИЦА А.А. ---
 async function loadMatrix() {
     const list = document.getElementById('matrix-list');
     list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка данных...</div>';
@@ -832,7 +1152,6 @@ async function loadMatrix() {
     }
 }
 
-// --- УДАЛЕНИЕ И СЛИЯНИЕ ---
 async function deleteItemFromMatrix(article) {
     if (!confirm(`Удалить артикул ${article} из базы? Он исчезнет из всех ревизий.`)) return;
     if (!window.fbDB || !window.fbFns) return showToast('Нет подключения', 'error');
@@ -940,7 +1259,6 @@ async function executeMerge() {
     }
 }
 
-// --- СИНХРОНИЗАЦИЯ ---
 async function syncOffline() {
     if (!window.fbDB || !window.fbFns) return; 
     
