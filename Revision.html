@@ -50,6 +50,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+.btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
 .btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
@@ -142,14 +143,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             </select>
         </div>
 
+        <div class="input-label">Отдел</div>
+        <div class="size-pills" id="dept-pills">
+            <div class="size-pill" onclick="selectDept(this, 'Муж')">Муж</div>
+            <div class="size-pill" onclick="selectDept(this, 'Жен')">Жен</div>
+            <div class="size-pill" onclick="selectDept(this, 'Дет')">Дет</div>
+            <div class="size-pill" onclick="selectDept(this, 'Обувь')">Обувь</div>
+        </div>
+
         <div class="input-group">
-            <label class="input-label">Категория / Отдел</label>
-            <select id="order-dept" class="input-field">
-                <option value="Мужской">Мужской</option>
-                <option value="Женский">Женский</option>
-                <option value="Детский">Детский</option>
+            <label class="input-label" style="display:flex; justify-content:space-between;">
+                Категория 
+                <span class="btn-add-cat" onclick="showCustomCategory()">+ Своя</span>
+            </label>
+            <select id="order-category" class="input-field">
+                <option value="">Выберите категорию...</option>
+                <option value="Куртки">Куртки</option>
+                <option value="Ветровки">Ветровки</option>
+                <option value="Шубы">Шубы</option>
+                <option value="Спорт-костюмы">Спорт-костюмы</option>
+                <option value="Кофты">Кофты</option>
+                <option value="Толстовки">Толстовки</option>
                 <option value="Обувь">Обувь</option>
             </select>
+            <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
         </div>
 
         <div class="input-group">
@@ -174,8 +191,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
 
         <div class="input-group" style="margin-top: 12px;">
-            <label class="input-label">Комментарий</label>
-            <input type="text" id="order-comment" class="input-field" placeholder="Что угодно (например: нужно 3 штуки)">
+            <input type="text" id="order-comment" class="input-field" placeholder="Комментарий">
         </div>
         
         <button class="btn-main" onclick="createOrder()" style="margin-top: 10px;">Отправить запрос</button>
@@ -191,9 +207,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         
         <div class="tabs" id="incoming-tabs">
             <div class="tab active" onclick="switchIncomingTab('all', this)">Все</div>
-            <div class="tab" onclick="switchIncomingTab('Мужской', this)">Муж</div>
-            <div class="tab" onclick="switchIncomingTab('Женский', this)">Жен</div>
-            <div class="tab" onclick="switchIncomingTab('Детский', this)">Дет</div>
+            <div class="tab" onclick="switchIncomingTab('Муж', this)">Муж</div>
+            <div class="tab" onclick="switchIncomingTab('Жен', this)">Жен</div>
+            <div class="tab" onclick="switchIncomingTab('Дет', this)">Дет</div>
             <div class="tab" onclick="switchIncomingTab('Обувь', this)">Обувь</div>
         </div>
 
@@ -230,6 +246,7 @@ let directorMode = false;
 let currentPin = '';
 let currentOrderPhotoBase64 = '';
 let allIncomingOrders = [];
+let selectedDept = '';
 let selectedSize = '';
 
 function showToast(msg, type = 'default') {
@@ -269,3 +286,384 @@ function loginSeller() {
     const name = document.getElementById('seller-name').value.trim();
     if (!shop) return showToast('Выберите магазин!', 'error');
     if (!name) return showToast('Введите ваше имя!', 'error');
+    
+    seller = name;
+    localStorage.setItem('ord_shop', shop);
+    localStorage.setItem('ord_seller', seller);
+    document.getElementById('shop-title').innerText = 'Заказы · ' + shop;
+    showScreen('screen-seller');
+    loadMyOrders();
+    checkOrderBadge();
+}
+
+function pressPin(num) {
+    if (num === 'C') { currentPin = ''; } 
+    else if (currentPin.length < 4) { currentPin += num; }
+    document.getElementById('pin-display').innerText = currentPin;
+}
+
+function checkPin() {
+    if (currentPin === '1988') {
+        directorMode = true;
+        currentPin = '';
+        document.getElementById('pin-display').innerText = '';
+        showScreen('screen-director');
+    } else {
+        showToast('Неверный PIN', 'error');
+        currentPin = '';
+        document.getElementById('pin-display').innerText = '';
+    }
+}
+
+function logout() {
+    localStorage.removeItem('ord_shop');
+    localStorage.removeItem('ord_seller');
+    shop = ''; seller = ''; directorMode = false;
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('seller-name').value = '';
+    showScreen('screen-auth');
+}
+
+function selectDept(el, dept) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedDept = '';
+        return;
+    }
+    document.querySelectorAll('#dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedDept = dept;
+}
+
+function selectSize(el) {
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedSize = '';
+        return;
+    }
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedSize = el.innerText;
+    document.getElementById('custom-size').value = '';
+}
+
+document.getElementById('custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') {
+        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+        selectedSize = '';
+    }
+});
+
+function showCustomCategory() {
+    const inp = document.getElementById('new-category');
+    if (inp.style.display === 'none') {
+        inp.style.display = 'block';
+        inp.focus();
+    } else {
+        inp.style.display = 'none';
+        inp.value = '';
+    }
+}
+
+document.getElementById('new-category').addEventListener('change', function() {
+    const name = this.value.trim();
+    if (!name) return;
+    const sel = document.getElementById('order-category');
+    sel.innerHTML += `<option value="${name}" selected>${name}</option>`;
+    sel.value = name;
+    this.value = '';
+    this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+
+function handleOrderPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 600;
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            currentOrderPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            const preview = document.getElementById('order-photo-preview');
+            preview.src = currentOrderPhotoBase64;
+            preview.style.display = 'block';
+        }
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+function checkOfflineOrdersUI() {
+    const queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
+    const block = document.getElementById('offline-orders-block');
+    if (queue.length > 0) {
+        block.style.display = 'block';
+    } else {
+        block.style.display = 'none';
+    }
+}
+
+async function syncOrdersOffline(showToastMsg = true) {
+    if (!window.fbDB) return;
+    const queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
+    if (queue.length === 0) return;
+
+    let success = 0;
+    for (const order of queue) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), order);
+            success++;
+        } catch (e) {
+            console.error("Sync order error", e);
+            break;
+        }
+    }
+
+    if (success > 0) {
+        localStorage.setItem('offline_orders', JSON.stringify(queue.slice(success)));
+        if (showToastMsg) showToast(`✅ Отправлено ${success} заказов!`, 'success');
+        if (document.getElementById('screen-seller').classList.contains('active')) {
+            loadMyOrders();
+        }
+        checkOfflineOrdersUI();
+    }
+}
+
+async function checkOrderBadge() {
+    if (!shop || !window.fbDB) return;
+    try {
+        const q = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "orders"),
+            window.fbFns.where("toShop", "==", shop),
+            window.fbFns.where("status", "==", "pending")
+        );
+        const snap = await window.fbFns.getDocs(q);
+        const count = snap.size;
+        
+        const badge = document.getElementById('order-badge');
+        if (count > 0) {
+            badge.innerText = count;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch(e) { console.log(e); }
+}
+
+async function createOrder() {
+    const toShop = document.getElementById('order-to-shop').value;
+    const category = document.getElementById('order-category').value;
+    const customSize = document.getElementById('custom-size').value.trim();
+    const finalSize = customSize || selectedSize || 'Без размера';
+    const comment = document.getElementById('order-comment').value.trim();
+    
+    if (toShop === shop) return showToast('Нельзя заказать у самого себя', 'error');
+    if (!selectedDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!currentOrderPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+
+    const orderData = {
+        fromShop: shop,
+        toShop: toShop,
+        seller: seller,
+        dept: selectedDept,
+        category: category,
+        photo: currentOrderPhotoBase64,
+        size: finalSize,
+        comment: comment,
+        status: 'pending',
+        date: new Date().toISOString()
+    };
+
+    try {
+        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
+        showToast('✅ Запрос отправлен!', 'success');
+    } catch (e) {
+        let queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
+        queue.push(orderData);
+        localStorage.setItem('offline_orders', JSON.stringify(queue));
+        showToast('⚠️ Нет сети. Заказ сохранен и будет отправлен позже.', 'error');
+    }
+    
+    document.getElementById('order-photo-file').value = '';
+    document.getElementById('order-photo-preview').style.display = 'none';
+    currentOrderPhotoBase64 = '';
+    document.getElementById('custom-size').value = '';
+    document.getElementById('order-comment').value = '';
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('order-category').value = '';
+    selectedSize = '';
+    selectedDept = '';
+    
+    loadMyOrders();
+    checkOfflineOrdersUI();
+}
+
+function renderOrderCard(o, isDirector = false) {
+    const photoHtml = o.photo 
+        ? `<img src="${o.photo}" class="order-photo">` 
+        : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; font-size:20px; color:#cbd5e1;">📦</div>`;
+
+    const header = isDirector 
+        ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>`
+        : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
+
+    let actionsHtml = '';
+    if (o.status === 'pending') {
+        if (o.toShop === shop && !isDirector) {
+            actionsHtml = `
+                <div class="order-actions">
+                    <button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button>
+                    <button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
+                </div>`;
+        } else {
+            actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
+        }
+    } else {
+        actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
+    }
+
+    let deleteBtn = '';
+    if (isDirector) {
+        deleteBtn = `<button class="btn-del" onclick="deleteOrder('${o.id}')">Удалить</button>`;
+    }
+
+    return `
+    <div class="order-card ${o.status}">
+        ${photoHtml}
+        <div class="order-header">
+            ${header}
+            <span>${new Date(o.date).toLocaleDateString()}</span>
+        </div>
+        <div class="order-title">${o.category} | Размер: ${o.size}</div>
+        <div class="order-details">Отдел: ${o.dept}</div>
+        ${o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">💬 ${o.comment}</div>` : ''}
+        ${actionsHtml}
+        <div style="text-align:right; margin-top:10px;">${deleteBtn}</div>
+    </div>`;
+}
+
+let currentIncomingTab = 'all';
+
+function switchIncomingTab(dept, el) {
+    document.querySelectorAll('#incoming-tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentIncomingTab = dept;
+    renderIncomingOrders();
+}
+
+function renderIncomingOrders() {
+    const listIn = document.getElementById('orders-incoming-list');
+    let filtered = allIncomingOrders;
+    
+    if (currentIncomingTab !== 'all') {
+        filtered = allIncomingOrders.filter(o => o.dept === currentIncomingTab);
+    }
+    
+    if (filtered.length === 0) {
+        listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет запросов в этом отделе</div>';
+    } else {
+        listIn.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+    }
+}
+
+async function loadMyOrders() {
+    if (!window.fbDB) return;
+    
+    try {
+        const qIn = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "orders"),
+            window.fbFns.where("toShop", "==", shop)
+        );
+        const snapIn = await window.fbFns.getDocs(qIn);
+        
+        allIncomingOrders = [];
+        snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
+        allIncomingOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        renderIncomingOrders();
+    } catch(e) { 
+        console.log(e); 
+        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Нет соединения с базой</div>';
+    }
+
+    try {
+        const qOut = window.fbFns.query(
+            window.fbFns.collection(window.fbDB, "orders"),
+            window.fbFns.where("fromShop", "==", shop)
+        );
+        const snapOut = await window.fbFns.getDocs(qOut);
+        const listOut = document.getElementById('orders-outgoing-list');
+        
+        let ordersOut = [];
+        snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
+        ordersOut.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (ordersOut.length === 0) {
+            listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Вы еще не отправляли запросы</div>';
+        } else {
+            listOut.innerHTML = ordersOut.map(o => renderOrderCard(o)).join('');
+        }
+    } catch(e) { 
+        console.log(e); 
+        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Нет соединения с базой</div>';
+    }
+}
+
+async function updateOrderStatus(orderId, status) {
+    try {
+        await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
+        showToast(status === 'accepted' ? '✅ Заказ принят' : '❌ Заказ отклонен', 'success');
+        loadMyOrders();
+        checkOrderBadge();
+    } catch(e) {
+        console.log(e);
+        showToast('Ошибка. Проверьте интернет.', 'error');
+    }
+}
+
+async function loadDirectorOrders() {
+    if (!window.fbDB) return;
+    const list = document.getElementById('director-orders-list');
+    
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
+        let orders = [];
+        snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
+        orders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (orders.length === 0) {
+            list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Заказов пока нет</div>';
+            return;
+        }
+        
+        list.innerHTML = orders.map(o => renderOrderCard(o, true)).join('');
+    } catch(e) {
+        console.log(e);
+        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>';
+    }
+}
+
+async function deleteOrder(orderId) {
+    if (!confirm('Удалить этот заказ?')) return;
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
+        showToast('Заказ удален', 'success');
+        loadDirectorOrders();
+    } catch(e) {
+        console.log(e);
+        showToast('Ошибка удаления', 'error');
+    }
+}
+</script>
+</body>
+</html>
