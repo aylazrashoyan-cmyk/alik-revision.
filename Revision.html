@@ -638,4 +638,35 @@ async function loadMatrix() {
         }
     } catch (e) {
         console.error(e);
-        list.innerHTML = '<div style="text-align
+        list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки (нет интернета?)</div>';
+    }
+}
+
+// Синхронизация офлайн-очереди при запуске
+async function syncOffline() {
+    const queue = JSON.parse(localStorage.getItem('offline_revisions') || '[]');
+    if (queue.length === 0) return;
+    
+    let success = 0;
+    for (const rev of queue) {
+        try {
+            await fbFns.addDoc(fbFns.collection(db, "revisions"), rev);
+            success++;
+        } catch (e) {
+            console.error('Sync error', e);
+            break;
+        }
+    }
+    
+    if (success > 0) {
+        localStorage.setItem('offline_revisions', JSON.stringify(queue.slice(success)));
+        alert(`✅ Успешно отправлено ${success} ревизий из оффлайн-очереди!`);
+        if (directorMode) loadMatrix();
+    }
+}
+
+setInterval(() => { if(db) syncOffline(); }, 5000);
+
+</script>
+</body>
+</html>
