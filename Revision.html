@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Ревизия сети</title>
 
-<!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -23,7 +22,7 @@
   const db = getFirestore(app);
   
   window.fbDB = db;
-  window.fbFns = { collection, addDoc, getDocs, query, where };
+  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
 </script>
 
 <style>
@@ -38,67 +37,51 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-
 .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
 .toast.show { opacity: 1; }
 .toast.error { background: var(--danger); }
 .toast.success { background: var(--success); }
-
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
 .input-field:focus { border-color: var(--primary); background: #fff; }
-
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
 .btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-
 .qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
 .qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
-
-.photo-preview { 
-    width: 100%; 
-    max-height: 350px; 
-    object-fit: contain; 
-    background: #f1f5f9; 
-    border-radius: 12px; 
-    margin-bottom: 12px; 
-    display: none; 
-    border: 1px solid var(--border);
-}
-
+.photo-preview { width: 100%; max-height: 350px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; display: none; border: 1px solid var(--border); }
 .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .list-item:last-child { border-bottom: none; }
-.btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center;}
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
-
 .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
 .screen { display: none; }
 .screen.active { display: block; }
-
 .matrix-row { display: flex; border-bottom: 1px solid var(--border); padding: 8px 0; align-items: center;}
 .matrix-col { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
 .matrix-col.name { flex: 2; text-align: left; font-size: 13px;}
 .matrix-col.zero { color: var(--danger); background: #fef2f2; }
 .matrix-col.has-stock { color: var(--success); background: #ecfdf5; }
-
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; }
-.modal-box { background: var(--white); border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; }
+.modal-box { background: var(--white); border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; max-height: 90vh; overflow-y: auto;}
 .modal-img { width: 150px; height: 150px; object-fit: contain; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
-
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
 .pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
 .pin-btn:active { background: #e2e8f0; }
 .pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
-
 .action-panel { display: none; position: fixed; bottom: 90px; left: 16px; right: 16px; background: var(--white); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 50; border: 2px solid var(--success); }
 .action-panel h4 { margin: 0 0 10px 0; text-align: center; color: var(--success); }
 .action-btns { display: flex; gap: 10px; }
 .action-btns button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
 .btn-continue { background: #dcfce7; color: #166534; }
 .btn-finish { background: #f1f5f9; color: #475569; }
+#dup-results { display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
+.dup-item { display: flex; gap: 10px; background: white; padding: 8px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer; align-items: center;}
+.dup-item:active { background: #e2e8f0; }
+.merge-select { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; margin-bottom: 20px;}
 </style>
 </head>
 <body>
@@ -114,7 +97,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
 </div>
 
-<!-- Модальное окно дублей -->
 <div id="modal-dup" class="modal-overlay">
     <div class="modal-box">
         <h3 style="margin-top:0;">Похожий товар уже есть!</h3>
@@ -127,6 +109,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <p style="font-size:14px; margin-bottom:20px;">Это та же модель?</p>
         <button class="btn-main" style="background:var(--success); margin-bottom:10px;" onclick="confirmDup(true)">Да, это она</button>
         <button class="btn-main" style="background:#64748b;" onclick="confirmDup(false)">Нет, другая модель</button>
+    </div>
+</div>
+
+<div id="modal-merge" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">Объединение артикулов</h3>
+        <p style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">
+            Вы хотите объединить артикул <b id="merge-source-name" style="color:var(--danger);"></b> в другой артикул.
+        </p>
+        <p style="font-size:14px; margin-bottom:10px;">Выберите целевой артикул:</p>
+        <select id="merge-target-select" class="merge-select"></select>
+        <button class="btn-main" style="background:var(--primary); margin-bottom:10px;" onclick="executeMerge()">Объединить</button>
+        <button class="btn-main" style="background:#64748b;" onclick="document.getElementById('modal-merge').style.display='none'">Отмена</button>
     </div>
 </div>
 
@@ -185,20 +180,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 Категория 
                 <span class="btn-add-cat" onclick="showCustomCategory()">+ Своя</span>
             </label>
-            <select class="input-field" id="prod-category"></select>
+            <select class="input-field" id="prod-category" onchange="searchDubs()"></select>
             <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+        </div>
+
+        <div id="dup-results">
+            <div style="font-size:12px; font-weight:bold; color:var(--primary); margin-bottom:8px;">Найдены похожие товары. Нажмите на нужный, чтобы использовать его артикул:</div>
+            <div id="dup-list"></div>
+            <div style="text-align:center; margin-top:8px;">
+                <button style="background:none; border:none; color:var(--text-muted); font-size:12px; text-decoration:underline;" onclick="hideDups()">Скрыть / Создать новый</button>
+            </div>
         </div>
 
         <div class="input-label" style="margin-bottom: 8px;">Аудитория</div>
         <div class="size-pills" id="audience-pills">
-            <div class="size-pill" onclick="selectAudience(this)">Муж</div>
-            <div class="size-pill" onclick="selectAudience(this)">Жен</div>
-            <div class="size-pill" onclick="selectAudience(this)">Дет</div>
+            <div class="size-pill" onclick="selectAudience(this); searchDubs();">Муж</div>
+            <div class="size-pill" onclick="selectAudience(this); searchDubs();">Жен</div>
+            <div class="size-pill" onclick="selectAudience(this); searchDubs();">Дет</div>
         </div>
 
         <div class="input-group" style="margin-top: 12px;">
             <label class="input-label">Цена (за штуку)</label>
-            <input type="number" class="input-field" id="prod-price" placeholder="0">
+            <input type="number" class="input-field" id="prod-price" placeholder="0" oninput="searchDubs()">
         </div>
 
         <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
@@ -213,7 +216,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div class="size-pill" onclick="selectSize(this)">6XL</div>
         </div>
         <div class="input-group">
-            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (введите если нет в списке)">
+            <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (введите если нет в списке)" oninput="searchDubs()">
         </div>
 
         <div class="input-label" style="margin-bottom: 8px;">Год завоза</div>
@@ -294,6 +297,9 @@ let selectedYear = '';
 let selectedAudience = '';
 let pendingItem = null;
 let existingArticle = null;
+let forcedArticle = null;
+let allMatrixItems = {}; 
+let mergeSourceArticle = null;
 
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
@@ -340,11 +346,8 @@ function loginSeller() {
 }
 
 function pressPin(num) {
-    if (num === 'C') {
-        currentPin = '';
-    } else if (currentPin.length < 4) {
-        currentPin += num;
-    }
+    if (num === 'C') { currentPin = ''; } 
+    else if (currentPin.length < 4) { currentPin += num; }
     document.getElementById('pin-display').innerText = currentPin;
 }
 
@@ -482,12 +485,85 @@ function changeQty(delta) {
     if (v + delta >= 1) inp.value = v + delta;
 }
 
+// --- ПОИСК ДУБЛЕЙ В РЕАЛЬНОМ ВРЕМЕНИ ---
+let searchTimeout = null;
+function searchDubs() {
+    forcedArticle = null;
+    const category = document.getElementById('prod-category').value;
+    const audience = selectedAudience;
+    const price = parseFloat(document.getElementById('prod-price').value);
+    
+    if (!category || !audience || !price) {
+        hideDups();
+        return;
+    }
+
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+        if (!window.fbDB || !window.fbFns) return;
+
+        try {
+            const q = window.fbFns.query(
+                window.fbFns.collection(window.fbDB, "revisions"), 
+                window.fbFns.where("category", "==", category),
+                window.fbFns.where("audience", "==", audience),
+                window.fbFns.where("price", "==", price)
+            );
+            const snapshot = await window.fbFns.getDocs(q);
+            
+            let matches = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.items.forEach(it => {
+                    if (!matches.find(m => m.article === it.article)) {
+                        matches.push({ ...it, shop: data.shop });
+                    }
+                });
+            });
+
+            const resBox = document.getElementById('dup-results');
+            const list = document.getElementById('dup-list');
+            
+            if (matches.length > 0) {
+                list.innerHTML = '';
+                matches.forEach(m => {
+                    list.innerHTML += `
+                    <div class="dup-item" onclick="useExistingArticle('${m.article}')">
+                        <img src="${m.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
+                        <div style="flex:1;">
+                            <div style="font-size:13px; font-weight:700; color:var(--primary);">${m.article}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">${m.shop} · Размер: ${m.size} · ${m.qty} шт.</div>
+                        </div>
+                        <div style="font-size:12px; color:var(--success); font-weight:bold;">Выбрать</div>
+                    </div>`;
+                });
+                resBox.style.display = 'block';
+            } else {
+                hideDups();
+            }
+        } catch (e) {
+            console.log('Ошибка поиска:', e);
+        }
+    }, 500);
+}
+
+function hideDups() {
+    document.getElementById('dup-results').style.display = 'none';
+}
+
+function useExistingArticle(art) {
+    forcedArticle = art;
+    hideDups();
+    showToast(`Выбран артикул: ${art}. Теперь укажите размер и кол-во.`, 'success');
+    document.getElementById('btn-add-item').scrollIntoView({ behavior: 'smooth' });
+}
+
 // --- ДОБАВЛЕНИЕ ТОВАРА ---
 function addItem() {
     const category = document.getElementById('prod-category').value;
     const price = parseFloat(document.getElementById('prod-price').value);
     const customSize = document.getElementById('custom-size').value.trim();
-    const finalSize = customSize || selectedSize || '—';
+    const finalSize = customSize || selectedSize || 'Без размера';
     const qty = parseInt(document.getElementById('qty-input').value) || 1;
     const year = selectedYear || '—';
 
@@ -496,14 +572,11 @@ function addItem() {
     if (!selectedAudience) return showToast('Выберите аудиторию!', 'error');
     if (!price || price <= 0) return showToast('Введите корректную цену!', 'error');
 
-    pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year };
+    let articleToUse = forcedArticle || generateArticle(category);
+    pendingItem = { category, audience: selectedAudience, price, size: finalSize, qty, year, article: articleToUse };
     
-    // Генерируем временный артикул
-    const tempArticle = generateArticle(pendingItem.category);
-    
-    // Добавляем в список
     items.push({
-        article: tempArticle,
+        article: articleToUse,
         category: pendingItem.category,
         audience: pendingItem.audience,
         price: pendingItem.price,
@@ -514,14 +587,13 @@ function addItem() {
     });
 
     renderItems();
-    
-    // Показываем панель "Добавить еще размер?"
     document.getElementById('action-panel').style.display = 'block';
     
-    // В фоне проверяем дубли
-    if (window.fbDB && window.fbFns) {
-        checkDupsInBackground(category, selectedAudience, price, finalSize, tempArticle);
+    if (!forcedArticle && window.fbDB && window.fbFns) {
+        checkDupsInBackground(category, selectedAudience, price, finalSize, articleToUse);
     }
+    
+    forcedArticle = null;
 }
 
 async function checkDupsInBackground(category, audience, price, size, currentArticle) {
@@ -538,14 +610,13 @@ async function checkDupsInBackground(category, audience, price, size, currentArt
         snapshot.forEach(doc => {
             const data = doc.data();
             data.items.forEach(it => {
-                if (it.size === size || it.size === '—') {
+                if (it.size === size || it.size === 'Без размера') {
                     foundDup = { shop: data.shop, article: it.article, photo: it.photo, qty: it.qty };
                 }
             });
         });
 
         if (foundDup && foundDup.article !== currentArticle) {
-            // Показываем модальное окно поверх всего
             existingArticle = foundDup.article;
             document.getElementById('modal-img').src = foundDup.photo;
             document.getElementById('modal-shop').innerText = foundDup.shop;
@@ -553,7 +624,6 @@ async function checkDupsInBackground(category, audience, price, size, currentArt
             document.getElementById('modal-qty').innerText = foundDup.qty;
             document.getElementById('modal-dup').style.display = 'flex';
             
-            // Сохраняем временный артикул, чтобы потом заменить
             pendingItem.tempArticle = currentArticle;
         }
     } catch (e) {
@@ -565,7 +635,6 @@ function confirmDup(isSame) {
     document.getElementById('modal-dup').style.display = 'none';
     
     if (isSame && existingArticle) {
-        // Меняем артикул у последнего добавленного товара на тот, что в базе
         const lastItem = items.find(it => it.article === pendingItem.tempArticle);
         if (lastItem) {
             lastItem.article = existingArticle;
@@ -573,7 +642,6 @@ function confirmDup(isSame) {
             showToast('Артикул обновлен на ' + existingArticle, 'success');
         }
     } else {
-        // Оставляем сгенерированный артикул
         showToast('Создан новый артикул', 'success');
     }
     
@@ -591,8 +659,6 @@ function generateArticle(categoryName) {
 
 function continueSameModel() {
     document.getElementById('action-panel').style.display = 'none';
-    
-    // Закрываем модалку, если она открыта
     document.getElementById('modal-dup').style.display = 'none';
     
     document.getElementById('custom-size').value = '';
@@ -616,6 +682,7 @@ function finishModel() {
     document.getElementById('custom-size').value = '';
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     selectedSize = ''; selectedYear = ''; selectedAudience = '';
+    hideDups();
 }
 
 function removeItem(i) {
@@ -660,12 +727,7 @@ async function saveInventory() {
     btn.innerText = 'Отправка...';
     btn.disabled = true;
 
-    const revisionData = {
-        shop: shop,
-        seller: seller,
-        date: new Date().toISOString(),
-        items: items
-    };
+    const revisionData = { shop: shop, seller: seller, date: new Date().toISOString(), items: items };
 
     if (window.fbDB && window.fbFns) {
         try {
@@ -704,13 +766,14 @@ async function loadMatrix() {
 
     try {
         const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
-        let allItems = {}; 
+        allMatrixItems = {}; 
 
         snapshot.forEach(doc => {
             const data = doc.data();
             data.items.forEach(item => {
-                if (!allItems[item.article]) {
-                    allItems[item.article] = {
+                if (!allMatrixItems[item.article]) {
+                    allMatrixItems[item.article] = {
+                        article: item.article,
                         category: item.category,
                         photo: item.photo,
                         price: item.price,
@@ -718,20 +781,20 @@ async function loadMatrix() {
                         shops: { 'Алик': 0, 'Мода': 0, 'Твой стиль': 0 }
                     };
                 }
-                allItems[item.article].sizes.add(item.size);
-                allItems[item.article].shops[data.shop] += item.qty;
+                if (item.size) allMatrixItems[item.article].sizes.add(item.size);
+                allMatrixItems[item.article].shops[data.shop] += item.qty;
             });
         });
 
-        if (Object.keys(allItems).length === 0) {
+        if (Object.keys(allMatrixItems).length === 0) {
             list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Ревизий пока нет.</div>';
             return;
         }
 
         list.innerHTML = '';
-        for (const [art, info] of Object.entries(allItems)) {
+        for (const [art, info] of Object.entries(allMatrixItems)) {
             const s = info.shops;
-            const sizes = Array.from(info.sizes).join(', ');
+            const sizes = Array.from(info.sizes).join(', ') || 'Без размера';
             
             const getClass = (val, other1, other2) => {
                 if (val === 0 && (other1 > 0 || other2 > 0)) return 'zero';
@@ -742,11 +805,17 @@ async function loadMatrix() {
             list.innerHTML += `
             <div class="matrix-row" style="align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
                 <div class="matrix-col name">
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:8px; align-items:center;">
                         <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
-                        <div>
-                            <div style="font-weight:700;">${art}</div>
-                            <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes} р.</div>
+                        <div style="flex:1;">
+                            <div style="font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+                                ${art}
+                                <div>
+                                    <span title="Объединить" style="color:var(--primary); cursor:pointer; font-size:16px; padding:0 5px;" onclick="openMergeModal('${art}')">🔀</span>
+                                    <span title="Удалить" style="color:var(--danger); cursor:pointer; font-size:16px; padding:0 5px;" onclick="deleteItemFromMatrix('${art}')">🗑</span>
+                                </div>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes}</div>
                             <div style="font-size:11px; color:var(--primary);">${info.price} ₽</div>
                         </div>
                     </div>
@@ -759,6 +828,116 @@ async function loadMatrix() {
     } catch (e) {
         console.error(e);
         list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки (нет интернета?)</div>';
+    }
+}
+
+// --- УДАЛЕНИЕ И СЛИЯНИЕ ---
+async function deleteItemFromMatrix(article) {
+    if (!confirm(`Удалить артикул ${article} из базы? Он исчезнет из всех ревизий.`)) return;
+    if (!window.fbDB || !window.fbFns) return showToast('Нет подключения', 'error');
+    
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
+        let updatedCount = 0;
+        let deletedCount = 0;
+        
+        for (const docSnap of snapshot.docs) {
+            const data = docSnap.data();
+            const hasArticle = data.items.some(it => it.article === article);
+            
+            if (hasArticle) {
+                const newItems = data.items.filter(it => it.article !== article);
+                if (newItems.length === 0) {
+                    await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "revisions", docSnap.id));
+                    deletedCount++;
+                } else {
+                    await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "revisions", docSnap.id), { items: newItems });
+                    updatedCount++;
+                }
+            }
+        }
+        showToast(`✅ Удалено. Обновлено: ${updatedCount}, удалено док-ов: ${deletedCount}`, 'success');
+        loadMatrix();
+    } catch (e) {
+        console.error(e);
+        showToast('Ошибка удаления: ' + e.message, 'error');
+    }
+}
+
+function openMergeModal(sourceArticle) {
+    mergeSourceArticle = sourceArticle;
+    document.getElementById('merge-source-name').innerText = sourceArticle;
+    
+    const select = document.getElementById('merge-target-select');
+    select.innerHTML = '';
+    
+    for (const art of Object.keys(allMatrixItems)) {
+        if (art !== sourceArticle) {
+            const info = allMatrixItems[art];
+            select.innerHTML += `<option value="${art}">${art} — ${info.category} (${info.price}₽)</option>`;
+        }
+    }
+    
+    if (select.innerHTML === '') {
+        showToast('Нет других артикулов для объединения', 'error');
+        return;
+    }
+    
+    document.getElementById('modal-merge').style.display = 'flex';
+}
+
+async function executeMerge() {
+    const targetArticle = document.getElementById('merge-target-select').value;
+    if (!targetArticle || !mergeSourceArticle) return;
+    if (targetArticle === mergeSourceArticle) return showToast('Нельзя объединить в себя', 'error');
+    
+    if (!confirm(`Объединить ${mergeSourceArticle} в ${targetArticle}? Остатки перейдут на целевой артикул.`)) return;
+    
+    document.getElementById('modal-merge').style.display = 'none';
+    
+    if (!window.fbDB || !window.fbFns) return showToast('Нет подключения', 'error');
+    
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
+        let updatedCount = 0;
+        
+        for (const docSnap of snapshot.docs) {
+            const data = docSnap.data();
+            let changed = false;
+            
+            // 1. Переименовываем source -> target
+            const renamedItems = data.items.map(it => {
+                if (it.article === mergeSourceArticle) {
+                    changed = true;
+                    return { ...it, article: targetArticle };
+                }
+                return it;
+            });
+            
+            // 2. Схлопываем дубли внутри одной ревизии (с одинаковым размером)
+            const mergedItems = [];
+            renamedItems.forEach(it => {
+                const existing = mergedItems.find(m => 
+                    m.article === it.article && m.size === it.size
+                );
+                if (existing) {
+                    existing.qty += it.qty;
+                } else {
+                    mergedItems.push({ ...it });
+                }
+            });
+            
+            if (changed) {
+                await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "revisions", docSnap.id), { items: mergedItems });
+                updatedCount++;
+            }
+        }
+        
+        showToast(`✅ Объединено! Обновлено ревизий: ${updatedCount}`, 'success');
+        loadMatrix();
+    } catch (e) {
+        console.error(e);
+        showToast('Ошибка объединения: ' + e.message, 'error');
     }
 }
 
@@ -786,7 +965,6 @@ async function syncOffline() {
         if (directorMode) loadMatrix();
     }
 }
-
 </script>
 </body>
 </html>
