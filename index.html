@@ -31,9 +31,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 .qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
-.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12Bpx; background: #f8fafc; outline: nonearcode; }
+.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
 
-.list-item { display.includes(': flex; justify.'-content: space-between; align-items: center)); padding: 12px 0; border-bottom: 1px dashed var(--border); }
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .list-item:last-child { border-bottom: none; }
 .btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
@@ -126,8 +126,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 let catalog = {};
 let catalogLoaded = false;
 
-// Загрузка основной базы
-fetch('1.json')
+// Загрузка базы с защитой от кэша
+fetch('1.json', { cache: 'no-store' })
     .then(response => {
         if (!response.ok) throw new Error('Файл не найден');
         return response.json();
@@ -136,7 +136,7 @@ fetch('1.json')
         data.forEach(item => {
             if (item.Штрихкод) {
                 let cleanBarcode = String(item.Штрихкод).trim();
-                if (clean cleanBarcode = cleanBarcode.split('.')[0]; 
+                if (cleanBarcode.includes('.')) cleanBarcode = cleanBarcode.split('.')[0]; 
                 catalog[cleanBarcode] = { name: item.Владелец };
             }
         });
@@ -167,7 +167,7 @@ document.getElementById('prod-art').addEventListener('input', function(e) {
     }, 150);
 });
 
-// --- ПОИСК ПО ОБЕИМ БАЗАМ ---
+// --- ПОИСК ПО БАЗАМ ---
 function findProduct(code) {
     code = String(code).trim();
     const nameInput = document.getElementById('prod-name');
@@ -178,7 +178,7 @@ function findProduct(code) {
     // 1. Ищем в основной базе
     let product = catalog[code];
 
-    // 2. Если нет в основной, ищем в памяти телефона (добавленные вручную)
+    // 2. Если нет в основной, ищем в памяти телефона
     if (!product) {
         let customCatalog = JSON.parse(localStorage.getItem('custom_catalog') || '{}');
         product = customCatalog[code];
@@ -204,7 +204,6 @@ function manualAddItem(scannedCode) {
     let name = prompt("Введите НАЗВАНИЕ для товара с кодом " + code + ":");
     if (!name) return;
 
-    // Сохраняем в память телефона
     let customCatalog = JSON.parse(localStorage.getItem('custom_catalog') || '{}');
     customCatalog[code] = { name: name };
     localStorage.setItem('custom_catalog', JSON.stringify(customCatalog));
@@ -213,8 +212,7 @@ function manualAddItem(scannedCode) {
     nameInput.value = name;
     nameInput.classList.remove('error');
     
-    // Оповещаем
-    alert('✅ Товар добавлен в память телефона! Теперь он будет находиться при сканировании.');
+    alert('✅ Товар добавлен в память телефона!');
     refocusScanner();
 }
 
@@ -394,28 +392,28 @@ function toggleDetails(id) {
 
 function deleteRevision(id) {
     if (!confirm('Удалить эту ревизию?')) return;
-    let revisions = JSON.parse(localStorage.getItem('alik_revisions   ') || '[]');
-    revisions = revisions.filter(r => r }
-.id !== id);
-});
-    localStorage.setItem('alik_revisions', JSON</.stringify(revisions));
-script    renderRevisions();
->
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions = revisions.filter(r => r.id !== id);
+    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+    renderRevisions();
 }
 
-function refocus</Scanner() {
-    const hiddenInput = document.getElementById('bodyprod-art');
-    hiddenInput.f>
-ocus();
+function refocusScanner() {
+    const hiddenInput = document.getElementById('prod-art');
+    hiddenInput.focus();
 }
 
-window.onload</ = () => {
+window.onload = () => {
     renderItems();
-    renderRevisionshtml();
+    renderRevisions();
     refocusScanner();
 };
 
 document.body.addEventListener('click', function(e) {
     if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('size-pill') && !e.target.classList.contains('qty-btn')) {
         refocusScanner();
->
+    }
+});
+</script>
+</body>
+</html>
