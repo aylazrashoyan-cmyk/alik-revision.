@@ -493,7 +493,7 @@ function searchDubs() {
     const audience = selectedAudience;
     const price = parseFloat(document.getElementById('prod-price').value);
     
-    if (!category || !audience || !price) {
+    if (!category || !audience) {
         hideDups();
         return;
     }
@@ -506,8 +506,7 @@ function searchDubs() {
             const q = window.fbFns.query(
                 window.fbFns.collection(window.fbDB, "revisions"), 
                 window.fbFns.where("category", "==", category),
-                window.fbFns.where("audience", "==", audience),
-                window.fbFns.where("price", "==", price)
+                window.fbFns.where("audience", "==", audience)
             );
             const snapshot = await window.fbFns.getDocs(q);
             
@@ -516,7 +515,9 @@ function searchDubs() {
                 const data = doc.data();
                 data.items.forEach(it => {
                     if (!matches.find(m => m.article === it.article)) {
-                        matches.push({ ...it, shop: data.shop });
+                        if (!price || it.price === price) {
+                            matches.push({ ...it, shop: data.shop });
+                        }
                     }
                 });
             });
@@ -532,7 +533,7 @@ function searchDubs() {
                         <img src="${m.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
                         <div style="flex:1;">
                             <div style="font-size:13px; font-weight:700; color:var(--primary);">${m.article}</div>
-                            <div style="font-size:11px; color:var(--text-muted);">${m.shop} · Размер: ${m.size} · ${m.qty} шт.</div>
+                            <div style="font-size:11px; color:var(--text-muted);">${m.shop} · Размер: ${m.size} · ${m.qty} шт. · ${m.price}₽</div>
                         </div>
                         <div style="font-size:12px; color:var(--success); font-weight:bold;">Выбрать</div>
                     </div>`;
@@ -808,11 +809,11 @@ async function loadMatrix() {
                     <div style="display:flex; gap:8px; align-items:center;">
                         <img src="${info.photo}" style="width:40px; height:40px; border-radius:6px; object-fit:contain; background:#f1f5f9;">
                         <div style="flex:1;">
-                            <div style="font-weight:700; display:flex; justify-content:space-between; align-items:center;">
-                                ${art}
-                                <div>
-                                    <span title="Объединить" style="color:var(--primary); cursor:pointer; font-size:16px; padding:0 5px;" onclick="openMergeModal('${art}')">🔀</span>
-                                    <span title="Удалить" style="color:var(--danger); cursor:pointer; font-size:16px; padding:0 5px;" onclick="deleteItemFromMatrix('${art}')">🗑</span>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="font-weight:700;">${art}</div>
+                                <div style="display:flex; gap:6px;">
+                                    <span title="Объединить" style="color:var(--primary); cursor:pointer; font-size:16px;" onclick="openMergeModal('${art}')">🔀</span>
+                                    <span title="Удалить" style="color:var(--danger); cursor:pointer; font-size:16px;" onclick="deleteItemFromMatrix('${art}')">🗑</span>
                                 </div>
                             </div>
                             <div style="font-size:11px; color:var(--text-muted);">${info.category} · ${sizes}</div>
@@ -905,7 +906,6 @@ async function executeMerge() {
             const data = docSnap.data();
             let changed = false;
             
-            // 1. Переименовываем source -> target
             const renamedItems = data.items.map(it => {
                 if (it.article === mergeSourceArticle) {
                     changed = true;
@@ -914,7 +914,6 @@ async function executeMerge() {
                 return it;
             });
             
-            // 2. Схлопываем дубли внутри одной ревизии (с одинаковым размером)
             const mergedItems = [];
             renamedItems.forEach(it => {
                 const existing = mergedItems.find(m => 
