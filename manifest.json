@@ -1,7 +1,7 @@
 {
   "name": "Заказы и Витрина",
   "short_name": "Заказы",
-  "start_url": "./index.html",
+  "start_url": "./Revision.html",
   "display": "standalone",
   "background_color": "#f4f6f9",
   "theme_color": "#2563eb",
