@@ -18,7 +18,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-#prod-art { opacity: 0; position: absolute; top: 0; left: 0; width: 1px; height: 1px; border: none; outline: none; background: transparent; }
+.hidden-input { opacity: 0; position: absolute; top: 0; left: 0; width: 1px; height: 1px; border: none; outline: none; background: transparent; pointer-events: none; }
 
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
@@ -48,13 +48,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
 </div>
 
-<input type="text" id="prod-art" autocomplete="off">
+<input type="text" id="prod-art" class="hidden-input" autocomplete="off">
 
 <div class="card">
     <div class="input-group">
         <label class="input-label">Наименование</label>
-        <!-- Убрали onclick, чтобы не было всплывающих окон -->
-        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД и нажмите кнопку..." readonly>
+        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД..." readonly>
     </div>
 
     <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
@@ -120,12 +119,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <div class="bottom-bar">
-    <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Отправить ревизию</button>
+    <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить ревизию</button>
 </div>
 
 <script>
 let catalog = {};
-let catalogLoaded = false;
+let items = [];
+let selectedSize = '';
+let selectedYear = '';
 
 // Загрузка базы
 fetch('1.json', { cache: 'no-store' })
@@ -141,7 +142,6 @@ fetch('1.json', { cache: 'no-store' })
                 catalog[cleanBarcode] = { name: item.Владелец };
             }
         });
-        catalogLoaded = true;
         document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(catalog).length + ' шт.';
         document.getElementById('load-status').style.color = 'var(--success)';
     })
@@ -151,12 +151,15 @@ fetch('1.json', { cache: 'no-store' })
         document.getElementById('load-status').style.color = 'var(--danger)';
     });
 
-// --- УМНЫЙ ПЕРЕХВАТ СКАНЕРА (БЕЗ ЛИШНИХ СИМВОЛОВ) ---
+// --- ПЕРЕХВАТ СКАНЕРА ---
 let tscdBarcode = '';
 let tscdTimer = null;
 
 document.addEventListener('keydown', function(e) {
-    // Если сканер прислал Enter - ищем товар
+    // Защита: если фокус в редактируемом поле (например, в prompt для размера), игнорируем
+    const tag = (e.target.tagName || '').toUpperCase();
+    if ((tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly) return;
+
     if (e.key === 'Enter') {
         if (tscdBarcode.length > 2) {
             findProduct(tscdBarcode);
@@ -164,13 +167,9 @@ document.addEventListener('keydown', function(e) {
         }
         return;
     }
-
-    // Если нажата цифра или буква (некоторые штрихкоды буквенные)
     if (e.key.length === 1 && e.key !== ' ') {
         tscdBarcode += e.key;
         clearTimeout(tscdTimer);
-        
-        // Ждем 100 мс. Если тишина - значит сканер закончил
         tscdTimer = setTimeout(() => {
             if (tscdBarcode.length > 2) {
                 findProduct(tscdBarcode);
@@ -180,23 +179,17 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// --- ПОИСК ПО БАЗАМ ---
 function findProduct(code) {
-    // Очищаем код от всего, кроме цифр и букв
     code = String(code).replace(/[^a-zA-Z0-9]/g, '');
     if (code.length < 3) return;
 
     const nameInput = document.getElementById('prod-name');
-    
     nameInput.classList.remove('error');
     nameInput.value = '';
 
-    // 1. Ищем в основной базе
     let product = catalog[code];
-
-    // 2. Если нет в основной, ищем в памяти телефона
     if (!product) {
-        let customCatalog = JSON.parse(localStorage.getItem('custom_catalog') || '{}');
+        let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_alik') || '{}');
         product = customCatalog[code];
     }
 
@@ -204,16 +197,20 @@ function findProduct(code) {
         nameInput.value = product.name || '';
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
-        // Если товар не найден, пишем об этом и НЕ ВЫЗЫВАЕМ клавиатуру
         nameInput.value = '❌ Код ' + code + ' не найден в базе';
         nameInput.classList.add('error');
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
-}
 
-let items = [];
-let selectedSize = '';
-let selectedYear = '';
+    document.getElementById('prod-art').value = code;
+
+    // Автосброс параметров при новом скане
+    document.getElementById('qty-input').value = 1;
+    document.getElementById('custom-size').value = '';
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    selectedSize = '';
+    selectedYear = '';
+}
 
 function promptCustomSize() {
     let size = prompt("Введите свой размер (например, 46):");
@@ -222,7 +219,6 @@ function promptCustomSize() {
         document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
         selectedSize = '';
     }
-    refocusScanner();
 }
 
 function promptQty() {
@@ -230,7 +226,6 @@ function promptQty() {
     if (qty && parseInt(qty) > 0) {
         document.getElementById('qty-input').value = parseInt(qty);
     }
-    refocusScanner();
 }
 
 function selectSize(el) {
@@ -243,7 +238,6 @@ function selectSize(el) {
     el.classList.add('active');
     selectedSize = el.innerText;
     document.getElementById('custom-size').value = '';
-    refocusScanner();
 }
 
 function selectYear(el) {
@@ -255,29 +249,42 @@ function selectYear(el) {
     document.querySelectorAll('#year-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     selectedYear = el.innerText;
-    refocusScanner();
 }
 
 function changeQty(delta) {
     const inp = document.getElementById('qty-input');
     let v = parseInt(inp.value) || 1;
     if (v + delta >= 1) inp.value = v + delta;
-    refocusScanner();
 }
 
 function addItem() {
     const name = document.getElementById('prod-name').value.trim();
     const art = document.getElementById('prod-art').value.trim();
-    const qty = parseInt(document.getElementById('qty-input').value) || 1;
+    const qtyToAdd = parseInt(document.getElementById('qty-input').value) || 1;
     const customSize = document.getElementById('custom-size').value.trim();
     const finalSize = customSize || selectedSize || '—';
     const finalYear = selectedYear || '—';
 
     if (!name || name.includes('не найден')) { alert('Сначала отсканируйте товар!'); return; }
 
-    items.push({ name, article: art || '—', size: finalSize, year: finalYear, qty });
+    // КЛЮЧ ОБЪЕДИНЕНИЯ: артикул + размер + год
+    const existingIndex = items.findIndex(i => 
+        i.article === art && 
+        i.size === finalSize &&
+        i.year === finalYear
+    );
+
+    if (existingIndex !== -1) {
+        items[existingIndex].qty += qtyToAdd;
+        items[existingIndex].name = name; // Обновляем имя, если в базе поменялось
+    } else {
+        items.unshift({ name, article: art || '—', size: finalSize, year: finalYear, qty: qtyToAdd });
+    }
+    
+    saveDraft();
     renderItems();
 
+    // Сброс формы
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-name').classList.remove('error');
     document.getElementById('prod-art').value = '';
@@ -286,13 +293,16 @@ function addItem() {
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     selectedSize = '';
     selectedYear = '';
-    
-    refocusScanner();
 }
 
 function removeItem(i) {
     items.splice(i, 1);
+    saveDraft();
     renderItems();
+}
+
+function saveDraft() {
+    localStorage.setItem('alik_draft', JSON.stringify(items));
 }
 
 function renderItems() {
@@ -331,12 +341,17 @@ function renderItems() {
 
 function saveInventory() {
     if (items.length === 0) { alert('Список пуст!'); return; }
+    
     const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: items.slice() });
+    // Сохраняем как есть, без проверок на дубли
+    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: JSON.parse(JSON.stringify(items)) });
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+    
     const totalQty = items.reduce((s, it) => s + it.qty, 0);
     alert(`✅ Ревизия сохранена!\n\nПозиций: ${items.length}\nВсего штук: ${totalQty}`);
+    
     items = [];
+    localStorage.removeItem('alik_draft');
     renderItems();
     renderRevisions();
 }
@@ -393,8 +408,12 @@ function deleteRevision(id) {
     renderRevisions();
 }
 
-// Убираем автофокус на скрытое поле, чтобы не вылезала клавиатура
+// Инициализация
 window.onload = () => {
+    const draft = localStorage.getItem('alik_draft');
+    if (draft) {
+        try { items = JSON.parse(draft); } catch(e) { items = []; }
+    }
     renderItems();
     renderRevisions();
 };
