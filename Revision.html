@@ -64,7 +64,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .screen.active { display: block; }
 
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
-.pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; }
 .pin-btn:active { background: #e2e8f0; }
 .pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
 
@@ -137,7 +137,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <div id="screen-seller" class="screen">
     <div class="header">
         <h1 id="shop-title">Магазин</h1>
-        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
     </div>
 
     <!-- Вкладки Заказы / Витрина -->
@@ -146,7 +146,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
     </div>
 
-    <!-- РАЗДЕЛ: ЗАКАЗЫ (СТАРЫЙ ФУНКЦИОНАЛ) -->
+    <!-- РАЗДЕЛ: ЗАКАЗЫ -->
     <div id="section-orders">
         <div class="card">
             <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
@@ -161,10 +161,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
             <div class="input-label">Отдел</div>
             <div class="size-pills" id="dept-pills">
-                <div class="size-pill" onclick="selectDept(this, 'Муж')">Муж</div>
-                <div class="size-pill" onclick="selectDept(this, 'Жен')">Жен</div>
-                <div class="size-pill" onclick="selectDept(this, 'Дет')">Дет</div>
-                <div class="size-pill" onclick="selectDept(this, 'Обувь')">Обувь</div>
+                <div class="size-pill" onclick="selectDept(this, 'Муж', 'dept-pills')">Муж</div>
+                <div class="size-pill" onclick="selectDept(this, 'Жен', 'dept-pills')">Жен</div>
+                <div class="size-pill" onclick="selectDept(this, 'Дет', 'dept-pills')">Дет</div>
+                <div class="size-pill" onclick="selectDept(this, 'Обувь', 'dept-pills')">Обувь</div>
             </div>
 
             <div class="input-group">
@@ -187,7 +187,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
             <div class="input-group">
                 <label class="input-label">Фото (Сделать снимок)</label>
-                <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>currentOrderPhotoBase64=val)">
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>window.currentOrderPhotoBase64=val)">
                 <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
             </div>
 
@@ -211,11 +211,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             </div>
             
             <button class="btn-main" onclick="createOrder()" style="margin-top: 10px;">Отправить запрос</button>
-            
-            <div id="offline-orders-block" style="display:none; margin-top:15px; text-align:center;">
-                <p style="color:var(--danger); font-size:12px; margin-bottom:8px;">У вас есть неотправленные заказы (нет сети)</p>
-                <button class="btn-main" style="background:var(--success); padding:12px; font-size:14px;" onclick="syncOrdersOffline(true)">🔄 Попробовать отправить сейчас</button>
-            </div>
         </div>
 
         <div class="card">
@@ -236,13 +231,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
     </div>
 
-    <!-- РАЗДЕЛ: ВИТРИНА (НОВЫЙ ФУНКЦИОНАЛ) -->
+    <!-- РАЗДЕЛ: ВИТРИНА -->
     <div id="section-catalog" style="display: none;">
-        
-        <!-- Добавление товара на витрину -->
         <div class="card">
             <h3 style="margin-top:0;">Выставить товар на витрину</h3>
-            
             <div class="input-label">Отдел</div>
             <div class="size-pills" id="cat-dept-pills">
                 <div class="size-pill" onclick="selectDept(this, 'Муж', 'cat-dept-pills')">Муж</div>
@@ -271,7 +263,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
             <div class="input-group">
                 <label class="input-label">Фото (Сделать снимок)</label>
-                <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>currentCatPhotoBase64=val)">
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>window.currentCatPhotoBase64=val)">
                 <img id="cat-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
             </div>
 
@@ -290,12 +282,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 <input type="text" id="cat-custom-size" class="input-field" placeholder="Свой размер (если нет в списке)">
             </div>
 
-            <!-- Год и количество -->
             <div style="display: flex; gap: 10px;">
                 <div class="input-group" style="flex: 1;">
                     <label class="input-label">Год (необязательно)</label>
                     <select id="cat-year" class="input-field">
-                        <option value="">—</option>
+                        <option value="—">—</option>
                         <option value="22">22</option>
                         <option value="23">23</option>
                         <option value="24">24</option>
@@ -312,10 +303,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <button class="btn-main" onclick="addToCatalog()" style="background: var(--success);">Опубликовать на витрине</button>
         </div>
 
-        <!-- Просмотр витрины -->
         <div class="card">
             <h3 style="margin-top:0;">Витрина магазинов (Что есть в наличии)</h3>
-            
             <div class="input-group">
                 <select id="view-filter-shop" class="input-field" onchange="loadCatalog()">
                     <option value="all">Все магазины</option>
@@ -345,7 +334,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <div id="screen-director" class="screen">
     <div class="header">
         <h1>А.А. · Все заказы</h1>
-        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold;">Выйти</button>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
     </div>
     <div class="main-tabs">
         <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
@@ -362,25 +351,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <script>
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 let shop = localStorage.getItem('ord_shop') || '';
 let seller = localStorage.getItem('ord_seller') || '';
 let directorMode = false;
 let currentPin = '';
 
-// Переменные для заказов
 let currentOrderPhotoBase64 = '';
 let allIncomingOrders = [];
 let selectedOrderDept = '';
 let selectedOrderSize = '';
 
-// Переменные для витрины
 let currentCatPhotoBase64 = '';
 let allCatalogItems = [];
 let selectedCatDept = '';
 let selectedCatSize = '';
 let currentCatalogTab = 'all';
 
-// Общие утилиты
+// УТИЛИТЫ
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
     t.innerText = msg;
@@ -388,6 +376,7 @@ function showToast(msg, type = 'default') {
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
+// ИНИЦИАЛИЗАЦИЯ
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('seller-name').value = seller;
     if (shop && seller && !directorMode) {
@@ -399,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         showScreen('screen-auth');
     }
-    setTimeout(() => syncOrdersOffline(false), 2000);
 });
 
 function showScreen(id) {
@@ -440,7 +428,34 @@ function logout() {
     showScreen('screen-auth');
 }
 
-// --- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
+// --- ПИН-ПАД (ИСПРАВЛЕН) ---
+function pressPin(num) {
+    if (num === 'C') {
+        currentPin = '';
+    } else if (currentPin.length < 4) {
+        currentPin += num;
+    }
+    const display = document.getElementById('pin-display');
+    if (display) display.innerText = currentPin;
+}
+
+function checkPin() {
+    if (currentPin === '1988') {
+        directorMode = true;
+        currentPin = '';
+        const display = document.getElementById('pin-display');
+        if (display) display.innerText = '';
+        showScreen('screen-director');
+        showToast('Добро пожаловать, А.А.', 'success');
+    } else {
+        showToast('Неверный PIN', 'error');
+        currentPin = '';
+        const display = document.getElementById('pin-display');
+        if (display) display.innerText = '';
+    }
+}
+
+// --- ВКЛАДКИ ---
 function switchMainTab(tab) {
     document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
@@ -455,15 +470,18 @@ function switchDirTab(tab) {
     document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
 }
 
-// --- ОБЩИЕ ФУНКЦИИ ВЫБОРА ---
-function selectDept(el, dept, containerId = 'dept-pills') {
+// --- ОБЩИЕ ВЫБОРЫ ---
+function selectDept(el, dept, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
     if (el.classList.contains('active')) {
         el.classList.remove('active');
         if (containerId === 'dept-pills') selectedOrderDept = '';
         if (containerId === 'cat-dept-pills') selectedCatDept = '';
         return;
     }
-    document.querySelectorAll(`#${containerId} .size-pill`).forEach(p => p.classList.remove('active'));
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     if (containerId === 'dept-pills') selectedOrderDept = dept;
     if (containerId === 'cat-dept-pills') selectedCatDept = dept;
@@ -472,18 +490,22 @@ function selectDept(el, dept, containerId = 'dept-pills') {
 function selectSize(el, type) {
     const containerId = type === 'order' ? 'size-pills' : 'cat-size-pills';
     const customInputId = type === 'order' ? 'custom-size' : 'cat-custom-size';
-    
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     if (el.classList.contains('active')) {
         el.classList.remove('active');
         if (type === 'order') selectedOrderSize = '';
         if (type === 'cat') selectedCatSize = '';
         return;
     }
-    document.querySelectorAll(`#${containerId} .size-pill`).forEach(p => p.classList.remove('active'));
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     if (type === 'order') selectedOrderSize = el.innerText;
     if (type === 'cat') selectedCatSize = el.innerText;
-    document.getElementById(customInputId).value = '';
+    
+    const customInput = document.getElementById(customInputId);
+    if(customInput) customInput.value = '';
 }
 
 document.getElementById('custom-size').addEventListener('input', function() {
@@ -511,7 +533,6 @@ function showCustomCategory(selectId, inputId) {
     }
 }
 
-// Обработчик категорий (один для заказов, другой для витрины)
 document.getElementById('new-category').addEventListener('change', function() {
     if (!this.value.trim()) return;
     const sel = document.getElementById('order-category');
@@ -555,7 +576,7 @@ function handlePhoto(input, previewId, setter) {
     reader.readAsDataURL(file);
 }
 
-// --- ЗАКАЗЫ (СТАРЫЙ ФУНКЦИОНАЛ) ---
+// --- ЗАКАЗЫ ---
 async function createOrder() {
     const toShop = document.getElementById('order-to-shop').value;
     const category = document.getElementById('order-category').value;
@@ -578,22 +599,20 @@ async function createOrder() {
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
         showToast('✅ Запрос отправлен!', 'success');
+        
+        document.getElementById('order-photo-file').value = '';
+        document.getElementById('order-photo-preview').style.display = 'none';
+        currentOrderPhotoBase64 = '';
+        document.getElementById('custom-size').value = '';
+        document.getElementById('order-comment').value = '';
+        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+        document.getElementById('order-category').value = '';
+        selectedOrderSize = ''; selectedOrderDept = '';
+        loadMyOrders();
     } catch (e) {
-        let queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
-        queue.push(orderData);
-        localStorage.setItem('offline_orders', JSON.stringify(queue));
-        showToast('⚠️ Нет сети. Заказ сохранен.', 'error');
+        console.error(e);
+        showToast('Ошибка при отправке. Проверьте интернет.', 'error');
     }
-    
-    document.getElementById('order-photo-file').value = '';
-    document.getElementById('order-photo-preview').style.display = 'none';
-    currentOrderPhotoBase64 = '';
-    document.getElementById('custom-size').value = '';
-    document.getElementById('order-comment').value = '';
-    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
-    document.getElementById('order-category').value = '';
-    selectedOrderSize = ''; selectedOrderDept = '';
-    loadMyOrders();
 }
 
 function renderOrderCard(o, isDirector = false) {
@@ -611,7 +630,7 @@ function renderOrderCard(o, isDirector = false) {
         actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
     }
 
-    let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteOrder('${o.id}', 'order')">Удалить</button>` : '';
+    let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteDocById('${o.id}', 'orders')">Удалить</button>` : '';
 
     return `
     <div class="order-card ${o.status}">
@@ -654,7 +673,7 @@ async function loadMyOrders() {
         snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
         allIncomingOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
         renderIncomingOrders();
-    } catch(e) { console.log(e); }
+    } catch(e) { console.error(e); }
 
     try {
         const qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
@@ -665,7 +684,7 @@ async function loadMyOrders() {
         ordersOut.sort((a,b) => new Date(b.date) - new Date(a.date));
         if (ordersOut.length === 0) listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Вы еще не отправляли запросы</div>';
         else listOut.innerHTML = ordersOut.map(o => renderOrderCard(o)).join('');
-    } catch(e) { console.log(e); }
+    } catch(e) { console.error(e); }
 }
 
 async function updateOrderStatus(orderId, status) {
@@ -685,26 +704,10 @@ async function checkOrderBadge() {
         const badge = document.getElementById('order-badge');
         if (snap.size > 0) { badge.innerText = snap.size; badge.style.display = 'inline-block'; } 
         else { badge.style.display = 'none'; }
-    } catch(e) { console.log(e); }
+    } catch(e) { console.error(e); }
 }
 
-async function syncOrdersOffline(showToastMsg = true) {
-    if (!window.fbDB) return;
-    const queue = JSON.parse(localStorage.getItem('offline_orders') || '[]');
-    if (queue.length === 0) return;
-    let success = 0;
-    for (const order of queue) {
-        try { await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), order); success++; } 
-        catch (e) { break; }
-    }
-    if (success > 0) {
-        localStorage.setItem('offline_orders', JSON.stringify(queue.slice(success)));
-        if (showToastMsg) showToast(`✅ Отправлено ${success} заказов!`, 'success');
-        loadMyOrders();
-    }
-}
-
-// --- ВИТРИНА (НОВЫЙ ФУНКЦИОНАЛ) ---
+// --- ВИТРИНА ---
 async function addToCatalog() {
     const category = document.getElementById('cat-category').value;
     const customSize = document.getElementById('cat-custom-size').value.trim();
@@ -726,20 +729,19 @@ async function addToCatalog() {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
         showToast('✅ Товар выставлен на витрину!', 'success');
         
-        // Очистка формы
         document.getElementById('cat-photo-file').value = '';
         document.getElementById('cat-photo-preview').style.display = 'none';
         currentCatPhotoBase64 = '';
         document.getElementById('cat-custom-size').value = '';
         document.getElementById('cat-qty').value = '1';
-        document.getElementById('cat-year').value = '';
+        document.getElementById('cat-year').value = '—';
         document.getElementById('cat-category').value = '';
         document.querySelectorAll('#cat-size-pills .size-pill, #cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
         selectedCatSize = ''; selectedCatDept = '';
         
         loadCatalog();
     } catch (e) {
-        console.log(e);
+        console.error(e);
         showToast('Ошибка при отправке', 'error');
     }
 }
@@ -759,13 +761,10 @@ async function loadCatalog(isDirector = false) {
         snapshot.forEach(d => allCatalogItems.push({id: d.id, ...d.data()}));
         allCatalogItems.sort((a,b) => new Date(b.date) - new Date(a.date));
         
-        if (isDirector) {
-            renderDirectorCatalog();
-        } else {
-            renderCatalog();
-        }
+        if (isDirector) renderDirectorCatalog();
+        else renderCatalog();
     } catch(e) {
-        console.log(e);
+        console.error(e);
         document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки витрины</div>';
     }
 }
@@ -822,56 +821,49 @@ function renderDirectorCatalog() {
             <div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div>
             <div class="order-details">В наличии: <b>${item.qty} шт.</b></div>
             <div style="text-align:right; margin-top:10px;">
-                <button class="btn-del" onclick="deleteOrder('${item.id}', 'catalog')">Удалить с витрины</button>
+                <button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить с витрины</button>
             </div>
         </div>
     `).join('');
 }
 
-// Заказ с витрины
 function orderFromCatalog(itemId) {
     const item = allCatalogItems.find(i => i.id === itemId);
     if (!item) return;
     
-    // Переносим в раздел "Заказы" и заполняем форму
     switchMainTab('orders');
     
     document.getElementById('order-to-shop').value = item.shop;
     
-    // Отдел
     document.querySelectorAll('#dept-pills .size-pill').forEach(p => {
         if (p.innerText === item.dept) { p.classList.add('active'); selectedOrderDept = item.dept; }
         else p.classList.remove('active');
     });
     
-    // Категория
     const catSelect = document.getElementById('order-category');
     let found = false;
     for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
     if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
     catSelect.value = item.category;
     
-    // Размер
     document.querySelectorAll('#size-pills .size-pill').forEach(p => {
         if (p.innerText === item.size) { p.classList.add('active'); selectedOrderSize = item.size; }
         else p.classList.remove('active');
     });
     document.getElementById('custom-size').value = '';
     
-    // Фото (подставляем фото с витрины)
     currentOrderPhotoBase64 = item.photo;
     const preview = document.getElementById('order-photo-preview');
     preview.src = item.photo;
     preview.style.display = 'block';
     
-    // Комментарий
     document.getElementById('order-comment').value = `Заказ с витрины (Год: ${item.year})`;
     
-    showToast('Товар добавлен в форму заказа. Нажмите "Отправить запрос".', 'success');
+    showToast('Товар добавлен в форму. Нажмите "Отправить запрос".', 'success');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Директорские функции
+// --- ДИРЕКТОР ---
 async function loadDirectorOrders() {
     if (!window.fbDB) return;
     const list = document.getElementById('director-orders-list');
@@ -885,18 +877,16 @@ async function loadDirectorOrders() {
     } catch(e) { list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>'; }
 }
 
-async function deleteOrder(id, type) {
+async function deleteDocById(id, collName) {
     if (!confirm('Удалить безвозвратно?')) return;
     try {
-        const collName = type === 'catalog' ? "catalog" : "orders";
         await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, collName, id));
         showToast('Удалено', 'success');
-        if (type === 'catalog') loadCatalog(directorMode);
+        if (collName === 'catalog') loadCatalog(directorMode);
         else loadDirectorOrders();
     } catch(e) { showToast('Ошибка удаления', 'error'); }
 }
 
-// Модалка для просмотра фото (чтобы рассмотреть)
 function viewFullPhoto(src) {
     const overlay = document.createElement('div');
     overlay.style = "position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px;";
