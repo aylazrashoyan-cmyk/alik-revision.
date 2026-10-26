@@ -1,7 +1,7 @@
 const CACHE_NAME = 'orders-cache-v1';
 const ASSETS = [
   './',
-  './Revısıon.html',
+  './index.html',
   './manifest.json',
   'https://cdn-icons-png.flaticon.com/512/1170/1170678.png'
 ];
