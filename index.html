@@ -1,11 +1,10 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Заказы и Витрина</title>
+<title>Алик — Заказы и Ревизия</title>
 
-<!-- Настройки PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2563eb">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170678.png">
@@ -29,14 +28,12 @@
   window.fbDB = db;
   window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
 
-  // Регистрация Service Worker (для офлайн режима)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
   }
 </script>
 
 <style>
-/* Стили оставляем без изменений (они длинные, но они нужны) */
 :root { --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b; --primary: #2563eb; --success: #10b981; --danger: #ef4444; --white: #ffffff; --border: #e2e8f0; --radius: 16px; }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 80px; }
@@ -54,6 +51,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
 .input-field:focus { border-color: var(--primary); background: #fff; }
+.input-field.error { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -83,6 +81,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
 .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .offline-bar { display: none; background: #fef2f2; color: #991b1b; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; }
+.hidden-input { opacity: 0; position: absolute; top: 0; left: 0; width: 1px; height: 1px; border: none; outline: none; background: transparent; pointer-events: none; }
+.qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
+.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+.list-item:last-child { border-bottom: none; }
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
 </style>
 </head>
 <body>
@@ -132,11 +137,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
     </div>
 
+    <!-- ГЛАВНЫЕ ВКЛАДКИ -->
     <div class="main-tabs">
         <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
+        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📷 Сканер</div>
     </div>
 
+    <!-- РАЗДЕЛ: ЗАКАЗЫ -->
     <div id="section-orders">
         <div class="card">
             <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
@@ -207,6 +215,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
     </div>
 
+    <!-- РАЗДЕЛ: ВИТРИНА -->
     <div id="section-catalog" style="display: none;">
         <div class="card">
             <h3 style="margin-top:0;">Выставить товар на витрину</h3>
@@ -283,6 +292,89 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка витрины...</div></div>
         </div>
     </div>
+
+    <!-- РАЗДЕЛ: СКАНЕР -->
+    <div id="section-scanner" style="display: none;">
+        <div class="header" style="margin-bottom: 10px;">
+            <h1 style="font-size: 18px;">Ревизия · Сканер</h1>
+            <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
+        </div>
+        
+        <input type="text" id="prod-art" class="hidden-input" autocomplete="off">
+
+        <div class="card">
+            <div class="input-group">
+                <label class="input-label">Наименование</label>
+                <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД..." readonly>
+            </div>
+
+            <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
+            <div class="size-pills" id="scan-size-pills">
+                <div class="size-pill" onclick="selectScanSize(this)">M</div>
+                <div class="size-pill" onclick="selectScanSize(this)">L</div>
+                <div class="size-pill" onclick="selectScanSize(this)">XL</div>
+                <div class="size-pill" onclick="selectScanSize(this)">2XL</div>
+                <div class="size-pill" onclick="selectScanSize(this)">3XL</div>
+                <div class="size-pill" onclick="selectScanSize(this)">4XL</div>
+                <div class="size-pill" onclick="selectScanSize(this)">5XL</div>
+                <div class="size-pill" onclick="selectScanSize(this)">6XL</div>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" id="scan-custom-size" class="input-field" placeholder="Свой размер (нажмите +)" readonly onclick="promptScanCustomSize()">
+            </div>
+
+            <div class="input-label" style="margin-bottom: 8px;">Год поступления (необязательно)</div>
+            <div class="size-pills" id="scan-year-pills">
+                <div class="size-pill" onclick="selectScanYear(this)">22</div>
+                <div class="size-pill" onclick="selectScanYear(this)">23</div>
+                <div class="size-pill" onclick="selectScanYear(this)">24</div>
+                <div class="size-pill" onclick="selectScanYear(this)">25</div>
+                <div class="size-pill" onclick="selectScanYear(this)">26</div>
+            </div>
+
+            <div class="input-label" style="margin-bottom: 8px;">Количество</div>
+            <div class="qty-control">
+                <button class="qty-btn" onclick="changeScanQty(-1)">−</button>
+                <input type="number" class="qty-input" id="scan-qty-input" value="1" min="1" readonly onclick="promptScanQty()">
+                <button class="qty-btn" onclick="changeScanQty(1)">+</button>
+            </div>
+
+            <button class="btn-main" style="margin-top: 16px; background: var(--success);" onclick="addScanItem()">Добавить в список</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>Список вещей</span>
+                <span id="scan-items-count" style="color: var(--primary);">0</span>
+            </div>
+            <div id="scan-items-list">
+                <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>
+            </div>
+            <div id="scan-items-summary" style="display: none; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Позиций:</span>
+                    <strong id="scan-sum-positions">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 16px;">
+                    <span style="color: var(--text-muted);">Всего штук:</span>
+                    <strong id="scan-sum-qty" style="color: var(--success);">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📋 Сохранённые ревизии</div>
+            <div id="scan-revisions-list">
+                <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пока нет ревизий</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 60px;">
+            <button class="btn-main" style="background: #1e293b;" onclick="saveScanInventory()">✓ Сохранить ревизию</button>
+        </div>
+    </div>
+
 </div>
 
 <!-- ЭКРАН ДИРЕКТОРА -->
@@ -318,6 +410,12 @@ let selectedCatDept = '';
 let selectedCatSize = '';
 let currentCatalogTab = 'all';
 
+// --- СКАНЕР ПЕРЕМЕННЫЕ ---
+let scanCatalog = {};
+let scanItems = [];
+let selectedScanSize = '';
+let selectedScanYear = '';
+
 // --- УТИЛИТЫ ---
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
@@ -330,7 +428,7 @@ function updateOnlineStatus() {
     const bar = document.getElementById('offline-bar');
     if (navigator.onLine) {
         bar.style.display = 'none';
-        syncOfflineData(); // Если сеть появилась - отправляем то, что накопилось
+        syncOfflineData();
     } else {
         bar.style.display = 'block';
     }
@@ -342,6 +440,10 @@ window.addEventListener('offline', updateOnlineStatus);
 document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
     document.getElementById('seller-name').value = seller;
+    
+    // Загружаем базу для сканера сразу при старте
+    loadScannerCatalog();
+
     if (shop && seller && !directorMode) {
         document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
         showScreen('screen-seller');
@@ -362,6 +464,24 @@ function showScreen(id) {
     }
 }
 
+// --- ВКЛАДКИ ---
+function switchMainTab(tab) {
+    document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('tab-btn-scanner').classList.toggle('active', tab === 'scanner');
+    
+    document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
+    document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+    document.getElementById('section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
+}
+function switchDirTab(tab) {
+    document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
+    document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+}
+
+// --- АВТОРИЗАЦИЯ И ПИН ---
 function selectShop(el, name) {
     document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
@@ -391,7 +511,6 @@ function logout() {
     showScreen('screen-auth');
 }
 
-// --- ПИН-ПАД ---
 function pressPin(num) {
     if (num === 'C') currentPin = '';
     else if (currentPin.length < 4) currentPin += num;
@@ -412,83 +531,7 @@ function checkPin() {
     }
 }
 
-// --- ВКЛАДКИ ---
-function switchMainTab(tab) {
-    document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
-    document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
-    document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
-    document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
-}
-function switchDirTab(tab) {
-    document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
-    document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
-    document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
-    document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
-}
-
-// --- ВЫБОР ПАРАМЕТРОВ ---
-function selectDept(el, dept, containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        if (containerId === 'dept-pills') selectedOrderDept = '';
-        if (containerId === 'cat-dept-pills') selectedCatDept = '';
-        return;
-    }
-    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    if (containerId === 'dept-pills') selectedOrderDept = dept;
-    if (containerId === 'cat-dept-pills') selectedCatDept = dept;
-}
-
-function selectSize(el, type) {
-    const containerId = type === 'order' ? 'size-pills' : 'cat-size-pills';
-    const customInputId = type === 'order' ? 'custom-size' : 'cat-custom-size';
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        if (type === 'order') selectedOrderSize = '';
-        if (type === 'cat') selectedCatSize = '';
-        return;
-    }
-    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    if (type === 'order') selectedOrderSize = el.innerText;
-    if (type === 'cat') selectedCatSize = el.innerText;
-    const customInput = document.getElementById(customInputId);
-    if(customInput) customInput.value = '';
-}
-
-document.getElementById('custom-size').addEventListener('input', function() {
-    if(this.value.trim() !== '') { document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedOrderSize = ''; }
-});
-document.getElementById('cat-custom-size').addEventListener('input', function() {
-    if(this.value.trim() !== '') { document.querySelectorAll('#cat-size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedCatSize = ''; }
-});
-
-function showCustomCategory(selectId, inputId) {
-    const inp = document.getElementById(inputId);
-    if (inp.style.display === 'none') { inp.style.display = 'block'; inp.focus(); } 
-    else { inp.style.display = 'none'; inp.value = ''; }
-}
-document.getElementById('new-category').addEventListener('change', function() {
-    if (!this.value.trim()) return;
-    const sel = document.getElementById('order-category');
-    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
-    this.value = ''; this.style.display = 'none';
-    showToast('Категория добавлена', 'success');
-});
-document.getElementById('new-cat-category').addEventListener('change', function() {
-    if (!this.value.trim()) return;
-    const sel = document.getElementById('cat-category');
-    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
-    this.value = ''; this.style.display = 'none';
-    showToast('Категория добавлена', 'success');
-});
-
-// --- ФОТО ---
+// --- ФОТО И ОФЛАЙН ---
 function handlePhoto(input, previewId, setter) {
     const file = input.files[0];
     if (!file) return;
@@ -514,7 +557,6 @@ function handlePhoto(input, previewId, setter) {
     reader.readAsDataURL(file);
 }
 
-// --- СОХРАНЕНИЕ В ОФЛАЙН И СИНХРОНИЗАЦИЯ ---
 function saveOfflineData(type, data) {
     let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
     queue.push({ type, data, id: Date.now() });
@@ -538,10 +580,7 @@ async function syncOfflineData() {
                 await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), item.data);
             }
             successCount++;
-        } catch (e) {
-            console.error("Sync error", e);
-            break; // Если ошибка сети, останавливаемся
-        }
+        } catch (e) { break; }
     }
 
     if (successCount > 0) {
@@ -555,7 +594,65 @@ async function syncOfflineData() {
     }
 }
 
-// --- ЗАКАЗЫ ---
+// --- ЛОГИКА ЗАКАЗОВ (СОКРАЩЕННО) ---
+function selectDept(el, dept, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        if (containerId === 'dept-pills') selectedOrderDept = '';
+        if (containerId === 'cat-dept-pills') selectedCatDept = '';
+        return;
+    }
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    if (containerId === 'dept-pills') selectedOrderDept = dept;
+    if (containerId === 'cat-dept-pills') selectedCatDept = dept;
+}
+function selectSize(el, type) {
+    const containerId = type === 'order' ? 'size-pills' : 'cat-size-pills';
+    const customInputId = type === 'order' ? 'custom-size' : 'cat-custom-size';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        if (type === 'order') selectedOrderSize = '';
+        if (type === 'cat') selectedCatSize = '';
+        return;
+    }
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    if (type === 'order') selectedOrderSize = el.innerText;
+    if (type === 'cat') selectedCatSize = el.innerText;
+    const customInput = document.getElementById(customInputId);
+    if(customInput) customInput.value = '';
+}
+document.getElementById('custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') { document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedOrderSize = ''; }
+});
+document.getElementById('cat-custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') { document.querySelectorAll('#cat-size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedCatSize = ''; }
+});
+function showCustomCategory(selectId, inputId) {
+    const inp = document.getElementById(inputId);
+    if (inp.style.display === 'none') { inp.style.display = 'block'; inp.focus(); } 
+    else { inp.style.display = 'none'; inp.value = ''; }
+}
+document.getElementById('new-category').addEventListener('change', function() {
+    if (!this.value.trim()) return;
+    const sel = document.getElementById('order-category');
+    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
+    this.value = ''; this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+document.getElementById('new-cat-category').addEventListener('change', function() {
+    if (!this.value.trim()) return;
+    const sel = document.getElementById('cat-category');
+    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
+    this.value = ''; this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+
 async function createOrder() {
     const toShop = document.getElementById('order-to-shop').value;
     const category = document.getElementById('order-category').value;
@@ -599,7 +696,6 @@ async function createOrder() {
     if(navigator.onLine) loadMyOrders();
 }
 
-// ... (Функции отрисовки карточек остаются без изменений, чтобы не раздувать код, они те же, что были) ...
 function renderOrderCard(o, isDirector = false) {
     const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; color:#cbd5e1;">📦</div>`;
     const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
@@ -619,7 +715,6 @@ function switchIncomingTab(dept, el) {
     currentIncomingTab = dept;
     renderIncomingOrders();
 }
-
 function renderIncomingOrders() {
     const listIn = document.getElementById('orders-incoming-list');
     let filtered = allIncomingOrders;
@@ -627,13 +722,8 @@ function renderIncomingOrders() {
     if (filtered.length === 0) listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет запросов</div>';
     else listIn.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
 }
-
 async function loadMyOrders() {
-    if (!window.fbDB || !navigator.onLine) {
-        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
-        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
-        return;
-    }
+    if (!window.fbDB || !navigator.onLine) return;
     try {
         const qIn = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop));
         const snapIn = await window.fbFns.getDocs(qIn);
@@ -642,7 +732,6 @@ async function loadMyOrders() {
         allIncomingOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
         renderIncomingOrders();
     } catch(e) { console.error(e); }
-
     try {
         const qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
         const snapOut = await window.fbFns.getDocs(qOut);
@@ -654,7 +743,6 @@ async function loadMyOrders() {
         else listOut.innerHTML = ordersOut.map(o => renderOrderCard(o)).join('');
     } catch(e) { console.error(e); }
 }
-
 async function updateOrderStatus(orderId, status) {
     if (!navigator.onLine) return showToast('Нет сети для изменения статуса', 'error');
     try {
@@ -664,7 +752,6 @@ async function updateOrderStatus(orderId, status) {
         checkOrderBadge();
     } catch(e) { showToast('Ошибка. Проверьте интернет.', 'error'); }
 }
-
 async function checkOrderBadge() {
     if (!shop || !window.fbDB || !navigator.onLine) return;
     try {
@@ -676,7 +763,7 @@ async function checkOrderBadge() {
     } catch(e) { console.error(e); }
 }
 
-// --- ВИТРИНА ---
+// --- ЛОГИКА ВИТРИНЫ (СОКРАЩЕННО) ---
 async function addToCatalog() {
     const category = document.getElementById('cat-category').value;
     const customSize = document.getElementById('cat-custom-size').value.trim();
@@ -706,7 +793,6 @@ async function addToCatalog() {
         saveOfflineData('catalog', itemData);
         showToast('📶 Нет сети. Товар сохранен на телефоне.', 'success');
     }
-    
     document.getElementById('cat-photo-file').value = '';
     document.getElementById('cat-photo-preview').style.display = 'none';
     window.currentCatPhotoBase64 = '';
@@ -718,19 +804,14 @@ async function addToCatalog() {
     selectedCatSize = ''; selectedCatDept = '';
     if(navigator.onLine) loadCatalog();
 }
-
 function switchCatalogTab(dept, el) {
     document.querySelectorAll('#catalog-tabs .tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
     currentCatalogTab = dept;
     renderCatalog();
 }
-
 async function loadCatalog(isDirector = false) {
-    if (!window.fbDB || !navigator.onLine) {
-        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Нет сети для загрузки витрины</div>';
-        return;
-    }
+    if (!window.fbDB || !navigator.onLine) return;
     try {
         const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
         allCatalogItems = [];
@@ -738,11 +819,8 @@ async function loadCatalog(isDirector = false) {
         allCatalogItems.sort((a,b) => new Date(b.date) - new Date(a.date));
         if (isDirector) renderDirectorCatalog();
         else renderCatalog();
-    } catch(e) {
-        console.error(e);
-    }
+    } catch(e) { console.error(e); }
 }
-
 function renderCatalog() {
     const list = document.getElementById('catalog-list');
     const filterShop = document.getElementById('view-filter-shop').value;
@@ -756,13 +834,11 @@ function renderCatalog() {
         return `<div class="order-card"><img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer;"><div class="order-header"><span>Магазин: <b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category}</div><div class="order-details" style="display:flex; justify-content:space-between;"><span>Размер: <b>${item.size}</b> | Год: <b>${item.year}</b></span><span style="color:var(--success); font-weight:bold;">В наличии: ${item.qty} шт.</span></div>${orderBtn}</div>`;
     }).join('');
 }
-
 function renderDirectorCatalog() {
     const list = document.getElementById('director-catalog-list');
     if (allCatalogItems.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Товаров нет</div>'; return; }
     list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span>Магазин: <b>${item.shop}</b> (${item.seller})</span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div><div class="order-details">В наличии: <b>${item.qty} шт.</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить с витрины</button></div></div>`).join('');
 }
-
 function orderFromCatalog(itemId) {
     const item = allCatalogItems.find(i => i.id === itemId);
     if (!item) return;
@@ -788,8 +864,6 @@ function orderFromCatalog(itemId) {
     showToast('Товар добавлен в форму. Нажмите "Отправить запрос".', 'success');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
-// --- ДИРЕКТОР ---
 async function loadDirectorOrders() {
     if (!window.fbDB || !navigator.onLine) return;
     const list = document.getElementById('director-orders-list');
@@ -802,7 +876,6 @@ async function loadDirectorOrders() {
         else list.innerHTML = orders.map(o => renderOrderCard(o, true)).join('');
     } catch(e) { list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>'; }
 }
-
 async function deleteDocById(id, collName) {
     if (!confirm('Удалить безвозвратно?')) return;
     try {
@@ -812,7 +885,6 @@ async function deleteDocById(id, collName) {
         else loadDirectorOrders();
     } catch(e) { showToast('Ошибка удаления', 'error'); }
 }
-
 function viewFullPhoto(src) {
     const overlay = document.createElement('div');
     overlay.style = "position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px;";
@@ -820,6 +892,276 @@ function viewFullPhoto(src) {
     overlay.onclick = () => overlay.remove();
     document.body.appendChild(overlay);
 }
+
+// ==========================================
+// --- ЛОГИКА СКАНЕРА (РЕВИЗИИ) ---
+// ==========================================
+
+function loadScannerCatalog() {
+    fetch('1.json', { cache: 'no-store' })
+        .then(response => {
+            if (!response.ok) throw new Error('Файл не найден');
+            return response.json();
+        })
+        .then(data => {
+            data.forEach(item => {
+                if (item.Штрихкод) {
+                    let cleanBarcode = String(item.Штрихкод).trim();
+                    if (cleanBarcode.includes('.')) cleanBarcode = cleanBarcode.split('.')[0]; 
+                    scanCatalog[cleanBarcode] = { name: item.Владелец };
+                }
+            });
+            localStorage.setItem('alik_catalog_cache', JSON.stringify(scanCatalog));
+            document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(scanCatalog).length + ' шт.';
+            document.getElementById('load-status').style.color = 'var(--success)';
+        })
+        .catch(error => {
+            const cached = localStorage.getItem('alik_catalog_cache');
+            if (cached) {
+                scanCatalog = JSON.parse(cached);
+                document.getElementById('load-status').innerText = '✅ База (офлайн): ' + Object.keys(scanCatalog).length + ' шт.';
+                document.getElementById('load-status').style.color = 'var(--success)';
+            } else {
+                document.getElementById('load-status').innerText = '❌ Ошибка базы';
+                document.getElementById('load-status').style.color = 'var(--danger)';
+            }
+        });
+}
+
+// Перехват сканера
+let tscdBarcode = '';
+let tscdTimer = null;
+document.addEventListener('keydown', function(e) {
+    // Работаем только если открыта вкладка сканера
+    if(document.getElementById('section-scanner').style.display === 'none') return;
+
+    const tag = (e.target.tagName || '').toUpperCase();
+    if ((tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly) return;
+
+    if (e.key === 'Enter') {
+        if (tscdBarcode.length > 2) { findProduct(tscdBarcode); tscdBarcode = ''; }
+        return;
+    }
+    if (e.key.length === 1 && e.key !== ' ') {
+        tscdBarcode += e.key;
+        clearTimeout(tscdTimer);
+        tscdTimer = setTimeout(() => {
+            if (tscdBarcode.length > 2) { findProduct(tscdBarcode); tscdBarcode = ''; }
+        }, 100);
+    }
+});
+
+function findProduct(code) {
+    code = String(code).replace(/[^a-zA-Z0-9]/g, '');
+    if (code.length < 3) return;
+
+    const nameInput = document.getElementById('prod-name');
+    nameInput.classList.remove('error');
+    nameInput.value = '';
+
+    let product = scanCatalog[code];
+    if (!product) {
+        let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_alik') || '{}');
+        product = customCatalog[code];
+    }
+
+    if (product) {
+        nameInput.value = product.name || '';
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    } else {
+        nameInput.value = '❌ Код ' + code + ' не найден в базе';
+        nameInput.classList.add('error');
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+
+    document.getElementById('prod-art').value = code;
+    document.getElementById('scan-qty-input').value = 1;
+    document.getElementById('scan-custom-size').value = '';
+    document.querySelectorAll('#scan-size-pills .size-pill, #scan-year-pills .size-pill').forEach(p => p.classList.remove('active'));
+    selectedScanSize = ''; selectedScanYear = '';
+}
+
+function promptScanCustomSize() {
+    let size = prompt("Введите свой размер:");
+    if (size) {
+        document.getElementById('scan-custom-size').value = size;
+        document.querySelectorAll('#scan-size-pills .size-pill').forEach(p => p.classList.remove('active'));
+        selectedScanSize = '';
+    }
+}
+function promptScanQty() {
+    let qty = prompt("Введите количество:", document.getElementById('scan-qty-input').value);
+    if (qty && parseInt(qty) > 0) document.getElementById('scan-qty-input').value = parseInt(qty);
+}
+function selectScanSize(el) {
+    if (el.classList.contains('active')) { el.classList.remove('active'); selectedScanSize = ''; return; }
+    document.querySelectorAll('#scan-size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active'); selectedScanSize = el.innerText;
+    document.getElementById('scan-custom-size').value = '';
+}
+function selectScanYear(el) {
+    if (el.classList.contains('active')) { el.classList.remove('active'); selectedScanYear = ''; return; }
+    document.querySelectorAll('#scan-year-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active'); selectedScanYear = el.innerText;
+}
+function changeScanQty(delta) {
+    const inp = document.getElementById('scan-qty-input');
+    let v = parseInt(inp.value) || 1;
+    if (v + delta >= 1) inp.value = v + delta;
+}
+
+function addScanItem() {
+    const name = document.getElementById('prod-name').value.trim();
+    const art = document.getElementById('prod-art').value.trim();
+    const qtyToAdd = parseInt(document.getElementById('scan-qty-input').value) || 1;
+    const customSize = document.getElementById('scan-custom-size').value.trim();
+    const finalSize = customSize || selectedScanSize || '—';
+    const finalYear = selectedScanYear || '—';
+
+    if (!name || name.includes('не найден')) { alert('Сначала отсканируйте товар!'); return; }
+
+    const existingIndex = scanItems.findIndex(i => i.article === art && i.size === finalSize && i.year === finalYear);
+
+    if (existingIndex !== -1) {
+        scanItems[existingIndex].qty += qtyToAdd;
+        scanItems[existingIndex].name = name;
+    } else {
+        scanItems.unshift({ name, article: art || '—', size: finalSize, year: finalYear, qty: qtyToAdd });
+    }
+    
+    saveScanDraft();
+    renderScanItems();
+
+    document.getElementById('prod-name').value = '';
+    document.getElementById('prod-name').classList.remove('error');
+    document.getElementById('prod-art').value = '';
+    document.getElementById('scan-qty-input').value = 1;
+    document.getElementById('scan-custom-size').value = '';
+    document.querySelectorAll('#scan-size-pills .size-pill, #scan-year-pills .size-pill').forEach(p => p.classList.remove('active'));
+    selectedScanSize = ''; selectedScanYear = '';
+}
+
+function removeScanItem(i) {
+    scanItems.splice(i, 1);
+    saveScanDraft();
+    renderScanItems();
+}
+
+function saveScanDraft() {
+    localStorage.setItem('alik_draft', JSON.stringify(scanItems));
+}
+
+function renderScanItems() {
+    const list = document.getElementById('scan-items-list');
+    const count = document.getElementById('scan-items-count');
+    const summary = document.getElementById('scan-items-summary');
+
+    if (scanItems.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>';
+        count.textContent = '0';
+        summary.style.display = 'none';
+        return;
+    }
+
+    list.innerHTML = '';
+    let totalQty = 0;
+
+    scanItems.forEach((item, i) => {
+        totalQty += item.qty;
+        list.innerHTML += `
+        <div class="list-item">
+            <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Разм: ${item.size} · Год: ${item.year}</div>
+            </div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 16px;">${item.qty} шт</div>
+            <button class="btn-del" onclick="removeScanItem(${i})">✕</button>
+        </div>`;
+    });
+
+    count.textContent = scanItems.length;
+    document.getElementById('scan-sum-positions').textContent = scanItems.length;
+    document.getElementById('scan-sum-qty').textContent = totalQty;
+    summary.style.display = 'block';
+}
+
+function saveScanInventory() {
+    if (scanItems.length === 0) { alert('Список пуст!'); return; }
+    
+    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: JSON.parse(JSON.stringify(scanItems)) });
+    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+    
+    const totalQty = scanItems.reduce((s, it) => s + it.qty, 0);
+    alert(`✅ Ревизия сохранена!\n\nПозиций: ${scanItems.length}\nВсего штук: ${totalQty}`);
+    
+    scanItems = [];
+    localStorage.removeItem('alik_draft');
+    renderScanItems();
+    renderScanRevisions();
+}
+
+function renderScanRevisions() {
+    const container = document.getElementById('scan-revisions-list');
+    if (!container) return;
+    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions.sort((a, b) => b.id - a.id);
+
+    if (revisions.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пока нет ревизий</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    revisions.forEach(rev => {
+        const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
+        const dateStr = new Date(rev.date).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        container.innerHTML += `
+            <div class="list-item" style="cursor: pointer;" onclick="toggleScanDetails(${rev.id})">
+                <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: 600;">${dateStr}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${rev.items.length} поз. · ${totalQty} шт</div>
+                </div>
+                <div style="font-size: 16px; color: var(--text-muted);">›</div>
+            </div>
+            <div id="scan-rev-${rev.id}" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; margin: 8px 0;">
+                ${rev.items.map(it => `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px;">
+                        <div>
+                            <div style="font-weight: 600;">${it.name}</div>
+                            <div style="color: var(--text-muted); font-size: 11px;">${it.size} · ${it.year}</div>
+                        </div>
+                        <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
+                    </div>
+                `).join('')}
+                <button style="margin-top: 12px; background: #fee2e2; color: #991b1b; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteScanRevision(${rev.id})">Удалить ревизию</button>
+            </div>
+        `;
+    });
+}
+
+function toggleScanDetails(id) {
+    const el = document.getElementById('scan-rev-' + id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function deleteScanRevision(id) {
+    if (!confirm('Удалить эту ревизию?')) return;
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions = revisions.filter(r => r.id !== id);
+    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+    renderScanRevisions();
+}
+
+window.onload = () => {
+    // Восстановление черновика сканера
+    const draft = localStorage.getItem('alik_draft');
+    if (draft) {
+        try { scanItems = JSON.parse(draft); } catch(e) { scanItems = []; }
+    }
+    renderScanItems();
+    renderScanRevisions();
+};
 </script>
 </body>
 </html>
