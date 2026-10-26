@@ -517,4 +517,308 @@ function handlePhoto(input, previewId, setter) {
 // --- СОХРАНЕНИЕ В ОФЛАЙН И СИНХРОНИЗАЦИЯ ---
 function saveOfflineData(type, data) {
     let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
-    queue.push({ type, data
+    queue.push({ type, data, id: Date.now() });
+    localStorage.setItem('offline_queue', JSON.stringify(queue));
+}
+
+async function syncOfflineData() {
+    if (!window.fbDB || !navigator.onLine) return;
+    let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    if (queue.length === 0) return;
+
+    showToast('Отправка сохраненных данных...', 'default');
+    let successCount = 0;
+    
+    for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+        try {
+            if (item.type === 'order') {
+                await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), item.data);
+            } else if (item.type === 'catalog') {
+                await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), item.data);
+            }
+            successCount++;
+        } catch (e) {
+            console.error("Sync error", e);
+            break; // Если ошибка сети, останавливаемся
+        }
+    }
+
+    if (successCount > 0) {
+        queue = queue.slice(successCount);
+        localStorage.setItem('offline_queue', JSON.stringify(queue));
+        showToast(`✅ Синхронизировано: ${successCount} записей`, 'success');
+        if (document.getElementById('screen-seller').classList.contains('active')) {
+            loadMyOrders();
+            loadCatalog();
+        }
+    }
+}
+
+// --- ЗАКАЗЫ ---
+async function createOrder() {
+    const toShop = document.getElementById('order-to-shop').value;
+    const category = document.getElementById('order-category').value;
+    const customSize = document.getElementById('custom-size').value.trim();
+    const finalSize = customSize || selectedOrderSize || 'Без размера';
+    const comment = document.getElementById('order-comment').value.trim();
+    
+    if (toShop === shop) return showToast('Нельзя заказать у самого себя', 'error');
+    if (!selectedOrderDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!window.currentOrderPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+
+    const orderData = {
+        fromShop: shop, toShop: toShop, seller: seller,
+        dept: selectedOrderDept, category: category,
+        photo: window.currentOrderPhotoBase64, size: finalSize,
+        comment: comment, status: 'pending', date: new Date().toISOString()
+    };
+
+    if (navigator.onLine) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
+            showToast('✅ Запрос отправлен!', 'success');
+        } catch (e) {
+            saveOfflineData('order', orderData);
+            showToast('⚠️ Ошибка сети. Сохранено в офлайн.', 'error');
+        }
+    } else {
+        saveOfflineData('order', orderData);
+        showToast('📶 Нет сети. Заказ сохранен на телефоне.', 'success');
+    }
+    
+    document.getElementById('order-photo-file').value = '';
+    document.getElementById('order-photo-preview').style.display = 'none';
+    window.currentOrderPhotoBase64 = '';
+    document.getElementById('custom-size').value = '';
+    document.getElementById('order-comment').value = '';
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('order-category').value = '';
+    selectedOrderSize = ''; selectedOrderDept = '';
+    if(navigator.onLine) loadMyOrders();
+}
+
+function renderOrderCard(o, isDirector = false) {
+    const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; color:#cbd5e1;">📦</div>`;
+    const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
+    let actionsHtml = '';
+    if (o.status === 'pending') {
+        if (o.toShop === shop && !isDirector) actionsHtml = `<div class="order-actions"><button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button><button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button></div>`;
+        else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
+    } else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
+    let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteDocById('${o.id}', 'orders')">Удалить</button>` : '';
+    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} | Размер: ${o.size}</div><div class="order-details">Отдел: ${o.dept}</div>${o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">💬 ${o.comment}</div>` : ''}${actionsHtml}<div style="text-align:right; margin-top:10px;">${deleteBtn}</div></div>`;
+}
+
+let currentIncomingTab = 'all';
+function switchIncomingTab(dept, el) {
+    document.querySelectorAll('#incoming-tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentIncomingTab = dept;
+    renderIncomingOrders();
+}
+
+function renderIncomingOrders() {
+    const listIn = document.getElementById('orders-incoming-list');
+    let filtered = allIncomingOrders;
+    if (currentIncomingTab !== 'all') filtered = allIncomingOrders.filter(o => o.dept === currentIncomingTab);
+    if (filtered.length === 0) listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет запросов</div>';
+    else listIn.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+}
+
+async function loadMyOrders() {
+    if (!window.fbDB || !navigator.onLine) {
+        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
+        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
+        return;
+    }
+    try {
+        const qIn = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop));
+        const snapIn = await window.fbFns.getDocs(qIn);
+        allIncomingOrders = [];
+        snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
+        allIncomingOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        renderIncomingOrders();
+    } catch(e) { console.error(e); }
+
+    try {
+        const qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
+        const snapOut = await window.fbFns.getDocs(qOut);
+        const listOut = document.getElementById('orders-outgoing-list');
+        let ordersOut = [];
+        snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
+        ordersOut.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (ordersOut.length === 0) listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Вы еще не отправляли запросы</div>';
+        else listOut.innerHTML = ordersOut.map(o => renderOrderCard(o)).join('');
+    } catch(e) { console.error(e); }
+}
+
+async function updateOrderStatus(orderId, status) {
+    if (!navigator.onLine) return showToast('Нет сети для изменения статуса', 'error');
+    try {
+        await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
+        showToast(status === 'accepted' ? '✅ Заказ принят' : '❌ Заказ отклонен', 'success');
+        loadMyOrders();
+        checkOrderBadge();
+    } catch(e) { showToast('Ошибка. Проверьте интернет.', 'error'); }
+}
+
+async function checkOrderBadge() {
+    if (!shop || !window.fbDB || !navigator.onLine) return;
+    try {
+        const q = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop), window.fbFns.where("status", "==", "pending"));
+        const snap = await window.fbFns.getDocs(q);
+        const badge = document.getElementById('order-badge');
+        if (snap.size > 0) { badge.innerText = snap.size; badge.style.display = 'inline-block'; } 
+        else { badge.style.display = 'none'; }
+    } catch(e) { console.error(e); }
+}
+
+// --- ВИТРИНА ---
+async function addToCatalog() {
+    const category = document.getElementById('cat-category').value;
+    const customSize = document.getElementById('cat-custom-size').value.trim();
+    const finalSize = customSize || selectedCatSize || 'Без размера';
+    const year = document.getElementById('cat-year').value || '—';
+    const qty = parseInt(document.getElementById('cat-qty').value) || 1;
+
+    if (!selectedCatDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!window.currentCatPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+
+    const itemData = {
+        shop: shop, seller: seller, dept: selectedCatDept, category: category,
+        photo: window.currentCatPhotoBase64, size: finalSize, year: year, qty: qty,
+        date: new Date().toISOString()
+    };
+
+    if (navigator.onLine) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
+            showToast('✅ Товар выставлен на витрину!', 'success');
+        } catch (e) {
+            saveOfflineData('catalog', itemData);
+            showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
+        }
+    } else {
+        saveOfflineData('catalog', itemData);
+        showToast('📶 Нет сети. Товар сохранен на телефоне.', 'success');
+    }
+    
+    document.getElementById('cat-photo-file').value = '';
+    document.getElementById('cat-photo-preview').style.display = 'none';
+    window.currentCatPhotoBase64 = '';
+    document.getElementById('cat-custom-size').value = '';
+    document.getElementById('cat-qty').value = '1';
+    document.getElementById('cat-year').value = '—';
+    document.getElementById('cat-category').value = '';
+    document.querySelectorAll('#cat-size-pills .size-pill, #cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+    selectedCatSize = ''; selectedCatDept = '';
+    if(navigator.onLine) loadCatalog();
+}
+
+function switchCatalogTab(dept, el) {
+    document.querySelectorAll('#catalog-tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentCatalogTab = dept;
+    renderCatalog();
+}
+
+async function loadCatalog(isDirector = false) {
+    if (!window.fbDB || !navigator.onLine) {
+        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Нет сети для загрузки витрины</div>';
+        return;
+    }
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
+        allCatalogItems = [];
+        snapshot.forEach(d => allCatalogItems.push({id: d.id, ...d.data()}));
+        allCatalogItems.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (isDirector) renderDirectorCatalog();
+        else renderCatalog();
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function renderCatalog() {
+    const list = document.getElementById('catalog-list');
+    const filterShop = document.getElementById('view-filter-shop').value;
+    let filtered = allCatalogItems;
+    if (currentCatalogTab !== 'all') filtered = filtered.filter(o => o.dept === currentCatalogTab);
+    if (filterShop !== 'all') filtered = filtered.filter(o => o.shop === filterShop);
+    if (filtered.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Тут пока пусто</div>'; return; }
+    list.innerHTML = filtered.map(item => {
+        const isMyItem = item.shop === shop;
+        const orderBtn = isMyItem ? `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px; background:#f1f5f9; border-radius:8px;">Это ваш товар</div>` : `<button class="btn-main" style="padding:10px; font-size:14px; margin-top:8px;" onclick="orderFromCatalog('${item.id}')">🛒 Заказать у ${item.shop}</button>`;
+        return `<div class="order-card"><img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer;"><div class="order-header"><span>Магазин: <b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category}</div><div class="order-details" style="display:flex; justify-content:space-between;"><span>Размер: <b>${item.size}</b> | Год: <b>${item.year}</b></span><span style="color:var(--success); font-weight:bold;">В наличии: ${item.qty} шт.</span></div>${orderBtn}</div>`;
+    }).join('');
+}
+
+function renderDirectorCatalog() {
+    const list = document.getElementById('director-catalog-list');
+    if (allCatalogItems.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Товаров нет</div>'; return; }
+    list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span>Магазин: <b>${item.shop}</b> (${item.seller})</span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div><div class="order-details">В наличии: <b>${item.qty} шт.</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить с витрины</button></div></div>`).join('');
+}
+
+function orderFromCatalog(itemId) {
+    const item = allCatalogItems.find(i => i.id === itemId);
+    if (!item) return;
+    switchMainTab('orders');
+    document.getElementById('order-to-shop').value = item.shop;
+    document.querySelectorAll('#dept-pills .size-pill').forEach(p => {
+        if (p.innerText === item.dept) { p.classList.add('active'); selectedOrderDept = item.dept; } else p.classList.remove('active');
+    });
+    const catSelect = document.getElementById('order-category');
+    let found = false;
+    for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
+    if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
+    catSelect.value = item.category;
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => {
+        if (p.innerText === item.size) { p.classList.add('active'); selectedOrderSize = item.size; } else p.classList.remove('active');
+    });
+    document.getElementById('custom-size').value = '';
+    window.currentOrderPhotoBase64 = item.photo;
+    const preview = document.getElementById('order-photo-preview');
+    preview.src = item.photo;
+    preview.style.display = 'block';
+    document.getElementById('order-comment').value = `Заказ с витрины (Год: ${item.year})`;
+    showToast('Товар добавлен в форму. Нажмите "Отправить запрос".', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// --- ДИРЕКТОР ---
+async function loadDirectorOrders() {
+    if (!window.fbDB || !navigator.onLine) return;
+    const list = document.getElementById('director-orders-list');
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
+        let orders = [];
+        snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
+        orders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (orders.length === 0) list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Заказов пока нет</div>';
+        else list.innerHTML = orders.map(o => renderOrderCard(o, true)).join('');
+    } catch(e) { list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>'; }
+}
+
+async function deleteDocById(id, collName) {
+    if (!confirm('Удалить безвозвратно?')) return;
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, collName, id));
+        showToast('Удалено', 'success');
+        if (collName === 'catalog') loadCatalog(directorMode);
+        else loadDirectorOrders();
+    } catch(e) { showToast('Ошибка удаления', 'error'); }
+}
+
+function viewFullPhoto(src) {
+    const overlay = document.createElement('div');
+    overlay.style = "position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px;";
+    overlay.innerHTML = `<img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+    overlay.onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+}
+</script>
+</body>
+</html>
