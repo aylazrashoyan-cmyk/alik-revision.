@@ -223,7 +223,10 @@ function findProduct(code) {
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
 
-    // Автоочистка
+    // Сохраняем отсканированный артикул в скрытое поле
+    document.getElementById('prod-art').value = code;
+
+    // Автоочистка размеров и количества при новом скане
     document.getElementById('qty-input').value = 1;
     document.getElementById('custom-size').value = '';
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
@@ -286,20 +289,19 @@ function addItem() {
 
     if (!name || name.includes('не найден')) { showToast('Сначала отсканируйте товар!', 'error'); return; }
 
-    // ЛОГИКА ОБЪЕДИНЕНИЯ: Ищем совпадение по Названию, Размеру и Году
+    // ЛОГИКА ОБЪЕДИНЕНИЯ: Ищем совпадение по АРТИКУЛУ и Размеру
     const existingIndex = items.findIndex(i => 
-        i.name === name && 
-        i.size === finalSize && 
-        i.year === finalYear
+        i.article === art && 
+        i.size === finalSize
     );
 
     if (existingIndex !== -1) {
-        // Если нашли - увеличиваем количество
+        // Если нашли тот же штрихкод - увеличиваем количество
         items[existingIndex].qty += qtyToAdd;
         showToast('Количество увеличено', 'success');
     } else {
         // Если нет - добавляем новую строку (в начало)
-        items.unshift({ name, article: art || '—', size: finalSize, year: finalYear, qty: qtyToAdd });
+        items.unshift({ name, article: art, size: finalSize, year: finalYear, qty: qtyToAdd });
         showToast('Добавлено', 'success');
     }
     
@@ -359,8 +361,10 @@ function renderItems() {
 
 function saveInventory() {
     if (items.length === 0) { showToast('Список пуст!', 'error'); return; }
+    
+    // При сохранении переносим текущий список в историю, НИЧЕГО не склеивая
     const revisions = JSON.parse(localStorage.getItem('style_revisions') || '[]');
-    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: items.slice() });
+    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: items });
     localStorage.setItem('style_revisions', JSON.stringify(revisions));
     
     const totalQty = items.reduce((s, it) => s + it.qty, 0);
@@ -376,11 +380,11 @@ function downloadExcel() {
     if (items.length === 0) return showToast('Список пуст!', 'error');
 
     let csvContent = "\uFEFF";
-    csvContent += "Наименование;Размер;Год;Количество\n";
+    csvContent += "Артикул;Наименование;Размер;Год;Количество\n";
 
     items.forEach(item => {
         const safeName = `"${item.name.replace(/"/g, '""')}"`;
-        csvContent += `${safeName};${item.size};${item.year};${item.qty}\n`;
+        csvContent += `${item.article};${safeName};${item.size};${item.year};${item.qty}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
