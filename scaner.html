@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Алик — Ревизия</title>
 
+<!-- Настройки PWA -->
+<link rel="manifest" href="manifest-scanner.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170678.png">
+
+<script>
+  // Регистрация Service Worker для офлайн-режима сканера
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw-scanner.js').catch(err => console.log('SW error', err));
+  }
+</script>
+
 <style>
 :root {
     --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b;
@@ -39,9 +51,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
 
 .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
+.offline-bar { display: none; background: #fef2f2; color: #991b1b; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; }
 </style>
 </head>
 <body>
+
+<div id="offline-bar" class="offline-bar">📶 Нет интернета. Работаем в офлайн-режиме.</div>
 
 <div class="header">
     <h1>Ревизия · Алик</h1>
@@ -128,7 +143,19 @@ let items = [];
 let selectedSize = '';
 let selectedYear = '';
 
-// Загрузка базы
+// Индикатор офлайн-режима
+function updateOnlineStatus() {
+    const bar = document.getElementById('offline-bar');
+    if (navigator.onLine) {
+        bar.style.display = 'none';
+    } else {
+        bar.style.display = 'block';
+    }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// Загрузка базы (сначала пробуем из кэша, если нет сети - берем из Service Worker)
 fetch('1.json', { cache: 'no-store' })
     .then(response => {
         if (!response.ok) throw new Error('Файл не найден');
@@ -142,13 +169,22 @@ fetch('1.json', { cache: 'no-store' })
                 catalog[cleanBarcode] = { name: item.Владелец };
             }
         });
+        localStorage.setItem('alik_catalog_cache', JSON.stringify(catalog)); // Сохраняем в память
         document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(catalog).length + ' шт.';
         document.getElementById('load-status').style.color = 'var(--success)';
     })
     .catch(error => {
         console.error('Ошибка загрузки:', error);
-        document.getElementById('load-status').innerText = '❌ Ошибка базы';
-        document.getElementById('load-status').style.color = 'var(--danger)';
+        // Если сети нет, пытаемся загрузить базу из памяти телефона
+        const cached = localStorage.getItem('alik_catalog_cache');
+        if (cached) {
+            catalog = JSON.parse(cached);
+            document.getElementById('load-status').innerText = '✅ База (офлайн): ' + Object.keys(catalog).length + ' шт.';
+            document.getElementById('load-status').style.color = 'var(--success)';
+        } else {
+            document.getElementById('load-status').innerText = '❌ Ошибка базы';
+            document.getElementById('load-status').style.color = 'var(--danger)';
+        }
     });
 
 // --- ПЕРЕХВАТ СКАНЕРА ---
@@ -156,7 +192,6 @@ let tscdBarcode = '';
 let tscdTimer = null;
 
 document.addEventListener('keydown', function(e) {
-    // Защита: если фокус в редактируемом поле (например, в prompt для размера), игнорируем
     const tag = (e.target.tagName || '').toUpperCase();
     if ((tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly) return;
 
@@ -204,7 +239,6 @@ function findProduct(code) {
 
     document.getElementById('prod-art').value = code;
 
-    // Автосброс параметров при новом скане
     document.getElementById('qty-input').value = 1;
     document.getElementById('custom-size').value = '';
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
@@ -267,7 +301,6 @@ function addItem() {
 
     if (!name || name.includes('не найден')) { alert('Сначала отсканируйте товар!'); return; }
 
-    // КЛЮЧ ОБЪЕДИНЕНИЯ: артикул + размер + год
     const existingIndex = items.findIndex(i => 
         i.article === art && 
         i.size === finalSize &&
@@ -276,7 +309,7 @@ function addItem() {
 
     if (existingIndex !== -1) {
         items[existingIndex].qty += qtyToAdd;
-        items[existingIndex].name = name; // Обновляем имя, если в базе поменялось
+        items[existingIndex].name = name;
     } else {
         items.unshift({ name, article: art || '—', size: finalSize, year: finalYear, qty: qtyToAdd });
     }
@@ -284,7 +317,6 @@ function addItem() {
     saveDraft();
     renderItems();
 
-    // Сброс формы
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-name').classList.remove('error');
     document.getElementById('prod-art').value = '';
@@ -343,7 +375,6 @@ function saveInventory() {
     if (items.length === 0) { alert('Список пуст!'); return; }
     
     const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    // Сохраняем как есть, без проверок на дубли
     revisions.push({ id: Date.now(), date: new Date().toISOString(), items: JSON.parse(JSON.stringify(items)) });
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
     
@@ -410,6 +441,7 @@ function deleteRevision(id) {
 
 // Инициализация
 window.onload = () => {
+    updateOnlineStatus();
     const draft = localStorage.getItem('alik_draft');
     if (draft) {
         try { items = JSON.parse(draft); } catch(e) { items = []; }
