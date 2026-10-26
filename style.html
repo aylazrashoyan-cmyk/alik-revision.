@@ -20,12 +20,14 @@
     .card { background: var(--white); border-radius: var(--radius); padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 10px; }
     .card-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 
-    #prod-art { opacity: 0; position: absolute; top: 0; left: 0; width: 1px; height: 1px; border: none; outline: none; background: transparent; }
-
     .input-group { display: flex; flex-direction: column; margin-bottom: 8px; }
     .input-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;}
     .input-field { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
     .input-field.error { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
+
+    .name-row { display: flex; gap: 6px; align-items: stretch; }
+    .name-row .input-field { flex: 1; }
+    .btn-add-cat { background: var(--primary); color: white; border: none; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 
     .size-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
     .size-pill { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
@@ -46,6 +48,19 @@
     
     .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 1000; opacity: 0; transition: 0.3s; pointer-events: none; }
     .toast.show { opacity: 1; }
+
+    /* Модалка */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 16px; width: 100%; max-width: 360px; }
+    .modal h3 { margin: 0 0 12px; font-size: 16px; }
+    .modal .input-field { margin-bottom: 10px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .modal-actions button { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; }
+    .modal-actions .btn-cancel { background: #e2e8f0; color: var(--text); }
+    .modal-actions .btn-save { background: var(--success); color: white; }
+
+    .hidden-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -57,12 +72,15 @@
     <div id="load-status" style="font-size: 11px; color: var(--text-muted);">Загрузка...</div>
 </div>
 
-<input type="text" id="prod-art" autocomplete="off">
+<input type="text" id="prod-art" class="hidden-input" autocomplete="off">
 
 <div class="card">
     <div class="input-group">
         <label class="input-label">Наименование</label>
-        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД..." readonly>
+        <div class="name-row">
+            <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД..." readonly>
+            <button class="btn-add-cat" onclick="openAddCatalog()">＋</button>
+        </div>
     </div>
 
     <div class="input-label">Размер (необязательно)</div>
@@ -132,8 +150,22 @@
     <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить ревизию</button>
 </div>
 
+<!-- Модалка добавления в справочник -->
+<div class="modal-overlay" id="catalog-modal">
+    <div class="modal">
+        <h3>Добавить в справочник</h3>
+        <input type="text" id="cat-barcode" class="input-field" placeholder="Штрихкод" inputmode="numeric">
+        <input type="text" id="cat-name" class="input-field" placeholder="Наименование (например, Спорт костюм мужской 1399₽)">
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeAddCatalog()">Отмена</button>
+            <button class="btn-save" onclick="saveCatalogEntry()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let catalog = {};
+let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_style') || '{}');
 let items = []; 
 let selectedSize = '';
 let selectedYear = '';
@@ -151,7 +183,7 @@ function showToast(msg, type = 'default') {
 window.onload = () => {
     const savedDraft = localStorage.getItem('draft_style');
     if (savedDraft) {
-        items = JSON.parse(savedDraft);
+        try { items = JSON.parse(savedDraft); } catch(e) { items = []; }
     }
     renderItems();
     renderRevisions();
@@ -168,19 +200,31 @@ fetch('2.json', { cache: 'no-store' })
                 catalog[cleanBarcode] = { name: item.Владелец };
             }
         });
-        document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(catalog).length + ' шт.';
-        document.getElementById('load-status').style.color = 'var(--success)';
+        updateLoadStatus();
     })
     .catch(error => {
         document.getElementById('load-status').innerText = '❌ Ошибка базы';
         document.getElementById('load-status').style.color = 'var(--danger)';
     });
 
+function updateLoadStatus() {
+    const el = document.getElementById('load-status');
+    const total = Object.keys(catalog).length;
+    const custom = Object.keys(customCatalog).length;
+    el.innerText = '✅ База: ' + total + (custom ? ' + ' + custom + ' своих' : '');
+    el.style.color = 'var(--success)';
+}
+
 // --- ПЕРЕХВАТ СКАНЕРА (ТСД) ---
 let tscdBarcode = '';
 let tscdTimer = null;
 
 document.addEventListener('keydown', function(e) {
+    // Не перехватываем, если фокус в обычном редактируемом поле
+    const tag = (e.target.tagName || '').toUpperCase();
+    const isEditable = (tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly;
+    if (isEditable) return;
+
     if (e.key === 'Enter') {
         if (tscdBarcode.length > 2) {
             findProduct(tscdBarcode);
@@ -209,10 +253,7 @@ function findProduct(code) {
     nameInput.value = '';
 
     let product = catalog[code];
-    if (!product) {
-        let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_style') || '{}');
-        product = customCatalog[code];
-    }
+    if (!product) product = customCatalog[code];
 
     if (product) {
         nameInput.value = product.name || '';
@@ -223,10 +264,9 @@ function findProduct(code) {
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
 
-    // Сохраняем отсканированный артикул в скрытое поле
     document.getElementById('prod-art').value = code;
 
-    // Автоочистка размеров и количества при новом скане
+    // Автосброс
     document.getElementById('qty-input').value = 1;
     document.getElementById('custom-size').value = '';
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
@@ -289,18 +329,18 @@ function addItem() {
 
     if (!name || name.includes('не найден')) { showToast('Сначала отсканируйте товар!', 'error'); return; }
 
-    // ЛОГИКА ОБЪЕДИНЕНИЯ: Ищем совпадение по АРТИКУЛУ и Размеру
+    // ⚠️ КЛЮЧ ОБЪЕДИНЕНИЯ: артикул + размер + год
     const existingIndex = items.findIndex(i => 
         i.article === art && 
-        i.size === finalSize
+        i.size === finalSize &&
+        i.year === finalYear
     );
 
     if (existingIndex !== -1) {
-        // Если нашли тот же штрихкод - увеличиваем количество
         items[existingIndex].qty += qtyToAdd;
-        showToast('Количество увеличено', 'success');
+        items[existingIndex].name = name;
+        showToast('Количество увеличено (' + finalYear + ')', 'success');
     } else {
-        // Если нет - добавляем новую строку (в начало)
         items.unshift({ name, article: art, size: finalSize, year: finalYear, qty: qtyToAdd });
         showToast('Добавлено', 'success');
     }
@@ -308,7 +348,7 @@ function addItem() {
     localStorage.setItem('draft_style', JSON.stringify(items));
     renderItems();
 
-    // Автоочистка после добавления
+    // Сброс формы
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-name').classList.remove('error');
     document.getElementById('prod-art').value = '';
@@ -362,9 +402,12 @@ function renderItems() {
 function saveInventory() {
     if (items.length === 0) { showToast('Список пуст!', 'error'); return; }
     
-    // При сохранении переносим текущий список в историю, НИЧЕГО не склеивая
     const revisions = JSON.parse(localStorage.getItem('style_revisions') || '[]');
-    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: items });
+    
+    // Без проверки на дубликат — сохраняем как есть.
+    // Если случайно сохранили дважды, лишнюю ревизию можно удалить вручную
+    // (кнопка «Удалить ревизию» в раскрытии сохранённой записи).
+    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: JSON.parse(JSON.stringify(items)) });
     localStorage.setItem('style_revisions', JSON.stringify(revisions));
     
     const totalQty = items.reduce((s, it) => s + it.qty, 0);
@@ -383,7 +426,7 @@ function downloadExcel() {
     csvContent += "Артикул;Наименование;Размер;Год;Количество\n";
 
     items.forEach(item => {
-        const safeName = `"${item.name.replace(/"/g, '""')}"`;
+        const safeName = `"${String(item.name).replace(/"/g, '""')}"`;
         csvContent += `${item.article};${safeName};${item.size};${item.year};${item.qty}\n`;
     });
 
@@ -451,6 +494,47 @@ function deleteRevision(id) {
     revisions = revisions.filter(r => r.id !== id);
     localStorage.setItem('style_revisions', JSON.stringify(revisions));
     renderRevisions();
+}
+
+// ====== ПОПОЛНЕНИЕ СПРАВОЧНИКА ======
+function openAddCatalog() {
+    // Автоподстановка отсканированного кода и текущего имени
+    const art = document.getElementById('prod-art').value.trim();
+    const name = document.getElementById('prod-name').value.trim();
+    document.getElementById('cat-barcode').value = art;
+    document.getElementById('cat-name').value = (name && !name.includes('не найден')) ? name : '';
+    document.getElementById('catalog-modal').classList.add('show');
+    setTimeout(() => document.getElementById('cat-barcode').focus(), 50);
+}
+
+function closeAddCatalog() {
+    document.getElementById('catalog-modal').classList.remove('show');
+}
+
+function saveCatalogEntry() {
+    let barcode = document.getElementById('cat-barcode').value.trim().replace(/[^a-zA-Z0-9]/g, '');
+    const name = document.getElementById('cat-name').value.trim();
+
+    if (!barcode || barcode.length < 3) { showToast('Введите корректный штрихкод', 'error'); return; }
+    if (!name) { showToast('Введите наименование', 'error'); return; }
+
+    if (catalog[barcode]) {
+        if (!confirm('Этот код уже есть в основной базе (2.json). Перезаписать локально?')) return;
+    }
+    if (customCatalog[barcode] && !confirm('Этот код уже есть в вашем справочнике. Перезаписать?')) return;
+
+    customCatalog[barcode] = { name };
+    localStorage.setItem('custom_catalog_style', JSON.stringify(customCatalog));
+    updateLoadStatus();
+    closeAddCatalog();
+
+    // Если сейчас этот код в форме — сразу подставить имя
+    if (document.getElementById('prod-art').value.trim() === barcode) {
+        const nameInput = document.getElementById('prod-name');
+        nameInput.value = name;
+        nameInput.classList.remove('error');
+    }
+    showToast('Добавлено в справочник', 'success');
 }
 </script>
 </body>
