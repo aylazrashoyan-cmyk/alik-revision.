@@ -3,420 +3,823 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Алик — Ревизия</title>
+<title>Заказы и Витрина</title>
+
+<!-- Настройки PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170678.png">
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
+    authDomain: "revisionset.firebaseapp.com",
+    projectId: "revisionset",
+    storageBucket: "revisionset.firebasestorage.app",
+    messagingSenderId: "904187992853",
+    appId: "1:904187992853:web:c009614e1cf718d950271c"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  window.fbDB = db;
+  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
+
+  // Регистрация Service Worker (для офлайн режима)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
+  }
+</script>
 
 <style>
-:root {
-    --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b;
-    --primary: #2563eb; --success: #10b981; --danger: #ef4444;
-    --white: #ffffff; --border: #e2e8f0; --radius: 16px;
-}
+/* Стили оставляем без изменений (они длинные, но они нужны) */
+:root { --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b; --primary: #2563eb; --success: #10b981; --danger: #ef4444; --white: #ffffff; --border: #e2e8f0; --radius: 16px; }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 90px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 80px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
-.card-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-
-.hidden-input { opacity: 0; position: absolute; top: 0; left: 0; width: 1px; height: 1px; border: none; outline: none; background: transparent; pointer-events: none; }
-
+.main-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #e2e8f0; padding: 4px; border-radius: 12px; }
+.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
+.main-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
+.toast.show { opacity: 1; }
+.toast.error { background: var(--danger); }
+.toast.success { background: var(--success); }
 .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
 .input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
-.input-field.error { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
-
+.input-field:focus { border-color: var(--primary); background: #fff; }
 .size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
 .size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-.qty-control { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.qty-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--white); font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text); }
-.qty-input { flex: 1; height: 48px; text-align: center; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; outline: none; }
-
-.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
-.list-item:last-child { border-bottom: none; }
-.btn-del { color: var(--danger); background: #fee2e2; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
-
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 10; }
+.btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
+.screen { display: none; }
+.screen.active { display: block; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; }
+.pin-btn:active { background: #e2e8f0; }
+.pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
+.badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
+.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; flex-direction: column; gap:10px; }
+.order-card.pending { border-left: 4px solid var(--primary); }
+.order-card.accepted { border-left: 4px solid var(--success); }
+.order-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
+.order-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
+.order-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+.order-details { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.order-actions { display: flex; gap: 10px; margin-top: 5px; }
+.order-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;}
+.btn-accept { background: #dcfce7; color: #166534; }
+.btn-reject { background: #fee2e2; color: #991b1b; }
+.order-photo { width: 100%; max-height: 200px; object-fit: contain; background:#f1f5f9; border-radius: 8px; margin-bottom: 5px;}
+.tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;}
+.tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
+.tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.offline-bar { display: none; background: #fef2f2; color: #991b1b; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; }
 </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>Ревизия · Алик</h1>
-    <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
-</div>
+<div id="toast" class="toast"></div>
+<div id="offline-bar" class="offline-bar">📶 Нет интернета. Данные сохраняются на телефоне.</div>
 
-<input type="text" id="prod-art" class="hidden-input" autocomplete="off">
-
-<div class="card">
-    <div class="input-group">
-        <label class="input-label">Наименование</label>
-        <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД..." readonly>
-    </div>
-
-    <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
-    <div class="size-pills" id="size-pills">
-        <div class="size-pill" onclick="selectSize(this)">M</div>
-        <div class="size-pill" onclick="selectSize(this)">L</div>
-        <div class="size-pill" onclick="selectSize(this)">XL</div>
-        <div class="size-pill" onclick="selectSize(this)">2XL</div>
-        <div class="size-pill" onclick="selectSize(this)">3XL</div>
-        <div class="size-pill" onclick="selectSize(this)">4XL</div>
-        <div class="size-pill" onclick="selectSize(this)">5XL</div>
-        <div class="size-pill" onclick="selectSize(this)">6XL</div>
-    </div>
-    
-    <div class="input-group">
-        <input type="text" id="custom-size" class="input-field" placeholder="Свой размер (нажмите +)" readonly onclick="promptCustomSize()">
-    </div>
-
-    <div class="input-label" style="margin-bottom: 8px;">Год поступления (необязательно)</div>
-    <div class="size-pills" id="year-pills">
-        <div class="size-pill" onclick="selectYear(this)">22</div>
-        <div class="size-pill" onclick="selectYear(this)">23</div>
-        <div class="size-pill" onclick="selectYear(this)">24</div>
-        <div class="size-pill" onclick="selectYear(this)">25</div>
-        <div class="size-pill" onclick="selectYear(this)">26</div>
-    </div>
-
-    <div class="input-label" style="margin-bottom: 8px;">Количество</div>
-    <div class="qty-control">
-        <button class="qty-btn" onclick="changeQty(-1)">−</button>
-        <input type="number" class="qty-input" id="qty-input" value="1" min="1" readonly onclick="promptQty()">
-        <button class="qty-btn" onclick="changeQty(1)">+</button>
-    </div>
-
-    <button class="btn-main" style="margin-top: 16px; background: var(--success);" onclick="addItem()">Добавить в список</button>
-</div>
-
-<div class="card">
-    <div class="card-title">
-        <span>Список вещей</span>
-        <span id="items-count" style="color: var(--primary);">0</span>
-    </div>
-    <div id="items-list">
-        <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>
-    </div>
-    <div id="items-summary" style="display: none; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--border);">
-        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;">
-            <span style="color: var(--text-muted);">Позиций:</span>
-            <strong id="sum-positions">0</strong>
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
+<div id="screen-auth" class="screen active">
+    <div class="card">
+        <h2 style="text-align: center; margin-top: 0;">Вход в систему</h2>
+        <div class="size-pills" style="justify-content: center;" id="shop-pills">
+            <div class="size-pill" onclick="selectShop(this, 'Алик')">Алик</div>
+            <div class="size-pill" onclick="selectShop(this, 'Мода')">Мода</div>
+            <div class="size-pill" onclick="selectShop(this, 'Твой стиль')">Твой стиль</div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 16px;">
-            <span style="color: var(--text-muted);">Всего штук:</span>
-            <strong id="sum-qty" style="color: var(--success);">0</strong>
+        <div class="input-group" style="margin-top: 20px;">
+            <label class="input-label">Ваше имя (Продавец)</label>
+            <input type="text" class="input-field" id="seller-name" placeholder="Введите имя" autocomplete="off">
+        </div>
+        <button class="btn-main" onclick="loginSeller()">Войти как продавец</button>
+    </div>
+    <div class="card" style="margin-top: 20px;">
+        <h3 style="text-align: center; margin-top: 0;">Вход для А.А.</h3>
+        <div class="pin-display" id="pin-display"></div>
+        <div class="pin-pad">
+            <div class="pin-btn" onclick="pressPin('1')">1</div>
+            <div class="pin-btn" onclick="pressPin('2')">2</div>
+            <div class="pin-btn" onclick="pressPin('3')">3</div>
+            <div class="pin-btn" onclick="pressPin('4')">4</div>
+            <div class="pin-btn" onclick="pressPin('5')">5</div>
+            <div class="pin-btn" onclick="pressPin('6')">6</div>
+            <div class="pin-btn" onclick="pressPin('7')">7</div>
+            <div class="pin-btn" onclick="pressPin('8')">8</div>
+            <div class="pin-btn" onclick="pressPin('9')">9</div>
+            <div class="pin-btn" style="background:var(--danger); color:white;" onclick="pressPin('C')">C</div>
+            <div class="pin-btn" onclick="pressPin('0')">0</div>
+            <div class="pin-btn" style="background:var(--primary); color:white;" onclick="checkPin()">OK</div>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-title">📋 Сохранённые ревизии</div>
-    <div id="revisions-list">
-        <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пока нет ревизий</div>
+<!-- ЭКРАН ПРОДАВЦА -->
+<div id="screen-seller" class="screen">
+    <div class="header">
+        <h1 id="shop-title">Магазин</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
+    </div>
+
+    <div class="main-tabs">
+        <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
+        <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
+    </div>
+
+    <div id="section-orders">
+        <div class="card">
+            <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
+            <div class="input-group">
+                <label class="input-label">Кому (Магазин)</label>
+                <select id="order-to-shop" class="input-field">
+                    <option value="Алик">Алик</option>
+                    <option value="Мода">Мода</option>
+                    <option value="Твой стиль">Твой стиль</option>
+                </select>
+            </div>
+            <div class="input-label">Отдел</div>
+            <div class="size-pills" id="dept-pills">
+                <div class="size-pill" onclick="selectDept(this, 'Муж', 'dept-pills')">Муж</div>
+                <div class="size-pill" onclick="selectDept(this, 'Жен', 'dept-pills')">Жен</div>
+                <div class="size-pill" onclick="selectDept(this, 'Дет', 'dept-pills')">Дет</div>
+                <div class="size-pill" onclick="selectDept(this, 'Обувь', 'dept-pills')">Обувь</div>
+            </div>
+            <div class="input-group">
+                <label class="input-label" style="display:flex; justify-content:space-between;">Категория <span class="btn-add-cat" onclick="showCustomCategory('order-category', 'new-category')">+ Своя</span></label>
+                <select id="order-category" class="input-field">
+                    <option value="">Выберите категорию...</option>
+                    <option value="Куртки">Куртки</option>
+                    <option value="Ветровки">Ветровки</option>
+                    <option value="Шубы">Шубы</option>
+                    <option value="Спорт-костюмы">Спорт-костюмы</option>
+                    <option value="Кофты">Кофты</option>
+                    <option value="Толстовки">Толстовки</option>
+                    <option value="Обувь">Обувь</option>
+                </select>
+                <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Фото (Сделать снимок)</label>
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>window.currentOrderPhotoBase64=val)">
+                <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+            </div>
+            <div class="input-label">Размер (необязательно)</div>
+            <div class="size-pills" id="size-pills">
+                <div class="size-pill" onclick="selectSize(this, 'order')">M</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">L</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">2XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">3XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">4XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">5XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">6XL</div>
+            </div>
+            <div class="input-group"><input type="text" id="custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
+            <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
+            <button class="btn-main" onclick="createOrder()" style="margin-top: 10px;">Отправить запрос</button>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">Входящие запросы (Вам) <span id="order-badge" class="badge" style="display:none;">0</span></h3>
+            <div class="tabs" id="incoming-tabs">
+                <div class="tab active" onclick="switchIncomingTab('all', this)">Все</div>
+                <div class="tab" onclick="switchIncomingTab('Муж', this)">Муж</div>
+                <div class="tab" onclick="switchIncomingTab('Жен', this)">Жен</div>
+                <div class="tab" onclick="switchIncomingTab('Дет', this)">Дет</div>
+                <div class="tab" onclick="switchIncomingTab('Обувь', this)">Обувь</div>
+            </div>
+            <div id="orders-incoming-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+        </div>
+        <div class="card">
+            <h3 style="margin-top:0;">Ваши отправленные запросы</h3>
+            <div id="orders-outgoing-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+        </div>
+    </div>
+
+    <div id="section-catalog" style="display: none;">
+        <div class="card">
+            <h3 style="margin-top:0;">Выставить товар на витрину</h3>
+            <div class="input-label">Отдел</div>
+            <div class="size-pills" id="cat-dept-pills">
+                <div class="size-pill" onclick="selectDept(this, 'Муж', 'cat-dept-pills')">Муж</div>
+                <div class="size-pill" onclick="selectDept(this, 'Жен', 'cat-dept-pills')">Жен</div>
+                <div class="size-pill" onclick="selectDept(this, 'Дет', 'cat-dept-pills')">Дет</div>
+                <div class="size-pill" onclick="selectDept(this, 'Обувь', 'cat-dept-pills')">Обувь</div>
+            </div>
+            <div class="input-group">
+                <label class="input-label" style="display:flex; justify-content:space-between;">Категория <span class="btn-add-cat" onclick="showCustomCategory('cat-category', 'new-cat-category')">+ Своя</span></label>
+                <select id="cat-category" class="input-field">
+                    <option value="">Выберите категорию...</option>
+                    <option value="Куртки">Куртки</option>
+                    <option value="Ветровки">Ветровки</option>
+                    <option value="Шубы">Шубы</option>
+                    <option value="Спорт-костюмы">Спорт-костюмы</option>
+                    <option value="Кофты">Кофты</option>
+                    <option value="Толстовки">Толстовки</option>
+                    <option value="Обувь">Обувь</option>
+                </select>
+                <input type="text" class="input-field" id="new-cat-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Фото (Сделать снимок)</label>
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>window.currentCatPhotoBase64=val)">
+                <img id="cat-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+            </div>
+            <div class="input-label">Размер (необязательно)</div>
+            <div class="size-pills" id="cat-size-pills">
+                <div class="size-pill" onclick="selectSize(this, 'cat')">M</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">L</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">2XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">3XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">4XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">5XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">6XL</div>
+            </div>
+            <div class="input-group"><input type="text" id="cat-custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
+            <div style="display: flex; gap: 10px;">
+                <div class="input-group" style="flex: 1;">
+                    <label class="input-label">Год (необязательно)</label>
+                    <select id="cat-year" class="input-field">
+                        <option value="—">—</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label class="input-label">Количество</label>
+                    <input type="number" id="cat-qty" class="input-field" value="1" min="1">
+                </div>
+            </div>
+            <button class="btn-main" onclick="addToCatalog()" style="background: var(--success);">Опубликовать на витрине</button>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">Витрина магазинов</h3>
+            <div class="input-group">
+                <select id="view-filter-shop" class="input-field" onchange="loadCatalog()">
+                    <option value="all">Все магазины</option>
+                    <option value="Алик">Алик</option>
+                    <option value="Мода">Мода</option>
+                    <option value="Твой стиль">Твой стиль</option>
+                </select>
+            </div>
+            <div class="tabs" id="catalog-tabs">
+                <div class="tab active" onclick="switchCatalogTab('all', this)">Все</div>
+                <div class="tab" onclick="switchCatalogTab('Муж', this)">Муж</div>
+                <div class="tab" onclick="switchCatalogTab('Жен', this)">Жен</div>
+                <div class="tab" onclick="switchCatalogTab('Дет', this)">Дет</div>
+                <div class="tab" onclick="switchCatalogTab('Обувь', this)">Обувь</div>
+            </div>
+            <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка витрины...</div></div>
+        </div>
     </div>
 </div>
 
-<div class="bottom-bar">
-    <button class="btn-main" style="background: #1e293b;" onclick="saveInventory()">✓ Сохранить ревизию</button>
+<!-- ЭКРАН ДИРЕКТОРА -->
+<div id="screen-director" class="screen">
+    <div class="header">
+        <h1>А.А. · Все заказы</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
+    </div>
+    <div class="main-tabs">
+        <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
+        <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">🏪 Витрина</div>
+    </div>
+    <div class="card" id="dir-section-orders"><div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
+    <div class="card" id="dir-section-catalog" style="display:none;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
 </div>
 
 <script>
-let catalog = {};
-let items = [];
-let selectedSize = '';
-let selectedYear = '';
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+let shop = localStorage.getItem('ord_shop') || '';
+let seller = localStorage.getItem('ord_seller') || '';
+let directorMode = false;
+let currentPin = '';
 
-// Загрузка базы
-fetch('1.json', { cache: 'no-store' })
-    .then(response => {
-        if (!response.ok) throw new Error('Файл не найден');
-        return response.json();
-    })
-    .then(data => {
-        data.forEach(item => {
-            if (item.Штрихкод) {
-                let cleanBarcode = String(item.Штрихкод).trim();
-                if (cleanBarcode.includes('.')) cleanBarcode = cleanBarcode.split('.')[0]; 
-                catalog[cleanBarcode] = { name: item.Владелец };
-            }
-        });
-        document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(catalog).length + ' шт.';
-        document.getElementById('load-status').style.color = 'var(--success)';
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки:', error);
-        document.getElementById('load-status').innerText = '❌ Ошибка базы';
-        document.getElementById('load-status').style.color = 'var(--danger)';
-    });
+window.currentOrderPhotoBase64 = '';
+window.currentCatPhotoBase64 = '';
 
-// --- ПЕРЕХВАТ СКАНЕРА ---
-let tscdBarcode = '';
-let tscdTimer = null;
+let allIncomingOrders = [];
+let selectedOrderDept = '';
+let selectedOrderSize = '';
 
-document.addEventListener('keydown', function(e) {
-    // Защита: если фокус в редактируемом поле (например, в prompt для размера), игнорируем
-    const tag = (e.target.tagName || '').toUpperCase();
-    if ((tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly) return;
+let allCatalogItems = [];
+let selectedCatDept = '';
+let selectedCatSize = '';
+let currentCatalogTab = 'all';
 
-    if (e.key === 'Enter') {
-        if (tscdBarcode.length > 2) {
-            findProduct(tscdBarcode);
-            tscdBarcode = '';
-        }
-        return;
+// --- УТИЛИТЫ ---
+function showToast(msg, type = 'default') {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function updateOnlineStatus() {
+    const bar = document.getElementById('offline-bar');
+    if (navigator.onLine) {
+        bar.style.display = 'none';
+        syncOfflineData(); // Если сеть появилась - отправляем то, что накопилось
+    } else {
+        bar.style.display = 'block';
     }
-    if (e.key.length === 1 && e.key !== ' ') {
-        tscdBarcode += e.key;
-        clearTimeout(tscdTimer);
-        tscdTimer = setTimeout(() => {
-            if (tscdBarcode.length > 2) {
-                findProduct(tscdBarcode);
-                tscdBarcode = '';
-            }
-        }, 100);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// --- ИНИЦИАЛИЗАЦИЯ ---
+document.addEventListener('DOMContentLoaded', () => {
+    updateOnlineStatus();
+    document.getElementById('seller-name').value = seller;
+    if (shop && seller && !directorMode) {
+        document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
+        showScreen('screen-seller');
+        loadMyOrders();
+        loadCatalog();
+        checkOrderBadge();
+    } else {
+        showScreen('screen-auth');
     }
 });
 
-function findProduct(code) {
-    code = String(code).replace(/[^a-zA-Z0-9]/g, '');
-    if (code.length < 3) return;
-
-    const nameInput = document.getElementById('prod-name');
-    nameInput.classList.remove('error');
-    nameInput.value = '';
-
-    let product = catalog[code];
-    if (!product) {
-        let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_alik') || '{}');
-        product = customCatalog[code];
-    }
-
-    if (product) {
-        nameInput.value = product.name || '';
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    } else {
-        nameInput.value = '❌ Код ' + code + ' не найден в базе';
-        nameInput.classList.add('error');
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    }
-
-    document.getElementById('prod-art').value = code;
-
-    // Автосброс параметров при новом скане
-    document.getElementById('qty-input').value = 1;
-    document.getElementById('custom-size').value = '';
-    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    selectedSize = '';
-    selectedYear = '';
-}
-
-function promptCustomSize() {
-    let size = prompt("Введите свой размер (например, 46):");
-    if (size) {
-        document.getElementById('custom-size').value = size;
-        document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
-        selectedSize = '';
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(id === 'screen-director') {
+        loadDirectorOrders();
+        loadCatalog(true);
     }
 }
 
-function promptQty() {
-    let qty = prompt("Введите количество:", document.getElementById('qty-input').value);
-    if (qty && parseInt(qty) > 0) {
-        document.getElementById('qty-input').value = parseInt(qty);
-    }
-}
-
-function selectSize(el) {
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        selectedSize = '';
-        return;
-    }
-    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+function selectShop(el, name) {
+    document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
-    selectedSize = el.innerText;
-    document.getElementById('custom-size').value = '';
+    shop = name;
 }
 
-function selectYear(el) {
-    if (el.classList.contains('active')) {
-        el.classList.remove('active');
-        selectedYear = '';
-        return;
-    }
-    document.querySelectorAll('#year-pills .size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    selectedYear = el.innerText;
+function loginSeller() {
+    const name = document.getElementById('seller-name').value.trim();
+    if (!shop) return showToast('Выберите магазин!', 'error');
+    if (!name) return showToast('Введите ваше имя!', 'error');
+    seller = name;
+    localStorage.setItem('ord_shop', shop);
+    localStorage.setItem('ord_seller', seller);
+    document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
+    showScreen('screen-seller');
+    loadMyOrders();
+    loadCatalog();
+    checkOrderBadge();
 }
 
-function changeQty(delta) {
-    const inp = document.getElementById('qty-input');
-    let v = parseInt(inp.value) || 1;
-    if (v + delta >= 1) inp.value = v + delta;
-}
-
-function addItem() {
-    const name = document.getElementById('prod-name').value.trim();
-    const art = document.getElementById('prod-art').value.trim();
-    const qtyToAdd = parseInt(document.getElementById('qty-input').value) || 1;
-    const customSize = document.getElementById('custom-size').value.trim();
-    const finalSize = customSize || selectedSize || '—';
-    const finalYear = selectedYear || '—';
-
-    if (!name || name.includes('не найден')) { alert('Сначала отсканируйте товар!'); return; }
-
-    // КЛЮЧ ОБЪЕДИНЕНИЯ: артикул + размер + год
-    const existingIndex = items.findIndex(i => 
-        i.article === art && 
-        i.size === finalSize &&
-        i.year === finalYear
-    );
-
-    if (existingIndex !== -1) {
-        items[existingIndex].qty += qtyToAdd;
-        items[existingIndex].name = name; // Обновляем имя, если в базе поменялось
-    } else {
-        items.unshift({ name, article: art || '—', size: finalSize, year: finalYear, qty: qtyToAdd });
-    }
-    
-    saveDraft();
-    renderItems();
-
-    // Сброс формы
-    document.getElementById('prod-name').value = '';
-    document.getElementById('prod-name').classList.remove('error');
-    document.getElementById('prod-art').value = '';
-    document.getElementById('qty-input').value = 1;
-    document.getElementById('custom-size').value = '';
+function logout() {
+    localStorage.removeItem('ord_shop');
+    localStorage.removeItem('ord_seller');
+    shop = ''; seller = ''; directorMode = false;
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    selectedSize = '';
-    selectedYear = '';
+    document.getElementById('seller-name').value = '';
+    showScreen('screen-auth');
 }
 
-function removeItem(i) {
-    items.splice(i, 1);
-    saveDraft();
-    renderItems();
+// --- ПИН-ПАД ---
+function pressPin(num) {
+    if (num === 'C') currentPin = '';
+    else if (currentPin.length < 4) currentPin += num;
+    const display = document.getElementById('pin-display');
+    if (display) display.innerText = currentPin;
 }
-
-function saveDraft() {
-    localStorage.setItem('alik_draft', JSON.stringify(items));
-}
-
-function renderItems() {
-    const list = document.getElementById('items-list');
-    const count = document.getElementById('items-count');
-    const summary = document.getElementById('items-summary');
-
-    if (items.length === 0) {
-        list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>';
-        count.textContent = '0';
-        summary.style.display = 'none';
-        return;
+function checkPin() {
+    if (currentPin === '1988') {
+        directorMode = true;
+        currentPin = '';
+        document.getElementById('pin-display').innerText = '';
+        showScreen('screen-director');
+        showToast('Добро пожаловать, А.А.', 'success');
+    } else {
+        showToast('Неверный PIN', 'error');
+        currentPin = '';
+        document.getElementById('pin-display').innerText = '';
     }
-
-    list.innerHTML = '';
-    let totalQty = 0;
-
-    items.forEach((item, i) => {
-        totalQty += item.qty;
-        list.innerHTML += `
-        <div class="list-item">
-            <div style="flex: 1;">
-                <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Разм: ${item.size} · Год: ${item.year}</div>
-            </div>
-            <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-right: 16px;">${item.qty} шт</div>
-            <button class="btn-del" onclick="removeItem(${i})">✕</button>
-        </div>`;
-    });
-
-    count.textContent = items.length;
-    document.getElementById('sum-positions').textContent = items.length;
-    document.getElementById('sum-qty').textContent = totalQty;
-    summary.style.display = 'block';
 }
 
-function saveInventory() {
-    if (items.length === 0) { alert('Список пуст!'); return; }
-    
-    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    // Сохраняем как есть, без проверок на дубли
-    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: JSON.parse(JSON.stringify(items)) });
-    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
-    
-    const totalQty = items.reduce((s, it) => s + it.qty, 0);
-    alert(`✅ Ревизия сохранена!\n\nПозиций: ${items.length}\nВсего штук: ${totalQty}`);
-    
-    items = [];
-    localStorage.removeItem('alik_draft');
-    renderItems();
-    renderRevisions();
+// --- ВКЛАДКИ ---
+function switchMainTab(tab) {
+    document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
+    document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+}
+function switchDirTab(tab) {
+    document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
+    document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
 }
 
-function renderRevisions() {
-    const container = document.getElementById('revisions-list');
+// --- ВЫБОР ПАРАМЕТРОВ ---
+function selectDept(el, dept, containerId) {
+    const container = document.getElementById(containerId);
     if (!container) return;
-    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    revisions.sort((a, b) => b.id - a.id);
-
-    if (revisions.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пока нет ревизий</div>';
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        if (containerId === 'dept-pills') selectedOrderDept = '';
+        if (containerId === 'cat-dept-pills') selectedCatDept = '';
         return;
     }
-
-    container.innerHTML = '';
-    revisions.forEach(rev => {
-        const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
-        const dateStr = new Date(rev.date).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-        container.innerHTML += `
-            <div class="list-item" style="cursor: pointer;" onclick="toggleDetails(${rev.id})">
-                <div style="flex: 1;">
-                    <div style="font-size: 14px; font-weight: 600;">${dateStr}</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${rev.items.length} поз. · ${totalQty} шт</div>
-                </div>
-                <div style="font-size: 16px; color: var(--text-muted);">›</div>
-            </div>
-            <div id="rev-${rev.id}" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; margin: 8px 0;">
-                ${rev.items.map(it => `
-                    <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px;">
-                        <div>
-                            <div style="font-weight: 600;">${it.name}</div>
-                            <div style="color: var(--text-muted); font-size: 11px;">${it.size} · ${it.year}</div>
-                        </div>
-                        <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
-                    </div>
-                `).join('')}
-                <button style="margin-top: 12px; background: #fee2e2; color: #991b1b; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteRevision(${rev.id})">Удалить ревизию</button>
-            </div>
-        `;
-    });
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    if (containerId === 'dept-pills') selectedOrderDept = dept;
+    if (containerId === 'cat-dept-pills') selectedCatDept = dept;
 }
 
-function toggleDetails(id) {
-    const el = document.getElementById('rev-' + id);
-    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function deleteRevision(id) {
-    if (!confirm('Удалить эту ревизию?')) return;
-    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    revisions = revisions.filter(r => r.id !== id);
-    localStorage.setItem('alik_revisions', JSON.stringify(revisions));
-    renderRevisions();
-}
-
-// Инициализация
-window.onload = () => {
-    const draft = localStorage.getItem('alik_draft');
-    if (draft) {
-        try { items = JSON.parse(draft); } catch(e) { items = []; }
+function selectSize(el, type) {
+    const containerId = type === 'order' ? 'size-pills' : 'cat-size-pills';
+    const customInputId = type === 'order' ? 'custom-size' : 'cat-custom-size';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        if (type === 'order') selectedOrderSize = '';
+        if (type === 'cat') selectedCatSize = '';
+        return;
     }
-    renderItems();
-    renderRevisions();
-};
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    if (type === 'order') selectedOrderSize = el.innerText;
+    if (type === 'cat') selectedCatSize = el.innerText;
+    const customInput = document.getElementById(customInputId);
+    if(customInput) customInput.value = '';
+}
+
+document.getElementById('custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') { document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedOrderSize = ''; }
+});
+document.getElementById('cat-custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') { document.querySelectorAll('#cat-size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedCatSize = ''; }
+});
+
+function showCustomCategory(selectId, inputId) {
+    const inp = document.getElementById(inputId);
+    if (inp.style.display === 'none') { inp.style.display = 'block'; inp.focus(); } 
+    else { inp.style.display = 'none'; inp.value = ''; }
+}
+document.getElementById('new-category').addEventListener('change', function() {
+    if (!this.value.trim()) return;
+    const sel = document.getElementById('order-category');
+    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
+    this.value = ''; this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+document.getElementById('new-cat-category').addEventListener('change', function() {
+    if (!this.value.trim()) return;
+    const sel = document.getElementById('cat-category');
+    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
+    this.value = ''; this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+
+// --- ФОТО ---
+function handlePhoto(input, previewId, setter) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const base64 = canvas.toDataURL('image/jpeg', 0.7);
+            setter(base64);
+            const preview = document.getElementById(previewId);
+            preview.src = base64;
+            preview.style.display = 'block';
+        }
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+// --- СОХРАНЕНИЕ В ОФЛАЙН И СИНХРОНИЗАЦИЯ ---
+function saveOfflineData(type, data) {
+    let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    queue.push({ type, data, id: Date.now() });
+    localStorage.setItem('offline_queue', JSON.stringify(queue));
+}
+
+async function syncOfflineData() {
+    if (!window.fbDB || !navigator.onLine) return;
+    let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    if (queue.length === 0) return;
+
+    showToast('Отправка сохраненных данных...', 'default');
+    let successCount = 0;
+    
+    for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+        try {
+            if (item.type === 'order') {
+                await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), item.data);
+            } else if (item.type === 'catalog') {
+                await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), item.data);
+            }
+            successCount++;
+        } catch (e) {
+            console.error("Sync error", e);
+            break; // Если ошибка сети, останавливаемся
+        }
+    }
+
+    if (successCount > 0) {
+        queue = queue.slice(successCount);
+        localStorage.setItem('offline_queue', JSON.stringify(queue));
+        showToast(`✅ Синхронизировано: ${successCount} записей`, 'success');
+        if (document.getElementById('screen-seller').classList.contains('active')) {
+            loadMyOrders();
+            loadCatalog();
+        }
+    }
+}
+
+// --- ЗАКАЗЫ ---
+async function createOrder() {
+    const toShop = document.getElementById('order-to-shop').value;
+    const category = document.getElementById('order-category').value;
+    const customSize = document.getElementById('custom-size').value.trim();
+    const finalSize = customSize || selectedOrderSize || 'Без размера';
+    const comment = document.getElementById('order-comment').value.trim();
+    
+    if (toShop === shop) return showToast('Нельзя заказать у самого себя', 'error');
+    if (!selectedOrderDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!window.currentOrderPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+
+    const orderData = {
+        fromShop: shop, toShop: toShop, seller: seller,
+        dept: selectedOrderDept, category: category,
+        photo: window.currentOrderPhotoBase64, size: finalSize,
+        comment: comment, status: 'pending', date: new Date().toISOString()
+    };
+
+    if (navigator.onLine) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
+            showToast('✅ Запрос отправлен!', 'success');
+        } catch (e) {
+            saveOfflineData('order', orderData);
+            showToast('⚠️ Ошибка сети. Сохранено в офлайн.', 'error');
+        }
+    } else {
+        saveOfflineData('order', orderData);
+        showToast('📶 Нет сети. Заказ сохранен на телефоне.', 'success');
+    }
+    
+    document.getElementById('order-photo-file').value = '';
+    document.getElementById('order-photo-preview').style.display = 'none';
+    window.currentOrderPhotoBase64 = '';
+    document.getElementById('custom-size').value = '';
+    document.getElementById('order-comment').value = '';
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('order-category').value = '';
+    selectedOrderSize = ''; selectedOrderDept = '';
+    if(navigator.onLine) loadMyOrders();
+}
+
+// ... (Функции отрисовки карточек остаются без изменений, чтобы не раздувать код, они те же, что были) ...
+function renderOrderCard(o, isDirector = false) {
+    const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; color:#cbd5e1;">📦</div>`;
+    const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
+    let actionsHtml = '';
+    if (o.status === 'pending') {
+        if (o.toShop === shop && !isDirector) actionsHtml = `<div class="order-actions"><button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button><button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button></div>`;
+        else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
+    } else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
+    let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteDocById('${o.id}', 'orders')">Удалить</button>` : '';
+    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} | Размер: ${o.size}</div><div class="order-details">Отдел: ${o.dept}</div>${o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">💬 ${o.comment}</div>` : ''}${actionsHtml}<div style="text-align:right; margin-top:10px;">${deleteBtn}</div></div>`;
+}
+
+let currentIncomingTab = 'all';
+function switchIncomingTab(dept, el) {
+    document.querySelectorAll('#incoming-tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentIncomingTab = dept;
+    renderIncomingOrders();
+}
+
+function renderIncomingOrders() {
+    const listIn = document.getElementById('orders-incoming-list');
+    let filtered = allIncomingOrders;
+    if (currentIncomingTab !== 'all') filtered = allIncomingOrders.filter(o => o.dept === currentIncomingTab);
+    if (filtered.length === 0) listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет запросов</div>';
+    else listIn.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+}
+
+async function loadMyOrders() {
+    if (!window.fbDB || !navigator.onLine) {
+        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
+        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
+        return;
+    }
+    try {
+        const qIn = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop));
+        const snapIn = await window.fbFns.getDocs(qIn);
+        allIncomingOrders = [];
+        snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
+        allIncomingOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        renderIncomingOrders();
+    } catch(e) { console.error(e); }
+
+    try {
+        const qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
+        const snapOut = await window.fbFns.getDocs(qOut);
+        const listOut = document.getElementById('orders-outgoing-list');
+        let ordersOut = [];
+        snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
+        ordersOut.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (ordersOut.length === 0) listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Вы еще не отправляли запросы</div>';
+        else listOut.innerHTML = ordersOut.map(o => renderOrderCard(o)).join('');
+    } catch(e) { console.error(e); }
+}
+
+async function updateOrderStatus(orderId, status) {
+    if (!navigator.onLine) return showToast('Нет сети для изменения статуса', 'error');
+    try {
+        await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
+        showToast(status === 'accepted' ? '✅ Заказ принят' : '❌ Заказ отклонен', 'success');
+        loadMyOrders();
+        checkOrderBadge();
+    } catch(e) { showToast('Ошибка. Проверьте интернет.', 'error'); }
+}
+
+async function checkOrderBadge() {
+    if (!shop || !window.fbDB || !navigator.onLine) return;
+    try {
+        const q = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop), window.fbFns.where("status", "==", "pending"));
+        const snap = await window.fbFns.getDocs(q);
+        const badge = document.getElementById('order-badge');
+        if (snap.size > 0) { badge.innerText = snap.size; badge.style.display = 'inline-block'; } 
+        else { badge.style.display = 'none'; }
+    } catch(e) { console.error(e); }
+}
+
+// --- ВИТРИНА ---
+async function addToCatalog() {
+    const category = document.getElementById('cat-category').value;
+    const customSize = document.getElementById('cat-custom-size').value.trim();
+    const finalSize = customSize || selectedCatSize || 'Без размера';
+    const year = document.getElementById('cat-year').value || '—';
+    const qty = parseInt(document.getElementById('cat-qty').value) || 1;
+
+    if (!selectedCatDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!window.currentCatPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+
+    const itemData = {
+        shop: shop, seller: seller, dept: selectedCatDept, category: category,
+        photo: window.currentCatPhotoBase64, size: finalSize, year: year, qty: qty,
+        date: new Date().toISOString()
+    };
+
+    if (navigator.onLine) {
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
+            showToast('✅ Товар выставлен на витрину!', 'success');
+        } catch (e) {
+            saveOfflineData('catalog', itemData);
+            showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
+        }
+    } else {
+        saveOfflineData('catalog', itemData);
+        showToast('📶 Нет сети. Товар сохранен на телефоне.', 'success');
+    }
+    
+    document.getElementById('cat-photo-file').value = '';
+    document.getElementById('cat-photo-preview').style.display = 'none';
+    window.currentCatPhotoBase64 = '';
+    document.getElementById('cat-custom-size').value = '';
+    document.getElementById('cat-qty').value = '1';
+    document.getElementById('cat-year').value = '—';
+    document.getElementById('cat-category').value = '';
+    document.querySelectorAll('#cat-size-pills .size-pill, #cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+    selectedCatSize = ''; selectedCatDept = '';
+    if(navigator.onLine) loadCatalog();
+}
+
+function switchCatalogTab(dept, el) {
+    document.querySelectorAll('#catalog-tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentCatalogTab = dept;
+    renderCatalog();
+}
+
+async function loadCatalog(isDirector = false) {
+    if (!window.fbDB || !navigator.onLine) {
+        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Нет сети для загрузки витрины</div>';
+        return;
+    }
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
+        allCatalogItems = [];
+        snapshot.forEach(d => allCatalogItems.push({id: d.id, ...d.data()}));
+        allCatalogItems.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (isDirector) renderDirectorCatalog();
+        else renderCatalog();
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function renderCatalog() {
+    const list = document.getElementById('catalog-list');
+    const filterShop = document.getElementById('view-filter-shop').value;
+    let filtered = allCatalogItems;
+    if (currentCatalogTab !== 'all') filtered = filtered.filter(o => o.dept === currentCatalogTab);
+    if (filterShop !== 'all') filtered = filtered.filter(o => o.shop === filterShop);
+    if (filtered.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Тут пока пусто</div>'; return; }
+    list.innerHTML = filtered.map(item => {
+        const isMyItem = item.shop === shop;
+        const orderBtn = isMyItem ? `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px; background:#f1f5f9; border-radius:8px;">Это ваш товар</div>` : `<button class="btn-main" style="padding:10px; font-size:14px; margin-top:8px;" onclick="orderFromCatalog('${item.id}')">🛒 Заказать у ${item.shop}</button>`;
+        return `<div class="order-card"><img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer;"><div class="order-header"><span>Магазин: <b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category}</div><div class="order-details" style="display:flex; justify-content:space-between;"><span>Размер: <b>${item.size}</b> | Год: <b>${item.year}</b></span><span style="color:var(--success); font-weight:bold;">В наличии: ${item.qty} шт.</span></div>${orderBtn}</div>`;
+    }).join('');
+}
+
+function renderDirectorCatalog() {
+    const list = document.getElementById('director-catalog-list');
+    if (allCatalogItems.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Товаров нет</div>'; return; }
+    list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span>Магазин: <b>${item.shop}</b> (${item.seller})</span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div><div class="order-details">В наличии: <b>${item.qty} шт.</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить с витрины</button></div></div>`).join('');
+}
+
+function orderFromCatalog(itemId) {
+    const item = allCatalogItems.find(i => i.id === itemId);
+    if (!item) return;
+    switchMainTab('orders');
+    document.getElementById('order-to-shop').value = item.shop;
+    document.querySelectorAll('#dept-pills .size-pill').forEach(p => {
+        if (p.innerText === item.dept) { p.classList.add('active'); selectedOrderDept = item.dept; } else p.classList.remove('active');
+    });
+    const catSelect = document.getElementById('order-category');
+    let found = false;
+    for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
+    if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
+    catSelect.value = item.category;
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => {
+        if (p.innerText === item.size) { p.classList.add('active'); selectedOrderSize = item.size; } else p.classList.remove('active');
+    });
+    document.getElementById('custom-size').value = '';
+    window.currentOrderPhotoBase64 = item.photo;
+    const preview = document.getElementById('order-photo-preview');
+    preview.src = item.photo;
+    preview.style.display = 'block';
+    document.getElementById('order-comment').value = `Заказ с витрины (Год: ${item.year})`;
+    showToast('Товар добавлен в форму. Нажмите "Отправить запрос".', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// --- ДИРЕКТОР ---
+async function loadDirectorOrders() {
+    if (!window.fbDB || !navigator.onLine) return;
+    const list = document.getElementById('director-orders-list');
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
+        let orders = [];
+        snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
+        orders.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (orders.length === 0) list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Заказов пока нет</div>';
+        else list.innerHTML = orders.map(o => renderOrderCard(o, true)).join('');
+    } catch(e) { list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>'; }
+}
+
+async function deleteDocById(id, collName) {
+    if (!confirm('Удалить безвозвратно?')) return;
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, collName, id));
+        showToast('Удалено', 'success');
+        if (collName === 'catalog') loadCatalog(directorMode);
+        else loadDirectorOrders();
+    } catch(e) { showToast('Ошибка удаления', 'error'); }
+}
+
+function viewFullPhoto(src) {
+    const overlay = document.createElement('div');
+    overlay.style = "position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px;";
+    overlay.innerHTML = `<img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+    overlay.onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+}
 </script>
 </body>
 </html>
