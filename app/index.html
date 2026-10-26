@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Заказы и Витрина</title>
+
+<!-- Настройки PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170678.png">
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
+    authDomain: "revisionset.firebaseapp.com",
+    projectId: "revisionset",
+    storageBucket: "revisionset.firebasestorage.app",
+    messagingSenderId: "904187992853",
+    appId: "1:904187992853:web:c009614e1cf718d950271c"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  window.fbDB = db;
+  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
+
+  // Регистрация Service Worker (для офлайн режима)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
+  }
+</script>
+
+<style>
+/* Стили оставляем без изменений (они длинные, но они нужны) */
+:root { --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b; --primary: #2563eb; --success: #10b981; --danger: #ef4444; --white: #ffffff; --border: #e2e8f0; --radius: 16px; }
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 80px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.header h1 { margin: 0; font-size: 20px; }
+.card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
+.main-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #e2e8f0; padding: 4px; border-radius: 12px; }
+.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
+.main-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
+.toast.show { opacity: 1; }
+.toast.error { background: var(--danger); }
+.toast.success { background: var(--success); }
+.input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+.input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
+.input-field:focus { border-color: var(--primary); background: #fff; }
+.size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
+.size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+.btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
+.btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
+.screen { display: none; }
+.screen.active { display: block; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; }
+.pin-btn:active { background: #e2e8f0; }
+.pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
+.badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
+.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; flex-direction: column; gap:10px; }
+.order-card.pending { border-left: 4px solid var(--primary); }
+.order-card.accepted { border-left: 4px solid var(--success); }
+.order-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
+.order-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
+.order-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+.order-details { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.order-actions { display: flex; gap: 10px; margin-top: 5px; }
+.order-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;}
+.btn-accept { background: #dcfce7; color: #166534; }
+.btn-reject { background: #fee2e2; color: #991b1b; }
+.order-photo { width: 100%; max-height: 200px; object-fit: contain; background:#f1f5f9; border-radius: 8px; margin-bottom: 5px;}
+.tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;}
+.tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
+.tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.offline-bar { display: none; background: #fef2f2; color: #991b1b; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<div id="offline-bar" class="offline-bar">📶 Нет интернета. Данные сохраняются на телефоне.</div>
+
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
+<div id="screen-auth" class="screen active">
+    <div class="card">
+        <h2 style="text-align: center; margin-top: 0;">Вход в систему</h2>
+        <div class="size-pills" style="justify-content: center;" id="shop-pills">
+            <div class="size-pill" onclick="selectShop(this, 'Алик')">Алик</div>
+            <div class="size-pill" onclick="selectShop(this, 'Мода')">Мода</div>
+            <div class="size-pill" onclick="selectShop(this, 'Твой стиль')">Твой стиль</div>
+        </div>
+        <div class="input-group" style="margin-top: 20px;">
+            <label class="input-label">Ваше имя (Продавец)</label>
+            <input type="text" class="input-field" id="seller-name" placeholder="Введите имя" autocomplete="off">
+        </div>
+        <button class="btn-main" onclick="loginSeller()">Войти как продавец</button>
+    </div>
+    <div class="card" style="margin-top: 20px;">
+        <h3 style="text-align: center; margin-top: 0;">Вход для А.А.</h3>
+        <div class="pin-display" id="pin-display"></div>
+        <div class="pin-pad">
+            <div class="pin-btn" onclick="pressPin('1')">1</div>
+            <div class="pin-btn" onclick="pressPin('2')">2</div>
+            <div class="pin-btn" onclick="pressPin('3')">3</div>
+            <div class="pin-btn" onclick="pressPin('4')">4</div>
+            <div class="pin-btn" onclick="pressPin('5')">5</div>
+            <div class="pin-btn" onclick="pressPin('6')">6</div>
+            <div class="pin-btn" onclick="pressPin('7')">7</div>
+            <div class="pin-btn" onclick="pressPin('8')">8</div>
+            <div class="pin-btn" onclick="pressPin('9')">9</div>
+            <div class="pin-btn" style="background:var(--danger); color:white;" onclick="pressPin('C')">C</div>
+            <div class="pin-btn" onclick="pressPin('0')">0</div>
+            <div class="pin-btn" style="background:var(--primary); color:white;" onclick="checkPin()">OK</div>
+        </div>
+    </div>
+</div>
+
+<!-- ЭКРАН ПРОДАВЦА -->
+<div id="screen-seller" class="screen">
+    <div class="header">
+        <h1 id="shop-title">Магазин</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
+    </div>
+
+    <div class="main-tabs">
+        <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
+        <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
+    </div>
+
+    <div id="section-orders">
+        <div class="card">
+            <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
+            <div class="input-group">
+                <label class="input-label">Кому (Магазин)</label>
+                <select id="order-to-shop" class="input-field">
+                    <option value="Алик">Алик</option>
+                    <option value="Мода">Мода</option>
+                    <option value="Твой стиль">Твой стиль</option>
+                </select>
+            </div>
+            <div class="input-label">Отдел</div>
+            <div class="size-pills" id="dept-pills">
+                <div class="size-pill" onclick="selectDept(this, 'Муж', 'dept-pills')">Муж</div>
+                <div class="size-pill" onclick="selectDept(this, 'Жен', 'dept-pills')">Жен</div>
+                <div class="size-pill" onclick="selectDept(this, 'Дет', 'dept-pills')">Дет</div>
+                <div class="size-pill" onclick="selectDept(this, 'Обувь', 'dept-pills')">Обувь</div>
+            </div>
+            <div class="input-group">
+                <label class="input-label" style="display:flex; justify-content:space-between;">Категория <span class="btn-add-cat" onclick="showCustomCategory('order-category', 'new-category')">+ Своя</span></label>
+                <select id="order-category" class="input-field">
+                    <option value="">Выберите категорию...</option>
+                    <option value="Куртки">Куртки</option>
+                    <option value="Ветровки">Ветровки</option>
+                    <option value="Шубы">Шубы</option>
+                    <option value="Спорт-костюмы">Спорт-костюмы</option>
+                    <option value="Кофты">Кофты</option>
+                    <option value="Толстовки">Толстовки</option>
+                    <option value="Обувь">Обувь</option>
+                </select>
+                <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Фото (Сделать снимок)</label>
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>window.currentOrderPhotoBase64=val)">
+                <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+            </div>
+            <div class="input-label">Размер (необязательно)</div>
+            <div class="size-pills" id="size-pills">
+                <div class="size-pill" onclick="selectSize(this, 'order')">M</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">L</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">2XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">3XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">4XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">5XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">6XL</div>
+            </div>
+            <div class="input-group"><input type="text" id="custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
+            <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
+            <button class="btn-main" onclick="createOrder()" style="margin-top: 10px;">Отправить запрос</button>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">Входящие запросы (Вам) <span id="order-badge" class="badge" style="display:none;">0</span></h3>
+            <div class="tabs" id="incoming-tabs">
+                <div class="tab active" onclick="switchIncomingTab('all', this)">Все</div>
+                <div class="tab" onclick="switchIncomingTab('Муж', this)">Муж</div>
+                <div class="tab" onclick="switchIncomingTab('Жен', this)">Жен</div>
+                <div class="tab" onclick="switchIncomingTab('Дет', this)">Дет</div>
+                <div class="tab" onclick="switchIncomingTab('Обувь', this)">Обувь</div>
+            </div>
+            <div id="orders-incoming-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+        </div>
+        <div class="card">
+            <h3 style="margin-top:0;">Ваши отправленные запросы</h3>
+            <div id="orders-outgoing-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+        </div>
+    </div>
+
+    <div id="section-catalog" style="display: none;">
+        <div class="card">
+            <h3 style="margin-top:0;">Выставить товар на витрину</h3>
+            <div class="input-label">Отдел</div>
+            <div class="size-pills" id="cat-dept-pills">
+                <div class="size-pill" onclick="selectDept(this, 'Муж', 'cat-dept-pills')">Муж</div>
+                <div class="size-pill" onclick="selectDept(this, 'Жен', 'cat-dept-pills')">Жен</div>
+                <div class="size-pill" onclick="selectDept(this, 'Дет', 'cat-dept-pills')">Дет</div>
+                <div class="size-pill" onclick="selectDept(this, 'Обувь', 'cat-dept-pills')">Обувь</div>
+            </div>
+            <div class="input-group">
+                <label class="input-label" style="display:flex; justify-content:space-between;">Категория <span class="btn-add-cat" onclick="showCustomCategory('cat-category', 'new-cat-category')">+ Своя</span></label>
+                <select id="cat-category" class="input-field">
+                    <option value="">Выберите категорию...</option>
+                    <option value="Куртки">Куртки</option>
+                    <option value="Ветровки">Ветровки</option>
+                    <option value="Шубы">Шубы</option>
+                    <option value="Спорт-костюмы">Спорт-костюмы</option>
+                    <option value="Кофты">Кофты</option>
+                    <option value="Толстовки">Толстовки</option>
+                    <option value="Обувь">Обувь</option>
+                </select>
+                <input type="text" class="input-field" id="new-cat-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Фото (Сделать снимок)</label>
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>window.currentCatPhotoBase64=val)">
+                <img id="cat-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+            </div>
+            <div class="input-label">Размер (необязательно)</div>
+            <div class="size-pills" id="cat-size-pills">
+                <div class="size-pill" onclick="selectSize(this, 'cat')">M</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">L</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">2XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">3XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">4XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">5XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">6XL</div>
+            </div>
+            <div class="input-group"><input type="text" id="cat-custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
+            <div style="display: flex; gap: 10px;">
+                <div class="input-group" style="flex: 1;">
+                    <label class="input-label">Год (необязательно)</label>
+                    <select id="cat-year" class="input-field">
+                        <option value="—">—</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label class="input-label">Количество</label>
+                    <input type="number" id="cat-qty" class="input-field" value="1" min="1">
+                </div>
+            </div>
+            <button class="btn-main" onclick="addToCatalog()" style="background: var(--success);">Опубликовать на витрине</button>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">Витрина магазинов</h3>
+            <div class="input-group">
+                <select id="view-filter-shop" class="input-field" onchange="loadCatalog()">
+                    <option value="all">Все магазины</option>
+                    <option value="Алик">Алик</option>
+                    <option value="Мода">Мода</option>
+                    <option value="Твой стиль">Твой стиль</option>
+                </select>
+            </div>
+            <div class="tabs" id="catalog-tabs">
+                <div class="tab active" onclick="switchCatalogTab('all', this)">Все</div>
+                <div class="tab" onclick="switchCatalogTab('Муж', this)">Муж</div>
+                <div class="tab" onclick="switchCatalogTab('Жен', this)">Жен</div>
+                <div class="tab" onclick="switchCatalogTab('Дет', this)">Дет</div>
+                <div class="tab" onclick="switchCatalogTab('Обувь', this)">Обувь</div>
+            </div>
+            <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка витрины...</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- ЭКРАН ДИРЕКТОРА -->
+<div id="screen-director" class="screen">
+    <div class="header">
+        <h1>А.А. · Все заказы</h1>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
+    </div>
+    <div class="main-tabs">
+        <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
+        <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">🏪 Витрина</div>
+    </div>
+    <div class="card" id="dir-section-orders"><div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
+    <div class="card" id="dir-section-catalog" style="display:none;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
+</div>
+
+<script>
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+let shop = localStorage.getItem('ord_shop') || '';
+let seller = localStorage.getItem('ord_seller') || '';
+let directorMode = false;
+let currentPin = '';
+
+window.currentOrderPhotoBase64 = '';
+window.currentCatPhotoBase64 = '';
+
+let allIncomingOrders = [];
+let selectedOrderDept = '';
+let selectedOrderSize = '';
+
+let allCatalogItems = [];
+let selectedCatDept = '';
+let selectedCatSize = '';
+let currentCatalogTab = 'all';
+
+// --- УТИЛИТЫ ---
+function showToast(msg, type = 'default') {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function updateOnlineStatus() {
+    const bar = document.getElementById('offline-bar');
+    if (navigator.onLine) {
+        bar.style.display = 'none';
+        syncOfflineData(); // Если сеть появилась - отправляем то, что накопилось
+    } else {
+        bar.style.display = 'block';
+    }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// --- ИНИЦИАЛИЗАЦИЯ ---
+document.addEventListener('DOMContentLoaded', () => {
+    updateOnlineStatus();
+    document.getElementById('seller-name').value = seller;
+    if (shop && seller && !directorMode) {
+        document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
+        showScreen('screen-seller');
+        loadMyOrders();
+        loadCatalog();
+        checkOrderBadge();
+    } else {
+        showScreen('screen-auth');
+    }
+});
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(id === 'screen-director') {
+        loadDirectorOrders();
+        loadCatalog(true);
+    }
+}
+
+function selectShop(el, name) {
+    document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    shop = name;
+}
+
+function loginSeller() {
+    const name = document.getElementById('seller-name').value.trim();
+    if (!shop) return showToast('Выберите магазин!', 'error');
+    if (!name) return showToast('Введите ваше имя!', 'error');
+    seller = name;
+    localStorage.setItem('ord_shop', shop);
+    localStorage.setItem('ord_seller', seller);
+    document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
+    showScreen('screen-seller');
+    loadMyOrders();
+    loadCatalog();
+    checkOrderBadge();
+}
+
+function logout() {
+    localStorage.removeItem('ord_shop');
+    localStorage.removeItem('ord_seller');
+    shop = ''; seller = ''; directorMode = false;
+    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('seller-name').value = '';
+    showScreen('screen-auth');
+}
+
+// --- ПИН-ПАД ---
+function pressPin(num) {
+    if (num === 'C') currentPin = '';
+    else if (currentPin.length < 4) currentPin += num;
+    const display = document.getElementById('pin-display');
+    if (display) display.innerText = currentPin;
+}
+function checkPin() {
+    if (currentPin === '1988') {
+        directorMode = true;
+        currentPin = '';
+        document.getElementById('pin-display').innerText = '';
+        showScreen('screen-director');
+        showToast('Добро пожаловать, А.А.', 'success');
+    } else {
+        showToast('Неверный PIN', 'error');
+        currentPin = '';
+        document.getElementById('pin-display').innerText = '';
+    }
+}
+
+// --- ВКЛАДКИ ---
+function switchMainTab(tab) {
+    document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
+    document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+}
+function switchDirTab(tab) {
+    document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
+    document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+}
+
+// --- ВЫБОР ПАРАМЕТРОВ ---
+function selectDept(el, dept, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        if (containerId === 'dept-pills') selectedOrderDept = '';
+        if (containerId === 'cat-dept-pills') selectedCatDept = '';
+        return;
+    }
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    if (containerId === 'dept-pills') selectedOrderDept = dept;
+    if (containerId === 'cat-dept-pills') selectedCatDept = dept;
+}
+
+function selectSize(el, type) {
+    const containerId = type === 'order' ? 'size-pills' : 'cat-size-pills';
+    const customInputId = type === 'order' ? 'custom-size' : 'cat-custom-size';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        if (type === 'order') selectedOrderSize = '';
+        if (type === 'cat') selectedCatSize = '';
+        return;
+    }
+    container.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    if (type === 'order') selectedOrderSize = el.innerText;
+    if (type === 'cat') selectedCatSize = el.innerText;
+    const customInput = document.getElementById(customInputId);
+    if(customInput) customInput.value = '';
+}
+
+document.getElementById('custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') { document.querySelectorAll('#size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedOrderSize = ''; }
+});
+document.getElementById('cat-custom-size').addEventListener('input', function() {
+    if(this.value.trim() !== '') { document.querySelectorAll('#cat-size-pills .size-pill').forEach(p => p.classList.remove('active')); selectedCatSize = ''; }
+});
+
+function showCustomCategory(selectId, inputId) {
+    const inp = document.getElementById(inputId);
+    if (inp.style.display === 'none') { inp.style.display = 'block'; inp.focus(); } 
+    else { inp.style.display = 'none'; inp.value = ''; }
+}
+document.getElementById('new-category').addEventListener('change', function() {
+    if (!this.value.trim()) return;
+    const sel = document.getElementById('order-category');
+    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
+    this.value = ''; this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+document.getElementById('new-cat-category').addEventListener('change', function() {
+    if (!this.value.trim()) return;
+    const sel = document.getElementById('cat-category');
+    sel.innerHTML += `<option value="${this.value.trim()}" selected>${this.value.trim()}</option>`;
+    this.value = ''; this.style.display = 'none';
+    showToast('Категория добавлена', 'success');
+});
+
+// --- ФОТО ---
+function handlePhoto(input, previewId, setter) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const base64 = canvas.toDataURL('image/jpeg', 0.7);
+            setter(base64);
+            const preview = document.getElementById(previewId);
+            preview.src = base64;
+            preview.style.display = 'block';
+        }
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+// --- СОХРАНЕНИЕ В ОФЛАЙН И СИНХРОНИЗАЦИЯ ---
+function saveOfflineData(type, data) {
+    let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    queue.push({ type, data
