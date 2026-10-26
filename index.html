@@ -1,9 +1,9 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Алик — Заказы и Ревизия</title>
+<title>Алик — Заказы и Инвентаризация</title>
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2563eb">
@@ -141,7 +141,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div class="main-tabs">
         <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
-        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📷 Сканер</div>
+        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📷 Инвентаризация</div>
     </div>
 
     <!-- РАЗДЕЛ: ЗАКАЗЫ -->
@@ -293,19 +293,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
     </div>
 
-    <!-- РАЗДЕЛ: СКАНЕР -->
+    <!-- РАЗДЕЛ: СКАНЕР (ИНВЕНТАРИЗАЦИЯ) -->
     <div id="section-scanner" style="display: none;">
-        <div class="header" style="margin-bottom: 10px;">
-            <h1 style="font-size: 18px;">Ревизия · Сканер</h1>
-            <div id="load-status" style="font-size: 12px; color: var(--text-muted);">Загрузка базы...</div>
+        <div class="card" style="padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: bold; font-size: 14px;">Выберите магазин:</span>
+                <div id="scan-shop-pills" class="size-pills" style="margin-bottom: 0;">
+                    <div class="size-pill" onclick="selectScanShop(this, 'Алик')">Алик</div>
+                    <div class="size-pill" onclick="selectScanShop(this, 'Мода')">Мода</div>
+                    <div class="size-pill" onclick="selectScanShop(this, 'Твой стиль')">Твой стиль</div>
+                </div>
+            </div>
+            <div id="load-status" style="font-size: 12px; color: var(--text-muted); text-align: center;">База не выбрана</div>
         </div>
-        
-        <input type="text" id="prod-art" class="hidden-input" autocomplete="off">
 
         <div class="card">
             <div class="input-group">
                 <label class="input-label">Наименование</label>
-                <input type="text" class="input-field" id="prod-name" placeholder="Наведите ТСД..." readonly>
+                <input type="text" class="input-field" id="prod-name" placeholder="Выберите магазин и наведите ТСД..." readonly>
             </div>
 
             <div class="input-label" style="margin-bottom: 8px;">Размер (необязательно)</div>
@@ -345,7 +350,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
         <div class="card">
             <div class="card-title">
-                <span>Список вещей</span>
+                <span>Список вещей <span id="current-scan-shop-label" style="color: var(--primary); font-size: 14px;"></span></span>
                 <span id="scan-items-count" style="color: var(--primary);">0</span>
             </div>
             <div id="scan-items-list">
@@ -391,6 +396,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div class="card" id="dir-section-catalog" style="display:none;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
 </div>
 
+<!-- Скрытое поле для ТСД -->
+<input type="text" id="prod-art" class="hidden-input" autocomplete="off">
+
 <script>
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 let shop = localStorage.getItem('ord_shop') || '';
@@ -415,6 +423,7 @@ let scanCatalog = {};
 let scanItems = [];
 let selectedScanSize = '';
 let selectedScanYear = '';
+let currentScanShop = ''; // Какой магазин выбран в сканере
 
 // --- УТИЛИТЫ ---
 function showToast(msg, type = 'default') {
@@ -441,9 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
     document.getElementById('seller-name').value = seller;
     
-    // Загружаем базу для сканера сразу при старте
-    loadScannerCatalog();
-
     if (shop && seller && !directorMode) {
         document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
         showScreen('screen-seller');
@@ -473,6 +479,11 @@ function switchMainTab(tab) {
     document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
     document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
     document.getElementById('section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
+
+    if (tab === 'scanner') {
+        renderScanItems();
+        renderScanRevisions();
+    }
 }
 function switchDirTab(tab) {
     document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
@@ -894,11 +905,50 @@ function viewFullPhoto(src) {
 }
 
 // ==========================================
-// --- ЛОГИКА СКАНЕРА (РЕВИЗИИ) ---
+// --- ЛОГИКА СКАНЕРА (ИНВЕНТАРИЗАЦИЯ) ---
 // ==========================================
 
-function loadScannerCatalog() {
-    fetch('1.json', { cache: 'no-store' })
+function selectScanShop(el, shopName) {
+    document.querySelectorAll('#scan-shop-pills .size-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    currentScanShop = shopName;
+    
+    // Обновляем лейбл
+    document.getElementById('current-scan-shop-label').innerText = '(' + shopName + ')';
+    
+    // Карта файлов JSON
+    const fileMap = {
+        'Алик': '1.json',
+        'Мода': '2.json',
+        'Твой стиль': '3.json'
+    };
+
+    const fileName = fileMap[shopName];
+    loadScanDatabase(fileName, shopName);
+    
+    // Загружаем черновик для этого магазина
+    const draftKey = 'alik_draft_' + shopName;
+    const draft = localStorage.getItem(draftKey);
+    if (draft) {
+        try { scanItems = JSON.parse(draft); } catch(e) { scanItems = []; }
+    } else {
+        scanItems = [];
+    }
+    renderScanItems();
+    renderScanRevisions();
+}
+
+function loadScanDatabase(fileName, shopName) {
+    const statusEl = document.getElementById('load-status');
+    statusEl.innerText = 'Загрузка базы ' + shopName + '...';
+    statusEl.style.color = 'var(--text-muted)';
+    
+    // Сначала очищаем каталог и поле поиска
+    scanCatalog = {};
+    document.getElementById('prod-name').value = '';
+    document.getElementById('prod-art').value = '';
+
+    fetch(fileName, { cache: 'no-store' })
         .then(response => {
             if (!response.ok) throw new Error('Файл не найден');
             return response.json();
@@ -911,19 +961,21 @@ function loadScannerCatalog() {
                     scanCatalog[cleanBarcode] = { name: item.Владелец };
                 }
             });
-            localStorage.setItem('alik_catalog_cache', JSON.stringify(scanCatalog));
-            document.getElementById('load-status').innerText = '✅ База: ' + Object.keys(scanCatalog).length + ' шт.';
-            document.getElementById('load-status').style.color = 'var(--success)';
+            // Кэшируем базу для каждого магазина отдельно
+            localStorage.setItem('alik_catalog_' + shopName, JSON.stringify(scanCatalog));
+            statusEl.innerText = '✅ База ' + shopName + ': ' + Object.keys(scanCatalog).length + ' шт.';
+            statusEl.style.color = 'var(--success)';
         })
         .catch(error => {
-            const cached = localStorage.getItem('alik_catalog_cache');
+            // Если сети нет, пробуем загрузить из памяти
+            const cached = localStorage.getItem('alik_catalog_' + shopName);
             if (cached) {
                 scanCatalog = JSON.parse(cached);
-                document.getElementById('load-status').innerText = '✅ База (офлайн): ' + Object.keys(scanCatalog).length + ' шт.';
-                document.getElementById('load-status').style.color = 'var(--success)';
+                statusEl.innerText = '✅ База ' + shopName + ' (офлайн): ' + Object.keys(scanCatalog).length + ' шт.';
+                statusEl.style.color = 'var(--success)';
             } else {
-                document.getElementById('load-status').innerText = '❌ Ошибка базы';
-                document.getElementById('load-status').style.color = 'var(--danger)';
+                statusEl.innerText = '❌ Ошибка базы ' + shopName;
+                statusEl.style.color = 'var(--danger)';
             }
         });
 }
@@ -932,8 +984,8 @@ function loadScannerCatalog() {
 let tscdBarcode = '';
 let tscdTimer = null;
 document.addEventListener('keydown', function(e) {
-    // Работаем только если открыта вкладка сканера
     if(document.getElementById('section-scanner').style.display === 'none') return;
+    if(!currentScanShop) return; // Если магазин не выбран, не сканируем
 
     const tag = (e.target.tagName || '').toUpperCase();
     if ((tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly) return;
@@ -960,6 +1012,8 @@ function findProduct(code) {
     nameInput.value = '';
 
     let product = scanCatalog[code];
+    
+    // Если не нашли в базе магазина, проверяем кастомную
     if (!product) {
         let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_alik') || '{}');
         product = customCatalog[code];
@@ -969,7 +1023,7 @@ function findProduct(code) {
         nameInput.value = product.name || '';
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     } else {
-        nameInput.value = '❌ Код ' + code + ' не найден в базе';
+        nameInput.value = '❌ Код ' + code + ' не найден в базе ' + currentScanShop;
         nameInput.classList.add('error');
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
@@ -1011,6 +1065,8 @@ function changeScanQty(delta) {
 }
 
 function addScanItem() {
+    if (!currentScanShop) return showToast('Сначала выберите магазин!', 'error');
+    
     const name = document.getElementById('prod-name').value.trim();
     const art = document.getElementById('prod-art').value.trim();
     const qtyToAdd = parseInt(document.getElementById('scan-qty-input').value) || 1;
@@ -1048,7 +1104,8 @@ function removeScanItem(i) {
 }
 
 function saveScanDraft() {
-    localStorage.setItem('alik_draft', JSON.stringify(scanItems));
+    if (!currentScanShop) return;
+    localStorage.setItem('alik_draft_' + currentScanShop, JSON.stringify(scanItems));
 }
 
 function renderScanItems() {
@@ -1086,17 +1143,24 @@ function renderScanItems() {
 }
 
 function saveScanInventory() {
+    if (!currentScanShop) return showToast('Выберите магазин!', 'error');
     if (scanItems.length === 0) { alert('Список пуст!'); return; }
     
     const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    revisions.push({ id: Date.now(), date: new Date().toISOString(), items: JSON.parse(JSON.stringify(scanItems)) });
+    // Сохраняем с указанием магазина
+    revisions.push({ 
+        id: Date.now(), 
+        date: new Date().toISOString(), 
+        shop: currentScanShop, 
+        items: JSON.parse(JSON.stringify(scanItems)) 
+    });
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
     
     const totalQty = scanItems.reduce((s, it) => s + it.qty, 0);
-    alert(`✅ Ревизия сохранена!\n\nПозиций: ${scanItems.length}\nВсего штук: ${totalQty}`);
+    alert(`✅ Ревизия (${currentScanShop}) сохранена!\n\nПозиций: ${scanItems.length}\nВсего штук: ${totalQty}`);
     
     scanItems = [];
-    localStorage.removeItem('alik_draft');
+    localStorage.removeItem('alik_draft_' + currentScanShop);
     renderScanItems();
     renderScanRevisions();
 }
@@ -1104,7 +1168,9 @@ function saveScanInventory() {
 function renderScanRevisions() {
     const container = document.getElementById('scan-revisions-list');
     if (!container) return;
-    const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    
+    // Сортируем: новые сверху
     revisions.sort((a, b) => b.id - a.id);
 
     if (revisions.length === 0) {
@@ -1116,10 +1182,18 @@ function renderScanRevisions() {
     revisions.forEach(rev => {
         const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
         const dateStr = new Date(rev.date).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        const shopLabel = rev.shop ? `[${rev.shop}] ` : '';
+        
+        // Кнопка удаления только для А.А. (или если это ревизия текущего магазина)
+        let deleteBtn = '';
+        if (directorMode) {
+            deleteBtn = `<button style="margin-top: 12px; background: #fee2e2; color: #991b1b; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteScanRevision(${rev.id})">Удалить ревизию</button>`;
+        }
+
         container.innerHTML += `
             <div class="list-item" style="cursor: pointer;" onclick="toggleScanDetails(${rev.id})">
                 <div style="flex: 1;">
-                    <div style="font-size: 14px; font-weight: 600;">${dateStr}</div>
+                    <div style="font-size: 14px; font-weight: 600; color: var(--primary);">${shopLabel}${dateStr}</div>
                     <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${rev.items.length} поз. · ${totalQty} шт</div>
                 </div>
                 <div style="font-size: 16px; color: var(--text-muted);">›</div>
@@ -1134,7 +1208,7 @@ function renderScanRevisions() {
                         <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
                     </div>
                 `).join('')}
-                <button style="margin-top: 12px; background: #fee2e2; color: #991b1b; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteScanRevision(${rev.id})">Удалить ревизию</button>
+                ${deleteBtn}
             </div>
         `;
     });
@@ -1152,16 +1226,6 @@ function deleteScanRevision(id) {
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
     renderScanRevisions();
 }
-
-window.onload = () => {
-    // Восстановление черновика сканера
-    const draft = localStorage.getItem('alik_draft');
-    if (draft) {
-        try { scanItems = JSON.parse(draft); } catch(e) { scanItems = []; }
-    }
-    renderScanItems();
-    renderScanRevisions();
-};
 </script>
 </body>
 </html>
