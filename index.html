@@ -41,7 +41,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
 .main-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #e2e8f0; padding: 4px; border-radius: 12px; }
-.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
+.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 14px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
 .main-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
 .toast.show { opacity: 1; }
@@ -141,7 +141,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div class="main-tabs">
         <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
-        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📷 Инвентаризация</div>
+        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📷 Сканер</div>
     </div>
 
     <!-- РАЗДЕЛ: ЗАКАЗЫ -->
@@ -296,7 +296,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <!-- РАЗДЕЛ: СКАНЕР (ИНВЕНТАРИЗАЦИЯ) -->
     <div id="section-scanner" style="display: none;">
         <div class="card" style="padding: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 5px;">
                 <span style="font-weight: bold; font-size: 14px;">Выберите магазин:</span>
                 <div id="scan-shop-pills" class="size-pills" style="margin-bottom: 0;">
                     <div class="size-pill" onclick="selectScanShop(this, 'Алик')">Алик</div>
@@ -375,7 +375,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             </div>
         </div>
 
-        <div style="margin-bottom: 60px;">
+        <div style="margin-bottom: 60px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn-main" style="background: #16a34a;" onclick="downloadScanExcel()">📥 Скачать в Excel (CSV)</button>
             <button class="btn-main" style="background: #1e293b;" onclick="saveScanInventory()">✓ Сохранить ревизию</button>
         </div>
     </div>
@@ -385,15 +386,42 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <!-- ЭКРАН ДИРЕКТОРА -->
 <div id="screen-director" class="screen">
     <div class="header">
-        <h1>А.А. · Все заказы</h1>
+        <h1>А.А. · Панель управления</h1>
         <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
     </div>
     <div class="main-tabs">
         <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">🏪 Витрина</div>
+        <div class="main-tab" id="dir-tab-btn-scanner" onclick="switchDirTab('scanner')">📷 Сканер</div>
     </div>
-    <div class="card" id="dir-section-orders"><div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
-    <div class="card" id="dir-section-catalog" style="display:none;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
+    
+    <!-- РАЗДЕЛ ЗАКАЗОВ ДИРЕКТОРА -->
+    <div class="card" id="dir-section-orders">
+        <div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+    </div>
+
+    <!-- РАЗДЕЛ ВИТРИНЫ ДИРЕКТОРА -->
+    <div class="card" id="dir-section-catalog" style="display:none;">
+        <div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+    </div>
+
+    <!-- РАЗДЕЛ СКАНЕРА ДИРЕКТОРА -->
+    <div id="dir-section-scanner" style="display:none;">
+        <!-- Блок редактирования -->
+        <div class="card" id="dir-edit-block" style="display: none; border: 2px solid var(--primary);">
+            <h3 style="margin-top:0; color: var(--primary);">✏️ Редактирование ревизии</h3>
+            <div id="dir-edit-items-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 16px;"></div>
+            <button class="btn-main" style="background: var(--success);" onclick="saveDirEditedRevision()">✓ Сохранить изменения</button>
+            <button class="btn-main" style="background: var(--text-muted); margin-top: 8px;" onclick="document.getElementById('dir-edit-block').style.display='none'">Отмена</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📋 Все сохранённые ревизии</div>
+            <div id="dir-scan-revisions-list">
+                <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Загрузка...</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Скрытое поле для ТСД -->
@@ -423,7 +451,12 @@ let scanCatalog = {};
 let scanItems = [];
 let selectedScanSize = '';
 let selectedScanYear = '';
-let currentScanShop = ''; // Какой магазин выбран в сканере
+let currentScanShop = ''; 
+let currentIncomingTab = 'all';
+
+// --- ДИРЕКТОР (РЕДАКТИРОВАНИЕ) ---
+let dirEditItems = [];
+let dirEditRevisionId = null;
 
 // --- УТИЛИТЫ ---
 function showToast(msg, type = 'default') {
@@ -467,10 +500,11 @@ function showScreen(id) {
     if(id === 'screen-director') {
         loadDirectorOrders();
         loadCatalog(true);
+        renderDirScanRevisions();
     }
 }
 
-// --- ВКЛАДКИ ---
+// --- ВКЛАДКИ ПРОДАВЦА ---
 function switchMainTab(tab) {
     document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
@@ -485,11 +519,20 @@ function switchMainTab(tab) {
         renderScanRevisions();
     }
 }
+
+// --- ВКЛАДКИ ДИРЕКТОРА ---
 function switchDirTab(tab) {
     document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('dir-tab-btn-scanner').classList.toggle('active', tab === 'scanner');
+    
     document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
     document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+    document.getElementById('dir-section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
+
+    if (tab === 'scanner') {
+        renderDirScanRevisions();
+    }
 }
 
 // --- АВТОРИЗАЦИЯ И ПИН ---
@@ -605,7 +648,7 @@ async function syncOfflineData() {
     }
 }
 
-// --- ЛОГИКА ЗАКАЗОВ (СОКРАЩЕННО) ---
+// --- ЛОГИКА ЗАКАЗОВ ---
 function selectDept(el, dept, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -719,7 +762,6 @@ function renderOrderCard(o, isDirector = false) {
     return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} | Размер: ${o.size}</div><div class="order-details">Отдел: ${o.dept}</div>${o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">💬 ${o.comment}</div>` : ''}${actionsHtml}<div style="text-align:right; margin-top:10px;">${deleteBtn}</div></div>`;
 }
 
-let currentIncomingTab = 'all';
 function switchIncomingTab(dept, el) {
     document.querySelectorAll('#incoming-tabs .tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
@@ -774,7 +816,7 @@ async function checkOrderBadge() {
     } catch(e) { console.error(e); }
 }
 
-// --- ЛОГИКА ВИТРИНЫ (СОКРАЩЕННО) ---
+// --- ЛОГИКА ВИТРИНЫ ---
 async function addToCatalog() {
     const category = document.getElementById('cat-category').value;
     const customSize = document.getElementById('cat-custom-size').value.trim();
@@ -913,10 +955,8 @@ function selectScanShop(el, shopName) {
     el.classList.add('active');
     currentScanShop = shopName;
     
-    // Обновляем лейбл
     document.getElementById('current-scan-shop-label').innerText = '(' + shopName + ')';
     
-    // Карта файлов JSON
     const fileMap = {
         'Алик': '1.json',
         'Мода': '2.json',
@@ -926,7 +966,6 @@ function selectScanShop(el, shopName) {
     const fileName = fileMap[shopName];
     loadScanDatabase(fileName, shopName);
     
-    // Загружаем черновик для этого магазина
     const draftKey = 'alik_draft_' + shopName;
     const draft = localStorage.getItem(draftKey);
     if (draft) {
@@ -943,7 +982,6 @@ function loadScanDatabase(fileName, shopName) {
     statusEl.innerText = 'Загрузка базы ' + shopName + '...';
     statusEl.style.color = 'var(--text-muted)';
     
-    // Сначала очищаем каталог и поле поиска
     scanCatalog = {};
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-art').value = '';
@@ -961,13 +999,11 @@ function loadScanDatabase(fileName, shopName) {
                     scanCatalog[cleanBarcode] = { name: item.Владелец };
                 }
             });
-            // Кэшируем базу для каждого магазина отдельно
             localStorage.setItem('alik_catalog_' + shopName, JSON.stringify(scanCatalog));
             statusEl.innerText = '✅ База ' + shopName + ': ' + Object.keys(scanCatalog).length + ' шт.';
             statusEl.style.color = 'var(--success)';
         })
         .catch(error => {
-            // Если сети нет, пробуем загрузить из памяти
             const cached = localStorage.getItem('alik_catalog_' + shopName);
             if (cached) {
                 scanCatalog = JSON.parse(cached);
@@ -985,7 +1021,7 @@ let tscdBarcode = '';
 let tscdTimer = null;
 document.addEventListener('keydown', function(e) {
     if(document.getElementById('section-scanner').style.display === 'none') return;
-    if(!currentScanShop) return; // Если магазин не выбран, не сканируем
+    if(!currentScanShop) return;
 
     const tag = (e.target.tagName || '').toUpperCase();
     if ((tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.readOnly) return;
@@ -1013,7 +1049,6 @@ function findProduct(code) {
 
     let product = scanCatalog[code];
     
-    // Если не нашли в базе магазина, проверяем кастомную
     if (!product) {
         let customCatalog = JSON.parse(localStorage.getItem('custom_catalog_alik') || '{}');
         product = customCatalog[code];
@@ -1147,7 +1182,6 @@ function saveScanInventory() {
     if (scanItems.length === 0) { alert('Список пуст!'); return; }
     
     const revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    // Сохраняем с указанием магазина
     revisions.push({ 
         id: Date.now(), 
         date: new Date().toISOString(), 
@@ -1169,8 +1203,6 @@ function renderScanRevisions() {
     const container = document.getElementById('scan-revisions-list');
     if (!container) return;
     let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
-    
-    // Сортируем: новые сверху
     revisions.sort((a, b) => b.id - a.id);
 
     if (revisions.length === 0) {
@@ -1184,7 +1216,6 @@ function renderScanRevisions() {
         const dateStr = new Date(rev.date).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         const shopLabel = rev.shop ? `[${rev.shop}] ` : '';
         
-        // Кнопка удаления только для А.А. (или если это ревизия текущего магазина)
         let deleteBtn = '';
         if (directorMode) {
             deleteBtn = `<button style="margin-top: 12px; background: #fee2e2; color: #991b1b; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteScanRevision(${rev.id})">Удалить ревизию</button>`;
@@ -1224,7 +1255,168 @@ function deleteScanRevision(id) {
     let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
     revisions = revisions.filter(r => r.id !== id);
     localStorage.setItem('alik_revisions', JSON.stringify(revisions));
-    renderScanRevisions();
+    
+    // Перерисовываем тот список, который сейчас открыт
+    if (directorMode) renderDirScanRevisions();
+    else renderScanRevisions();
+}
+
+// --- ЭКСПОРТ В EXCEL ---
+function downloadScanExcel() {
+    if (!currentScanShop) return showToast('Выберите магазин!', 'error');
+    if (scanItems.length === 0) return showToast('Список пуст!', 'error');
+    exportToCSV(scanItems, currentScanShop);
+}
+
+function downloadSingleRevisionExcel(revId) {
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    const rev = revisions.find(r => r.id === revId);
+    if (rev) exportToCSV(rev.items, rev.shop || 'Ревизия');
+}
+
+function exportToCSV(items, shopName) {
+    let csvContent = "\uFEFF";
+    csvContent += "Артикул;Наименование;Размер;Год;Количество\n";
+
+    items.forEach(item => {
+        const safeName = `"${String(item.name).replace(/"/g, '""')}"`;
+        csvContent += `${item.article};${safeName};${item.size};${item.year};${item.qty}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Revisiya_${shopName}_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Файл скачан', 'success');
+}
+
+// --- ЛОГИКА РЕДАКТИРОВАНИЯ У А.А. ---
+function renderDirScanRevisions() {
+    const container = document.getElementById('dir-scan-revisions-list');
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    revisions.sort((a, b) => b.id - a.id);
+
+    if (revisions.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Ревизий пока нет</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    revisions.forEach(rev => {
+        const totalQty = rev.items.reduce((s, it) => s + it.qty, 0);
+        const dateStr = new Date(rev.date).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        const shopLabel = rev.shop ? `[${rev.shop}] ` : '';
+
+        container.innerHTML += `
+            <div class="list-item" style="cursor: pointer;" onclick="toggleDirDetails(${rev.id})">
+                <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--primary);">${shopLabel}${dateStr}</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${rev.items.length} поз. · ${totalQty} шт</div>
+                </div>
+                <div style="font-size: 16px; color: var(--text-muted);">›</div>
+            </div>
+            <div id="dir-rev-${rev.id}" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; margin: 8px 0;">
+                ${rev.items.map(it => `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px;">
+                        <div>
+                            <div style="font-weight: 600;">${it.name}</div>
+                            <div style="color: var(--text-muted); font-size: 11px;">${it.size} · ${it.year}</div>
+                        </div>
+                        <div style="font-weight: 700; color: var(--primary);">${it.qty} шт</div>
+                    </div>
+                `).join('')}
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button style="flex: 1; background: #2563eb; color: white; border: none; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="editRevision(${rev.id})">✏️ Редакт.</button>
+                    <button style="flex: 1; background: #16a34a; color: white; border: none; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="downloadSingleRevisionExcel(${rev.id})">📥 Excel</button>
+                    <button style="flex: 1; background: #fee2e2; color: #991b1b; border: none; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer;" onclick="deleteScanRevision(${rev.id})">Удалить</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function toggleDirDetails(id) {
+    const el = document.getElementById('dir-rev-' + id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function editRevision(revId) {
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    const rev = revisions.find(r => r.id === revId);
+    if (!rev) return;
+
+    document.getElementById('dir-edit-block').style.display = 'block';
+    dirEditItems = JSON.parse(JSON.stringify(rev.items));
+    dirEditRevisionId = rev.id;
+    
+    renderDirEditItems();
+    showToast('Загружено для редактирования', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderDirEditItems() {
+    const container = document.getElementById('dir-edit-items-list');
+    if (!container) return;
+    
+    if (dirEditItems.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Пусто</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    dirEditItems.forEach((item, i) => {
+        container.innerHTML += `
+        <div class="list-item">
+            <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: 600;">${item.name}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Разм: ${item.size} · Год: ${item.year}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="qty-btn" style="width:32px; height:32px; font-size:18px;" onclick="changeDirEditQty(${i}, -1)">−</button>
+                <div style="font-size: 16px; font-weight: 700; color: var(--primary); width: 30px; text-align: center;">${item.qty}</div>
+                <button class="qty-btn" style="width:32px; height:32px; font-size:18px;" onclick="changeDirEditQty(${i}, 1)">+</button>
+                <button class="btn-del" style="margin-left:10px;" onclick="removeDirEditItem(${i})">✕</button>
+            </div>
+        </div>`;
+    });
+}
+
+function changeDirEditQty(index, delta) {
+    dirEditItems[index].qty += delta;
+    if (dirEditItems[index].qty <= 0) {
+        dirEditItems.splice(index, 1);
+    }
+    renderDirEditItems();
+}
+
+function removeDirEditItem(index) {
+    dirEditItems.splice(index, 1);
+    renderDirEditItems();
+}
+
+function saveDirEditedRevision() {
+    if (!dirEditRevisionId) return;
+    
+    let revisions = JSON.parse(localStorage.getItem('alik_revisions') || '[]');
+    const revIndex = revisions.findIndex(r => r.id === dirEditRevisionId);
+    
+    if (revIndex !== -1) {
+        revisions[revIndex].items = JSON.parse(JSON.stringify(dirEditItems));
+        localStorage.setItem('alik_revisions', JSON.stringify(revisions));
+        
+        showToast('✅ Ревизия обновлена!', 'success');
+        
+        dirEditItems = [];
+        dirEditRevisionId = null;
+        document.getElementById('dir-edit-block').style.display = 'none';
+        renderDirScanRevisions();
+    }
 }
 </script>
 </body>
