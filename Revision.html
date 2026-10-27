@@ -3,16 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Заказы и Витрина</title>
+<title>Pilo Premium App</title>
 
-<!-- Настройки PWA -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#F4F5F7">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170678.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -27,7 +29,7 @@
   const db = getFirestore(app);
   
   window.fbDB = db;
-  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, setDoc };
+  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
@@ -35,71 +37,138 @@
 </script>
 
 <style>
-:root { --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b; --primary: #2563eb; --success: #10b981; --danger: #ef4444; --white: #ffffff; --border: #e2e8f0; --radius: 16px; }
+:root { 
+    /* Базовые цвета (Pilo Light) */
+    --bg-app: #F4F5F7; 
+    --bg-card: #FFFFFF;
+    --text-main: #111111;
+    --text-muted: #8A8A8E;
+    
+    /* Акценты */
+    --primary: #D4FF00; 
+    --primary-dark: #C2EB00;
+    --primary-glow: rgba(212, 255, 0, 0.4);
+    --dark-pill: #1C1C1E;
+    
+    --success: #30D158;
+    --danger: #FF453A;
+    
+    /* Радиусы */
+    --radius-card: 32px;
+    --radius-pill: 100px;
+    --radius-input: 20px;
+    
+    /* Тени */
+    --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.04);
+    --shadow-primary: 0 8px 24px rgba(212, 255, 0, 0.3);
+    
+    /* Тени для Soft UI (PIN-код) */
+    --bg-pin-zone: #F0F2F5;
+    --shadow-btn-out: 6px 6px 12px #d1d5db, -6px -6px 12px #ffffff;
+    --shadow-btn-in: inset 6px 6px 12px #d1d5db, inset -6px -6px 12px #ffffff;
+}
+
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 100px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header h1 { margin: 0; font-size: 20px; }
-.card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
-.main-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #e2e8f0; padding: 4px; border-radius: 12px; overflow-x: auto; }
-.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; white-space: nowrap; }
-.main-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
-.toast.show { opacity: 1; }
+body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); margin: 0; padding: 20px; padding-bottom: 100px; }
+
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.header h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+
+/* Карточки */
+.card { background: var(--bg-card); border-radius: var(--radius-card); padding: 24px; box-shadow: var(--shadow-card); margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.02); }
+
+/* Вкладки */
+.main-tabs { display: flex; gap: 8px; margin-bottom: 24px; background: rgba(0,0,0,0.04); padding: 6px; border-radius: var(--radius-input); overflow-x: auto; }
+.main-tab { flex: 1; text-align: center; padding: 12px 8px; font-weight: 700; font-size: 13px; border-radius: 14px; cursor: pointer; color: var(--text-muted); transition: 0.2s; white-space: nowrap; }
+.main-tab.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+/* Уведомления */
+.toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--dark-pill); color: #FFF; padding: 16px 24px; border-radius: var(--radius-pill); font-size: 14px; font-weight: 600; z-index: 10000; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.error { background: var(--danger); }
 .toast.success { background: var(--success); }
-.input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-.input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
-.input-field { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; width: 100%; background: #f8fafc; }
-.input-field:focus { border-color: var(--primary); background: #fff; }
-.size-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.size-pill { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--white); cursor: pointer; }
-.size-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
-.btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-.btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
-.btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
-.btn-edit { background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
-.screen { display: none; }
+
+/* Поля ввода */
+.input-group { display: flex; flex-direction: column; margin-bottom: 16px; }
+.input-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; margin-left: 12px; text-transform: uppercase; letter-spacing: 0.5px;}
+.input-field { padding: 18px; border: 2px solid transparent; border-radius: var(--radius-input); font-size: 15px; font-weight: 600; color: var(--text-main); outline: none; width: 100%; background: var(--bg-app); transition: 0.2s; }
+.input-field:focus { border-color: var(--primary); background: #FFF; box-shadow: 0 0 0 4px rgba(212, 255, 0, 0.15); }
+select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer; }
+
+/* Пилюли */
+.size-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.size-pill { padding: 12px 20px; border: none; border-radius: var(--radius-pill); font-size: 14px; font-weight: 700; color: var(--text-main); background: var(--bg-app); cursor: pointer; transition: 0.2s; }
+.size-pill:active { transform: scale(0.95); }
+.size-pill.active { background: var(--primary); color: var(--text-main); box-shadow: var(--shadow-primary); }
+
+/* Главные кнопки */
+.btn-main { background: var(--primary); color: var(--text-main); border: none; padding: 20px; border-radius: var(--radius-pill); font-size: 15px; font-weight: 800; width: 100%; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-primary); text-transform: uppercase; letter-spacing: 0.5px;}
+.btn-main:active { transform: scale(0.97); box-shadow: none; }
+.btn-del { background: rgba(255, 69, 58, 0.1); color: var(--danger); border: none; padding: 12px 16px; border-radius: var(--radius-input); font-size: 14px; cursor: pointer; font-weight: 700; }
+.btn-edit { background: var(--bg-app); color: var(--text-main); border: none; padding: 12px 16px; border-radius: var(--radius-input); font-size: 14px; cursor: pointer; font-weight: 700; }
+.btn-add-cat { background: var(--dark-pill); color: var(--primary); border: none; padding: 8px 16px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 800; cursor: pointer; }
+
+.screen { display: none; animation: fadeIn 0.3s ease; }
 .screen.active { display: block; }
-.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
-.pin-btn { padding: 16px; font-size: 20px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; }
-.pin-btn:active { background: #e2e8f0; }
-.pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
-.badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
-.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; flex-direction: column; gap:10px; position: relative;}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- ЭКРАН АВТОРИЗАЦИИ --- */
+#screen-auth .card { padding: 32px 24px; }
+#screen-auth h2 { text-align: center; font-weight: 900; font-size: 28px; margin: 0 0 24px 0; letter-spacing: -0.5px; }
+
+/* PIN-код (Гибрид) */
+.pin-zone { 
+    background: radial-gradient(circle at center, #FFFFFF 0%, var(--bg-app) 100%);
+    border-radius: var(--radius-card); padding: 32px 20px; margin-top: 24px;
+}
+.pin-title { text-align: center; font-size: 14px; font-weight: 800; color: var(--text-muted); margin-bottom: 24px; letter-spacing: 1px; text-transform: uppercase;}
+.pin-display { display: flex; justify-content: center; gap: 12px; height: 24px; margin-bottom: 32px; padding: 12px 24px; border-radius: var(--radius-pill); box-shadow: var(--shadow-btn-in); background: var(--bg-pin-zone); width: max-content; margin-left: auto; margin-right: auto; }
+.pin-dash { width: 18px; height: 4px; border-radius: 4px; background: #C4C7CC; transition: all 0.3s ease; }
+.pin-dash.active { background: var(--text-main); box-shadow: 0 0 6px rgba(17, 17, 17, 0.4); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; justify-items: center; }
+.pin-btn { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 500; background: var(--bg-pin-zone); border-radius: 50%; border: none; cursor: pointer; color: var(--text-main); box-shadow: var(--shadow-btn-out); transition: all 0.1s ease; }
+.pin-btn:active { box-shadow: var(--shadow-btn-in); transform: scale(0.95); font-size: 24px; }
+.pin-btn.clear { color: var(--text-muted); box-shadow: none; background: transparent; font-size: 13px; font-weight: 800; }
+.pin-btn.clear:active { color: var(--text-main); box-shadow: var(--shadow-btn-in); border-radius: 50%; }
+.pin-btn.ok { background: var(--dark-pill); color: var(--primary); font-size: 18px; font-weight: 800; box-shadow: 6px 6px 12px #d1d5db, -6px -6px 12px #ffffff, 0 0 20px var(--primary-glow); border: 1px solid rgba(212, 255, 0, 0.2); }
+.pin-btn.ok:active { box-shadow: inset 4px 4px 10px #000, inset -4px -4px 10px #333, 0 0 25px var(--primary-glow); }
+
+/* --- КАРТОЧКИ ЗАКАЗОВ И ТОВАРОВ --- */
+.order-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 20px; margin-bottom: 16px; display:flex; flex-direction: column; gap:12px; position: relative; box-shadow: var(--shadow-card); }
 .order-card.pending { border-left: 4px solid var(--primary); }
 .order-card.accepted { border-left: 4px solid var(--success); }
 .order-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
-.order-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
-.order-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
-.order-details { font-size: 13px; color: var(--text); margin-bottom: 4px; }
-.order-actions { display: flex; gap: 10px; margin-top: 5px; }
-.order-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;}
-.btn-accept { background: #dcfce7; color: #166534; }
-.btn-reject { background: #fee2e2; color: #991b1b; }
-.order-photo { width: 100%; max-height: 200px; object-fit: contain; background:#f1f5f9; border-radius: 8px; margin-bottom: 5px;}
-.tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;}
-.tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
-.tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.offline-bar { display: none; background: #fef2f2; color: #991b1b; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; }
+.order-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
+.order-title { font-weight: 800; font-size: 17px; margin-bottom: 4px; color: var(--text-main); }
+.order-details { font-size: 13px; color: var(--text-main); margin-bottom: 4px; font-weight: 500;}
+.order-actions { display: flex; gap: 10px; margin-top: 10px; }
+.order-actions button { flex: 1; padding: 14px; border: none; border-radius: var(--radius-input); font-weight: 800; cursor: pointer; font-size: 14px; text-transform: uppercase;}
+.btn-accept { background: var(--success); color: #fff; }
+.btn-reject { background: rgba(255, 69, 58, 0.1); color: var(--danger); }
+.order-photo { width: 100%; max-height: 220px; object-fit: cover; border-radius: var(--radius-input); margin-bottom: 8px; background: var(--bg-app); }
 
-/* Корзина (Снизу) */
-.cart-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); padding: 16px; border-radius: 20px 20px 0 0; z-index: 9998; transform: translateY(100%); transition: transform 0.3s ease; display: flex; flex-direction: column;}
+/* Фильтры */
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px;}
+.tab { padding: 10px 20px; background: var(--bg-app); border: none; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: 0.2s;}
+.tab.active { background: var(--dark-pill); color: var(--primary); }
+
+.offline-bar { display: none; background: var(--danger); color: white; text-align: center; padding: 12px; font-size: 13px; font-weight: 800; border-radius: var(--radius-input); margin-bottom: 16px; }
+
+/* Корзина */
+.cart-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); padding: 24px; border-radius: var(--radius-card) var(--radius-card) 0 0; z-index: 9998; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); display: flex; flex-direction: column;}
 .cart-panel.open { transform: translateY(0); }
-.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
-.cart-items-list { max-height: 40vh; overflow-y: auto; margin-bottom: 10px; }
-.cart-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.cart-item input { width: 50px; padding: 5px; text-align: center; border: 1px solid var(--border); border-radius: 6px; }
-.cart-total { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; }
+.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: 900; font-size: 22px; color: var(--text-main); letter-spacing: -0.5px;}
+.cart-items-list { max-height: 40vh; overflow-y: auto; margin-bottom: 16px; }
+.cart-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 16px 0; border-bottom: 1px solid rgba(0,0,0,0.05); color: var(--text-main); }
+.cart-total { display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 20px; font-size: 16px; color: var(--text-main);}
 
-/* Сканер и Ревизия */
-.scan-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #f1f5f9; border-radius: 12px; margin-bottom: 15px; text-align: center; color: var(--text-muted); border: 2px dashed #cbd5e1;}
-.revision-list { margin-top: 15px; }
-.revision-item { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); }
-.revision-item-info { flex: 1; }
-.revision-item-info b { display: block; font-size: 14px; }
-.revision-item-info span { font-size: 12px; color: var(--text-muted); }
-.rev-qty-input { width: 60px; padding: 8px; text-align: center; border: 1px solid var(--border); border-radius: 6px; font-weight: bold; }
+.scan-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 10px; background: var(--bg-app); border-radius: var(--radius-input); margin-bottom: 20px; text-align: center; color: var(--text-muted); border: 2px dashed #D1D5DB;}
+
+/* Медиа-запрос для маленьких экранов */
+@media (max-width: 360px) {
+    .pin-btn { width: 64px; height: 64px; font-size: 22px; }
+    .pin-pad { gap: 12px; }
+}
 </style>
 </head>
 <body>
@@ -110,37 +179,42 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <!-- ПАНЕЛЬ КОРЗИНЫ -->
 <div id="cart-panel" class="cart-panel">
     <div class="cart-header">
-        <span>🛒 Корзина заказов</span>
-        <span onclick="toggleCart(false)" style="cursor:pointer; color:var(--danger); font-size: 20px;">&times;</span>
+        <span>Корзина</span>
+        <span onclick="toggleCart(false)" style="cursor:pointer; color:var(--text-muted); font-size: 28px; font-weight: bold;">&times;</span>
     </div>
     <div class="cart-items-list" id="cart-items-list"></div>
     <div class="cart-total" id="cart-total"></div>
-    <button class="btn-main" onclick="checkoutCart()" style="background: var(--success);">Перейти к оформлению</button>
+    <button class="btn-main" onclick="checkoutCart()">Оформить заказ</button>
 </div>
 
 <!-- ЭКРАН АВТОРИЗАЦИИ -->
 <div id="screen-auth" class="screen active">
-    <div class="card">
-        <h2 style="text-align: center; margin-top: 0;">Вход в систему</h2>
-        <div class="size-pills" style="justify-content: center;" id="shop-pills">
-            <div class="size-pill" onclick="selectShop(this, 'Алик')">Алик</div>
-            <div class="size-pill" onclick="selectShop(this, 'Мода')">Мода</div>
-            <div class="size-pill" onclick="selectShop(this, 'Твой стиль')">Твой стиль</div>
+    <div class="card" style="margin-top: 20px;">
+        <h2>Вход</h2>
+        
+        <div class="size-pills" style="justify-content: space-between; margin-bottom: 24px;" id="shop-pills">
+            <div class="size-pill" style="flex:1; text-align:center;" onclick="selectShop(this, 'Алик')">Алик</div>
+            <div class="size-pill" style="flex:1; text-align:center;" onclick="selectShop(this, 'Мода')">Мода</div>
+            <div class="size-pill" style="flex:1; text-align:center;" onclick="selectShop(this, 'Твой стиль')">Стиль</div>
         </div>
-        <div class="input-group" style="margin-top: 20px;">
-            <label class="input-label">Ваше имя (Продавец)</label>
+        
+        <div class="input-group">
+            <label class="input-label">Ваше имя</label>
             <input type="text" class="input-field" id="seller-name" placeholder="Введите имя" autocomplete="off">
         </div>
         <button class="btn-main" onclick="loginSeller()">Войти как продавец</button>
     </div>
-    <div class="card" style="margin-top: 20px;">
-        <h3 style="text-align: center; margin-top: 0;">Вход для А.А.</h3>
-        <div class="pin-display" id="pin-display"></div>
+    
+    <div class="pin-zone">
+        <div class="pin-title">Вход для А.А.</div>
+        <div class="pin-display" id="pin-display">
+            <div class="pin-dash"></div><div class="pin-dash"></div><div class="pin-dash"></div><div class="pin-dash"></div>
+        </div>
         <div class="pin-pad">
             <div class="pin-btn" onclick="pressPin('1')">1</div><div class="pin-btn" onclick="pressPin('2')">2</div><div class="pin-btn" onclick="pressPin('3')">3</div>
             <div class="pin-btn" onclick="pressPin('4')">4</div><div class="pin-btn" onclick="pressPin('5')">5</div><div class="pin-btn" onclick="pressPin('6')">6</div>
             <div class="pin-btn" onclick="pressPin('7')">7</div><div class="pin-btn" onclick="pressPin('8')">8</div><div class="pin-btn" onclick="pressPin('9')">9</div>
-            <div class="pin-btn" style="background:var(--danger); color:white;" onclick="pressPin('C')">C</div><div class="pin-btn" onclick="pressPin('0')">0</div><div class="pin-btn" style="background:var(--primary); color:white;" onclick="checkPin()">OK</div>
+            <div class="pin-btn clear" onclick="pressPin('C')">СБРОС</div><div class="pin-btn" onclick="pressPin('0')">0</div><div class="pin-btn ok" onclick="checkPin()">OK</div>
         </div>
     </div>
 </div>
@@ -149,7 +223,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <div id="screen-seller" class="screen">
     <div class="header">
         <h1 id="shop-title">Магазин</h1>
-        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:800; font-size:14px; text-transform:uppercase;">Выйти</button>
     </div>
 
     <div class="main-tabs">
@@ -161,7 +235,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <!-- ВКЛАДКА ЗАКАЗЫ -->
     <div id="section-orders">
         <div class="card">
-            <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
+            <h3 style="margin-top:0; font-weight:800; font-size: 18px; margin-bottom: 20px;">Создать запрос</h3>
             <div class="input-group">
                 <label class="input-label">Кому (Магазин)</label>
                 <select id="order-to-shop" class="input-field">
@@ -178,7 +252,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 <div class="size-pill" onclick="selectDept(this, 'Обувь', 'dept-pills')">Обувь</div>
             </div>
             <div class="input-group">
-                <label class="input-label" style="display:flex; justify-content:space-between;">Категория <span class="btn-add-cat" onclick="showCustomCategory('order-category', 'new-category')">+ Своя</span></label>
+                <label class="input-label" style="display:flex; justify-content:space-between; align-items:center;">Категория <span class="btn-add-cat" onclick="showCustomCategory('order-category', 'new-category')">+ Своя</span></label>
                 <select id="order-category" class="input-field">
                     <option value="">Выберите категорию...</option>
                     <option value="Куртки">Куртки</option>
@@ -189,27 +263,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                     <option value="Толстовки">Толстовки</option>
                     <option value="Обувь">Обувь</option>
                 </select>
-                <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+                <input type="text" class="input-field" id="new-category" placeholder="Название своей категории" style="display:none; margin-top:10px;">
             </div>
             <div class="input-group">
-                <label class="input-label">Фото (Сделать снимок)</label>
-                <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>window.currentOrderPhotoBase64=val)">
-                <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+                <label class="input-label">Фото товара</label>
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>window.currentOrderPhotoBase64=val)" style="padding: 14px;">
+                <img id="order-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:var(--radius-input); background:var(--bg-app); margin-top:10px; display:none; padding: 10px;">
             </div>
-            <div class="input-label">Размер (необязательно)</div>
+            <div class="input-label">Размер</div>
             <div class="size-pills" id="size-pills">
                 <div class="size-pill" onclick="selectSize(this, 'order')">M</div><div class="size-pill" onclick="selectSize(this, 'order')">L</div>
                 <div class="size-pill" onclick="selectSize(this, 'order')">XL</div><div class="size-pill" onclick="selectSize(this, 'order')">2XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">3XL</div><div class="size-pill" onclick="selectSize(this, 'order')">4XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">5XL</div><div class="size-pill" onclick="selectSize(this, 'order')">6XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">3XL</div>
             </div>
-            <div class="input-group"><input type="text" id="custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
+            <div class="input-group"><input type="text" id="custom-size" class="input-field" placeholder="Свой размер"></div>
             <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
             <button class="btn-main" onclick="createOrder()" style="margin-top: 10px;">Отправить запрос</button>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0;">Входящие запросы (Вам) <span id="order-badge" class="badge" style="display:none;">0</span></h3>
+            <h3 style="margin-top:0; font-weight:800; font-size: 18px;">Входящие <span id="order-badge" style="display:none; background:var(--primary); color:var(--text-main); padding:2px 10px; border-radius:10px; font-size:14px;">0</span></h3>
             <div class="tabs" id="incoming-tabs">
                 <div class="tab active" onclick="switchIncomingTab('all', this)">Все</div>
                 <div class="tab" onclick="switchIncomingTab('Муж', this)">Муж</div>
@@ -217,18 +290,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 <div class="tab" onclick="switchIncomingTab('Дет', this)">Дет</div>
                 <div class="tab" onclick="switchIncomingTab('Обувь', this)">Обувь</div>
             </div>
-            <div id="orders-incoming-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+            <div id="orders-incoming-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div>
         </div>
         <div class="card">
-            <h3 style="margin-top:0;">Ваши отправленные запросы</h3>
-            <div id="orders-outgoing-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div>
+            <h3 style="margin-top:0; font-weight:800; font-size: 18px;">Исходящие</h3>
+            <div id="orders-outgoing-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div>
         </div>
     </div>
 
     <!-- ВКЛАДКА ВИТРИНА -->
     <div id="section-catalog" style="display: none;">
         <div class="card">
-            <h3 style="margin-top:0;">Выставить товар на витрину</h3>
+            <h3 style="margin-top:0; font-weight:800; font-size: 18px; margin-bottom: 20px;">На витрину</h3>
             <div class="input-label">Отдел</div>
             <div class="size-pills" id="cat-dept-pills">
                 <div class="size-pill" onclick="selectDept(this, 'Муж', 'cat-dept-pills')">Муж</div>
@@ -237,7 +310,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 <div class="size-pill" onclick="selectDept(this, 'Обувь', 'cat-dept-pills')">Обувь</div>
             </div>
             <div class="input-group">
-                <label class="input-label" style="display:flex; justify-content:space-between;">Категория <span class="btn-add-cat" onclick="showCustomCategory('cat-category', 'new-cat-category')">+ Своя</span></label>
+                <label class="input-label" style="display:flex; justify-content:space-between; align-items:center;">Категория <span class="btn-add-cat" onclick="showCustomCategory('cat-category', 'new-cat-category')">+ Своя</span></label>
                 <select id="cat-category" class="input-field">
                     <option value="">Выберите категорию...</option>
                     <option value="Куртки">Куртки</option>
@@ -248,41 +321,39 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                     <option value="Толстовки">Толстовки</option>
                     <option value="Обувь">Обувь</option>
                 </select>
-                <input type="text" class="input-field" id="new-cat-category" placeholder="Название своей категории" style="display:none; margin-top:8px;">
+                <input type="text" class="input-field" id="new-cat-category" placeholder="Название своей категории" style="display:none; margin-top:10px;">
             </div>
             <div class="input-group">
-                <label class="input-label">Фото (Сделать снимок)</label>
-                <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>window.currentCatPhotoBase64=val)">
-                <img id="cat-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:12px; background:#f1f5f9; margin-top:10px; display:none;">
+                <label class="input-label">Фото товара</label>
+                <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>window.currentCatPhotoBase64=val)" style="padding: 14px;">
+                <img id="cat-photo-preview" style="width:100%; max-height:250px; object-fit:contain; border-radius:var(--radius-input); background:var(--bg-app); margin-top:10px; display:none; padding: 10px;">
             </div>
-            <div class="input-label">Размер (необязательно)</div>
+            <div class="input-label">Размер</div>
             <div class="size-pills" id="cat-size-pills">
                 <div class="size-pill" onclick="selectSize(this, 'cat')">M</div><div class="size-pill" onclick="selectSize(this, 'cat')">L</div>
                 <div class="size-pill" onclick="selectSize(this, 'cat')">XL</div><div class="size-pill" onclick="selectSize(this, 'cat')">2XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">3XL</div><div class="size-pill" onclick="selectSize(this, 'cat')">4XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">5XL</div><div class="size-pill" onclick="selectSize(this, 'cat')">6XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">3XL</div>
             </div>
-            <div class="input-group"><input type="text" id="cat-custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
-            <div style="display: flex; gap: 10px;">
+            <div class="input-group"><input type="text" id="cat-custom-size" class="input-field" placeholder="Свой размер"></div>
+            <div style="display: flex; gap: 12px;">
                 <div class="input-group" style="flex: 1;">
                     <label class="input-label">Год</label>
                     <select id="cat-year" class="input-field"></select>
                 </div>
                 <div class="input-group" style="flex: 1;">
-                    <label class="input-label">Количество</label>
+                    <label class="input-label">Кол-во</label>
                     <input type="number" id="cat-qty" class="input-field" value="1" min="1">
                 </div>
             </div>
-            <button class="btn-main" onclick="addToCatalog()" style="background: var(--success);">Опубликовать на витрине</button>
+            <button class="btn-main" onclick="addToCatalog()" style="margin-top: 10px;">Опубликовать</button>
         </div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="margin:0;">Витрина</h3>
-                <!-- Плашка Все / Мои -->
-                <div class="size-pills" style="margin:0; background:#e2e8f0; padding:4px; border-radius:8px;">
-                    <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="border:none; padding:6px 12px;">Все</div>
-                    <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="border:none; padding:6px 12px;">Мои</div>
+        <div class="card" style="background: transparent; box-shadow: none; padding: 0; border: none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0; font-weight:900; font-size: 24px; letter-spacing: -0.5px;">Витрина</h3>
+                <div class="size-pills" style="margin:0; background: var(--bg-card); padding:6px; border-radius:var(--radius-pill); box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:8px 16px;">Все</div>
+                    <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:8px 16px;">Мои</div>
                 </div>
             </div>
             <div class="input-group">
@@ -300,31 +371,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 <div class="tab" onclick="switchCatalogTab('Дет', this)">Дет</div>
                 <div class="tab" onclick="switchCatalogTab('Обувь', this)">Обувь</div>
             </div>
-            <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка витрины...</div></div>
+            <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div>
         </div>
     </div>
 
-    <!-- ВКЛАДКА СКАНЕР (ПРОДАВЕЦ) -->
+    <!-- ВКЛАДКА ИНВЕНТАРИЗАЦИЯ -->
     <div id="section-scanner" style="display: none;">
         <div class="card">
-            <h3 style="margin-top:0;">Инвентаризация</h3>
-            <p style="font-size:13px; color:var(--text-muted);">Отсканируйте ТСД штрих-код товара или введите ID вручную. Товар добавится в список ревизии.</p>
+            <h3 style="margin-top:0; font-weight:800; font-size: 18px;">Сканер</h3>
+            <div class="scan-area">
+                <p style="margin:0; font-weight:600;">Введите штрих-код</p>
+            </div>
             <div class="input-group">
-                <input type="text" id="scanner-input" class="input-field" placeholder="Штрих-код / ID..." onkeypress="if(event.key==='Enter') addScanToRevision()">
+                <label class="input-label">Код товара</label>
+                <input type="text" id="scanner-input" class="input-field" placeholder="Введите код..." onkeypress="if(event.key==='Enter') searchByCode()">
             </div>
-            <button class="btn-main" onclick="addScanToRevision()">Добавить в список</button>
+            <button class="btn-main" onclick="searchByCode()">Найти</button>
         </div>
-        
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3 style="margin:0;">Текущая ревизия</h3>
-                <span id="rev-count" class="badge" style="background:var(--primary);">0</span>
-            </div>
-            <div id="revision-list" class="revision-list">
-                <div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">Список пуст</div>
-            </div>
-            <button class="btn-main" onclick="saveRevision()" style="background:var(--success); margin-top:15px;">Сохранить ревизию</button>
-        </div>
+        <div id="scanner-result"></div>
     </div>
 </div>
 
@@ -332,42 +396,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <div id="screen-director" class="screen">
     <div class="header">
         <h1>А.А. · Панель</h1>
-        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:800; font-size:14px; text-transform:uppercase;">Выйти</button>
     </div>
     <div class="main-tabs">
         <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">🏪 Витрина</div>
-        <div class="main-tab" id="dir-tab-btn-scanner" onclick="switchDirTab('scanner')">📷 Инвентаризация</div>
+        <div class="main-tab" id="dir-tab-btn-scanner" onclick="switchDirTab('scanner')">📷 Сканер</div>
     </div>
     
-    <div class="card" id="dir-section-orders"><div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
-    <div class="card" id="dir-section-catalog" style="display:none;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
+    <div class="card" id="dir-section-orders" style="padding: 16px;"><div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div></div>
+    <div class="card" id="dir-section-catalog" style="display:none; padding: 16px;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div></div>
     
     <div id="dir-section-scanner" style="display:none;">
         <div class="card">
-            <h3 style="margin-top:0;">Инвентаризация (А.А.)</h3>
-            <div class="scan-area">
-                <p style="margin-bottom:10px;">Сканируйте камерой или вводите вручную</p>
-                <button class="btn-main" onclick="startCameraScan()" style="background:var(--primary); margin-bottom:10px;">📷 Сканировать камерой</button>
-                <video id="camera-preview" style="width:100%; max-height:250px; border-radius:12px; display:none;" autoplay playsinline></video>
+            <h3 style="margin-top:0; font-weight:800; font-size: 18px;">Ревизии</h3>
+            <button class="btn-main" onclick="downloadRevisionsCSV()" style="margin-bottom: 24px; background: var(--dark-pill); color: var(--primary); box-shadow: none;">📥 Скачать в Excel (CSV)</button>
+            <div class="scan-area" id="camera-area">
+                <p style="margin-bottom:16px; font-weight:600;">Сканируйте камерой</p>
+                <button class="btn-main" id="btn-camera" onclick="toggleCamera()" style="margin-bottom:16px;">📷 Включить камеру</button>
+                <video id="camera-preview" style="width:100%; max-height:250px; border-radius:var(--radius-input); display:none; background:#000;" autoplay playsinline></video>
             </div>
             <div class="input-group">
                 <label class="input-label">Ручной ввод</label>
-                <input type="text" id="dir-scanner-input" class="input-field" placeholder="Введите ID товара..." onkeypress="if(event.key==='Enter') addScanToRevision()">
+                <input type="text" id="dir-scanner-input" class="input-field" placeholder="Введите код..." onkeypress="if(event.key==='Enter') searchDirectorByCode()">
             </div>
-            <button class="btn-main" onclick="addScanToRevision()">Добавить в список</button>
+            <button class="btn-main" onclick="searchDirectorByCode()">Найти</button>
         </div>
-
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3 style="margin:0;">Текущая ревизия</h3>
-                <span id="dir-rev-count" class="badge" style="background:var(--primary);">0</span>
-            </div>
-            <div id="dir-revision-list" class="revision-list">
-                <div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">Список пуст</div>
-            </div>
-            <button class="btn-main" onclick="saveRevision(true)" style="background:var(--success); margin-top:15px;">Сохранить ревизию</button>
-        </div>
+        <div id="dir-scanner-result"></div>
     </div>
 </div>
 
@@ -389,10 +444,8 @@ let allCatalogItems = [];
 let selectedCatDept = '';
 let selectedCatSize = '';
 let currentCatalogTab = 'all';
-let currentCatalogFilter = 'all'; // all or mine
-let cart = []; // [{id, shop, category, size, year, photo, qty_to_order, max_qty}]
-
-let revisionList = JSON.parse(localStorage.getItem('current_revision') || '[]'); // Список для ревизии
+let currentCatalogFilter = 'all'; 
+let cart = []; 
 let cameraStream = null;
 
 // --- УТИЛИТЫ ---
@@ -420,15 +473,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
     document.getElementById('seller-name').value = seller;
     
-    // Генерация годов (текущий и 5 предыдущих)
     const currentYear = new Date().getFullYear();
     let yearOptions = '';
     for (let y = currentYear; y >= currentYear - 5; y--) {
         yearOptions += `<option value="${y}">${y}</option>`;
     }
     document.getElementById('cat-year').innerHTML = yearOptions;
-
-    renderRevisionList(); // Отрисовка сохраненного списка ревизии
 
     if (shop && seller && !directorMode) {
         document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
@@ -447,7 +497,6 @@ function showScreen(id) {
     if(id === 'screen-director') {
         loadDirectorOrders();
         loadCatalog(true);
-        renderRevisionList(true);
     }
 }
 
@@ -478,28 +527,36 @@ function logout() {
     cart = []; updateCartUI();
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     document.getElementById('seller-name').value = '';
-    stopCamera(); // Выключаем камеру, если была включена
+    stopCamera();
     showScreen('screen-auth');
 }
 
 // --- ПИН-ПАД ---
+function updatePinDisplay() {
+    const dashes = document.querySelectorAll('#pin-display .pin-dash');
+    dashes.forEach((dash, index) => {
+        if (index < currentPin.length) dash.classList.add('active');
+        else dash.classList.remove('active');
+    });
+}
+
 function pressPin(num) {
     if (num === 'C') currentPin = '';
     else if (currentPin.length < 4) currentPin += num;
-    const display = document.getElementById('pin-display');
-    if (display) display.innerText = currentPin;
+    updatePinDisplay();
 }
+
 function checkPin() {
     if (currentPin === '1988') {
         directorMode = true;
         currentPin = '';
-        document.getElementById('pin-display').innerText = '';
+        updatePinDisplay();
         showScreen('screen-director');
         showToast('Добро пожаловать, А.А.', 'success');
     } else {
         showToast('Неверный PIN', 'error');
         currentPin = '';
-        document.getElementById('pin-display').innerText = '';
+        updatePinDisplay();
     }
 }
 
@@ -697,7 +754,7 @@ function updateCartUI() {
     const list = document.getElementById('cart-items-list');
     const total = document.getElementById('cart-total');
     if (cart.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px;">Корзина пуста</div>';
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:14px; padding:20px 0; font-weight:600;">Корзина пуста</div>';
         total.innerText = '';
         document.getElementById('cart-panel').classList.remove('open');
         return;
@@ -705,14 +762,14 @@ function updateCartUI() {
     list.innerHTML = cart.map(c => `
         <div class="cart-item">
             <div style="flex:1;">
-                <div style="font-weight:bold;">${c.category} (${c.size})</div>
-                <div style="color:var(--text-muted); font-size:11px;">Магазин: ${c.shop}</div>
+                <div style="font-weight:800; font-size: 15px;">${c.category} (${c.size})</div>
+                <div style="color:var(--text-muted); font-size:12px; font-weight:600;">${c.shop}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:5px;">
-                <button onclick="updateCartQty('${c.id}', -1)" style="padding:2px 8px; border-radius:4px; border:1px solid #ccc; background:#fff;">-</button>
-                <span style="font-weight:bold; width:20px; text-align:center;">${c.qty_to_order}</span>
-                <button onclick="updateCartQty('${c.id}', 1)" style="padding:2px 8px; border-radius:4px; border:1px solid #ccc; background:#fff;">+</button>
-                <button onclick="removeFromCart('${c.id}')" style="background:none; border:none; color:var(--danger); font-size:18px; margin-left:5px;">&times;</button>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button onclick="updateCartQty('${c.id}', -1)" style="padding:10px 14px; border-radius:50%; border:none; background:var(--bg-app); font-weight:800; color:var(--text-main); font-size: 16px;">-</button>
+                <span style="font-weight:800; width:20px; text-align:center; font-size:16px;">${c.qty_to_order}</span>
+                <button onclick="updateCartQty('${c.id}', 1)" style="padding:10px 14px; border-radius:50%; border:none; background:var(--bg-app); font-weight:800; color:var(--text-main); font-size: 16px;">+</button>
+                <button onclick="removeFromCart('${c.id}')" style="background:none; border:none; color:var(--danger); font-size:24px; margin-left:5px; font-weight:bold;">&times;</button>
             </div>
         </div>
     `).join('');
@@ -810,18 +867,18 @@ async function createOrder() {
 }
 
 function renderOrderCard(o, isDirector = false) {
-    const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; color:#cbd5e1;">📦</div>`;
+    const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:24px;">📦</div>`;
     const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
     let actionsHtml = '';
     if (o.status === 'pending') {
         if (o.toShop === shop && !isDirector) actionsHtml = `<div class="order-actions"><button class="btn-accept" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button><button class="btn-reject" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button></div>`;
-        else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
-    } else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
-    let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteDocById('${o.id}', 'orders')">Удалить</button>` : '';
+        else actionsHtml = `<div style="font-size:12px; margin-top:8px; color:var(--text-main); font-weight:800; text-transform:uppercase;">⏳ Ожидает ответа</div>`;
+    } else actionsHtml = `<div style="font-size:12px; margin-top:8px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Статус: ${o.status === 'accepted' ? '<span style="color:var(--success);">✅ Принят</span>' : '<span style="color:var(--danger);">❌ Отклонен</span>'}</div>`;
+    let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteDocById('${o.id}', 'orders')" style="margin-top:10px;">Удалить</button>` : '';
     
-    const commentHtml = o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px; white-space:pre-wrap;">💬 ${o.comment}</div>` : '';
+    const commentHtml = o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:8px; white-space:pre-wrap; font-weight:500; background:var(--bg-app); padding: 10px; border-radius: 12px;">💬 ${o.comment}</div>` : '';
 
-    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} | Размер: ${o.size}</div><div class="order-details">Отдел: ${o.dept}</div>${commentHtml}${actionsHtml}<div style="text-align:right; margin-top:10px;">${deleteBtn}</div></div>`;
+    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} <span style="font-size:14px; color:var(--text-muted);">| ${o.size}</span></div><div class="order-details">Отдел: ${o.dept}</div>${commentHtml}${actionsHtml}${deleteBtn}</div>`;
 }
 
 let currentIncomingTab = 'all';
@@ -836,14 +893,14 @@ function renderIncomingOrders() {
     const listIn = document.getElementById('orders-incoming-list');
     let filtered = allIncomingOrders;
     if (currentIncomingTab !== 'all') filtered = allIncomingOrders.filter(o => o.dept === currentIncomingTab);
-    if (filtered.length === 0) listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет запросов</div>';
+    if (filtered.length === 0) listIn.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; font-weight:600;">Нет запросов</div>';
     else listIn.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
 }
 
 async function loadMyOrders() {
     if (!window.fbDB || !navigator.onLine) {
-        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети</div>';
-        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети</div>';
+        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; font-weight:600;">Нет сети</div>';
+        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; font-weight:600;">Нет сети</div>';
         return;
     }
     try {
@@ -862,7 +919,7 @@ async function loadMyOrders() {
         let ordersOut = [];
         snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
         ordersOut.sort((a,b) => new Date(b.date) - new Date(a.date));
-        if (ordersOut.length === 0) listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Вы еще не отправляли запросы</div>';
+        if (ordersOut.length === 0) listOut.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; font-weight:600;">Вы еще не отправляли</div>';
         else listOut.innerHTML = ordersOut.map(o => renderOrderCard(o)).join('');
     } catch(e) { console.error(e); }
 }
@@ -900,7 +957,6 @@ async function addToCatalog() {
     if (!category) return showToast('Выберите категорию!', 'error');
     if (!window.currentCatPhotoBase64) return showToast('Сделайте фото товара!', 'error');
 
-    // Проверка на дубли (ищем товар с такими же параметрами в витрине)
     const isDuplicate = allCatalogItems.some(item => 
         item.shop === shop && 
         item.dept === selectedCatDept && 
@@ -958,7 +1014,7 @@ function switchCatalogTab(dept, el) {
 
 async function loadCatalog(isDirector = false) {
     if (!window.fbDB || !navigator.onLine) {
-        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Нет сети</div>';
+        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Нет сети</div>';
         return;
     }
     try {
@@ -980,27 +1036,28 @@ function renderCatalog() {
     if (filterShop !== 'all') filtered = filtered.filter(o => o.shop === filterShop);
     if (currentCatalogFilter === 'mine') filtered = filtered.filter(o => o.shop === shop);
     
-    if (filtered.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Тут пока пусто</div>'; return; }
+    if (filtered.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; font-weight:600;">Тут пока пусто</div>'; return; }
     
     list.innerHTML = filtered.map(item => {
         const isMyItem = item.shop === shop;
         let actionHtml = '';
         
         if (isMyItem) {
-            actionHtml = `<div style="display:flex; gap:5px; margin-top:8px;">
-                <button class="btn-edit" style="flex:1; padding:10px;" onclick="editCatalogQty('${item.id}', ${item.qty})">✏️ Изменить кол-во</button>
-                <button class="btn-del" style="flex:1; padding:10px;" onclick="deleteCatalogItem('${item.id}')">🗑 Удалить</button>
+            actionHtml = `<div style="display:flex; gap:12px; margin-top:16px;">
+                <button class="btn-edit" style="flex:1; padding:14px;" onclick="editCatalogQty('${item.id}', ${item.qty})">✏️ Кол-во</button>
+                <button class="btn-del" style="flex:1; padding:14px;" onclick="deleteCatalogItem('${item.id}')">🗑 Удалить</button>
             </div>`;
         } else {
-            actionHtml = `<button class="btn-main" style="padding:10px; font-size:14px; margin-top:8px;" onclick="addToCart('${item.id}')">🛒 Добавить в заказ</button>`;
+            actionHtml = `<button class="btn-main" style="padding:16px; font-size:14px; margin-top:16px;" onclick="addToCart('${item.id}')">🛒 В корзину</button>`;
         }
 
-        return `<div class="order-card"><img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer;">
-            <div class="order-header"><span>Магазин: <b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div>
+        return `<div class="order-card" style="padding: 16px;">
+            <img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer; height: 220px;">
+            <div class="order-header" style="margin-top: 8px;"><span>${item.shop}</span><span>${new Date(item.date).toLocaleDateString()}</span></div>
             <div class="order-title">${item.category}</div>
             <div class="order-details" style="display:flex; justify-content:space-between;">
                 <span>Размер: <b>${item.size}</b> | Год: <b>${item.year}</b></span>
-                <span style="color:var(--success); font-weight:bold;">В наличии: ${item.qty} шт.</span>
+                <span style="color:var(--success); font-weight:800;">${item.qty} шт.</span>
             </div>
             ${actionHtml}</div>`;
     }).join('');
@@ -1008,8 +1065,8 @@ function renderCatalog() {
 
 function renderDirectorCatalog() {
     const list = document.getElementById('director-catalog-list');
-    if (allCatalogItems.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Товаров нет</div>'; return; }
-    list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span>Магазин: <b>${item.shop}</b> (${item.seller})</span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div><div class="order-details">В наличии: <b>${item.qty} шт.</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить</button></div></div>`).join('');
+    if (allCatalogItems.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; font-weight:600;">Товаров нет</div>'; return; }
+    list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span><b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | ${item.size} | ${item.year}</div><div class="order-details">В наличии: <b>${item.qty}</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить</button></div></div>`).join('');
 }
 
 async function editCatalogQty(id, currentQty) {
@@ -1052,9 +1109,9 @@ async function loadDirectorOrders() {
         let orders = [];
         snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
         orders.sort((a,b) => new Date(b.date) - new Date(a.date));
-        if (orders.length === 0) list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Заказов пока нет</div>';
+        if (orders.length === 0) list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Заказов пока нет</div>';
         else list.innerHTML = orders.map(o => renderOrderCard(o, true)).join('');
-    } catch(e) { list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px;">Ошибка загрузки</div>'; }
+    } catch(e) { list.innerHTML = '<div style="text-align: center; color: var(--danger); padding: 20px; font-weight:600;">Ошибка загрузки</div>'; }
 }
 
 async function deleteDocById(id, collName) {
@@ -1068,138 +1125,66 @@ async function deleteDocById(id, collName) {
     } catch(e) { showToast('Ошибка удаления', 'error'); }
 }
 
-// --- СКАНЕР И РЕВИЗИЯ ---
-function addScanToRevision() {
-    const inputId = directorMode ? 'dir-scanner-input' : 'scanner-input';
-    const code = document.getElementById(inputId).value.trim();
+// --- ИНВЕНТАРИЗАЦИЯ (ПРОДАВЕЦ) ---
+function searchByCode() {
+    const code = document.getElementById('scanner-input').value.trim();
     if (!code) return showToast('Введите код', 'error');
-    
-    // Ищем товар в базе витрины (по ID)
+    findItemByCode(code, 'scanner-result');
+}
+
+// --- ИНВЕНТАРИЗАЦИЯ (ДИРЕКТОР) ---
+function searchDirectorByCode() {
+    const code = document.getElementById('dir-scanner-input').value.trim();
+    if (!code) return showToast('Введите код', 'error');
+    findItemByCode(code, 'dir-scanner-result');
+}
+
+function findItemByCode(code, resultContainerId) {
     const item = allCatalogItems.find(i => i.id === code || i.id.includes(code));
-    if (!item) return showToast('Товар не найден в витрине', 'error');
-
-    // Проверяем, есть ли уже в списке
-    const existing = revisionList.find(r => r.id === item.id);
-    if (existing) {
-        existing.fact_qty++;
-    } else {
-        revisionList.push({
-            id: item.id,
-            shop: item.shop,
-            category: item.category,
-            size: item.size,
-            year: item.year,
-            photo: item.photo,
-            system_qty: item.qty, // Сколько было в системе
-            fact_qty: 1 // Сколько насчитали
-        });
-    }
+    const resContainer = document.getElementById(resultContainerId);
     
-    document.getElementById(inputId).value = '';
-    saveRevisionLocal();
-    renderRevisionList();
-    showToast('Добавлено в ревизию', 'success');
-}
-
-function updateRevQty(id, delta) {
-    const item = revisionList.find(r => r.id === id);
-    if (!item) return;
-    item.fact_qty += delta;
-    if (item.fact_qty < 0) item.fact_qty = 0;
-    saveRevisionLocal();
-    renderRevisionList();
-}
-
-function saveRevisionLocal() {
-    localStorage.setItem('current_revision', JSON.stringify(revisionList));
-}
-
-function renderRevisionList(isDir = false) {
-    const listId = isDir ? 'dir-revision-list' : 'revision-list';
-    const countId = isDir ? 'dir-rev-count' : 'rev-count';
-    const list = document.getElementById(listId);
-    const count = document.getElementById(countId);
-    
-    if (!list) return;
-    if (count) count.innerText = revisionList.length;
-
-    if (revisionList.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">Список пуст</div>';
+    if (!item) {
+        resContainer.innerHTML = `<div class="card" style="border-left: 6px solid var(--danger);">
+            <h3 style="color:var(--danger); margin-top:0; font-weight:800;">Товар не найден</h3>
+            <p style="font-weight:600;">Код: ${code}</p>
+        </div>`;
         return;
     }
-
-    list.innerHTML = revisionList.map(r => `
-        <div class="revision-item">
-            <div class="revision-item-info">
-                <b>${r.category} (${r.size})</b>
-                <span>${r.shop} | ${r.year}г. | В системе: ${r.system_qty}</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <button onclick="updateRevQty('${r.id}', -1)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#fff;">-</button>
-                <input type="number" class="rev-qty-input" value="${r.fact_qty}" onchange="setRevQty('${r.id}', this.value)">
-                <button onclick="updateRevQty('${r.id}', 1)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#fff;">+</button>
-            </div>
+    
+    resContainer.innerHTML = `<div class="card" style="border-left: 6px solid var(--success);">
+        <h3 style="color:var(--success); margin-top:0; font-weight:800;">Товар найден</h3>
+        <img src="${item.photo}" style="width:100%; max-height:200px; object-fit:contain; background:var(--bg-app); border-radius:var(--radius-input); padding: 10px;">
+        <div style="margin-top:16px; font-weight:600; line-height: 1.6;">
+            <div><b>Магазин:</b> ${item.shop}</div>
+            <div><b>Категория:</b> ${item.category}</div>
+            <div><b>Размер:</b> ${item.size}</div>
+            <div><b>Год:</b> ${item.year}</div>
+            <div><b>В наличии:</b> <span style="color:var(--success); font-weight:800;">${item.qty} шт.</span></div>
         </div>
-    `).join('');
-}
-
-function setRevQty(id, val) {
-    const num = parseInt(val);
-    if (isNaN(num) || num < 0) return;
-    const item = revisionList.find(r => r.id === id);
-    if (item) { item.fact_qty = num; saveRevisionLocal(); }
-}
-
-async function saveRevision() {
-    if (revisionList.length === 0) return showToast('Список пуст', 'error');
-    if (!navigator.onLine) return showToast('Нет сети для сохранения', 'error');
-
-    const revisionData = {
-        seller: directorMode ? 'А.А.' : seller,
-        shop: directorMode ? 'Все' : shop,
-        date: new Date().toISOString(),
-        items: revisionList
-    };
-
-    try {
-        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), revisionData);
-        
-        // Обновляем остатки в витрине
-        for (let item of revisionList) {
-            if (item.fact_qty !== item.system_qty) {
-                if (item.fact_qty === 0) {
-                    await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", item.id));
-                } else {
-                    await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "catalog", item.id), { qty: item.fact_qty });
-                }
-            }
-        }
-
-        showToast('✅ Ревизия сохранена, остатки обновлены!', 'success');
-        revisionList = [];
-        saveRevisionLocal();
-        renderRevisionList();
-        loadCatalog(); // Обновляем витрину
-        
-    } catch (e) {
-        console.error(e);
-        showToast('Ошибка сохранения ревизии', 'error');
-    }
+    </div>`;
 }
 
 // --- КАМЕРА ДЛЯ А.А. ---
-async function startCameraScan() {
+async function toggleCamera() {
     const video = document.getElementById('camera-preview');
-    if (cameraStream) { stopCamera(); return; }
+    const btn = document.getElementById('btn-camera');
+    
+    if (cameraStream) { 
+        stopCamera(); 
+        btn.innerText = '📷 Включить камеру';
+        btn.style.background = 'var(--primary)';
+        btn.style.color = 'var(--text-main)';
+        return; 
+    }
 
     try {
         cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         video.srcObject = cameraStream;
         video.style.display = 'block';
-        showToast('Камера включена. Наведите на QR-код (заглушка).', 'default');
-        
-        // Здесь должен быть код библиотеки сканирования (html5-qrcode)
-        // Пока просто заглушка
+        btn.innerText = 'Остановить камеру';
+        btn.style.background = 'var(--danger)';
+        btn.style.color = '#fff';
+        showToast('Камера включена', 'default');
     } catch (err) {
         showToast('Нет доступа к камере', 'error');
     }
@@ -1209,14 +1194,55 @@ function stopCamera() {
     if (cameraStream) {
         cameraStream.getTracks().forEach(t => t.stop());
         cameraStream = null;
-        document.getElementById('camera-preview').style.display = 'none';
+        const video = document.getElementById('camera-preview');
+        if (video) video.style.display = 'none';
+    }
+}
+
+// --- СКАЧИВАНИЕ РЕВИЗИЙ ---
+async function downloadRevisionsCSV() {
+    if (!navigator.onLine) return showToast('Нет сети для загрузки', 'error');
+    showToast('Формируем файл...', 'default');
+
+    try {
+        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
+        
+        if (snapshot.empty) {
+            return showToast('Сохраненных ревизий пока нет', 'error');
+        }
+
+        let csvContent = "\uFEFF"; 
+        csvContent += "Дата;Продавец;Магазин;Категория;Размер;Год;Системное кол-во;Фактическое кол-во\n";
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const date = new Date(data.date).toLocaleString('ru-RU');
+            const items = data.items || [];
+            
+            items.forEach(item => {
+                csvContent += `${date};${data.seller};${item.shop};${item.category};${item.size};${item.year};${item.system_qty};${item.fact_qty}\n`;
+            });
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `revisions_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+    } catch (e) {
+        console.error(e);
+        showToast('Ошибка при скачивании', 'error');
     }
 }
 
 function viewFullPhoto(src) {
     const overlay = document.createElement('div');
-    overlay.style = "position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px;";
-    overlay.innerHTML = `<img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+    overlay.style = "position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; backdrop-filter: blur(5px);";
+    overlay.innerHTML = `<img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:16px;">`;
     overlay.onclick = () => overlay.remove();
     document.body.appendChild(overlay);
 }
