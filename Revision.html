@@ -12,7 +12,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -27,24 +27,22 @@
   const db = getFirestore(app);
   
   window.fbDB = db;
-  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
+  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, setDoc };
 
-  // Регистрация Service Worker (для офлайн режима)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
   }
 </script>
 
 <style>
-/* Стили оставляем без изменений (они длинные, но они нужны) */
 :root { --bg: #f4f6f9; --text: #1e293b; --text-muted: #64748b; --primary: #2563eb; --success: #10b981; --danger: #ef4444; --white: #ffffff; --border: #e2e8f0; --radius: 16px; }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 80px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 100px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h1 { margin: 0; font-size: 20px; }
 .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 16px; }
-.main-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #e2e8f0; padding: 4px; border-radius: 12px; }
-.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
+.main-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #e2e8f0; padding: 4px; border-radius: 12px; overflow-x: auto; }
+.main-tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; white-space: nowrap; }
 .main-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; width: 90%; max-width: 400px;}
 .toast.show { opacity: 1; }
@@ -60,6 +58,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-add-cat { background: #e0e7ff; color: var(--primary); border: none; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
 .btn-del { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
+.btn-edit { background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;}
 .screen { display: none; }
 .screen.active { display: block; }
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
@@ -67,7 +66,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .pin-btn:active { background: #e2e8f0; }
 .pin-display { font-size: 32px; text-align: center; letter-spacing: 10px; margin-top: 10px; height: 40px; color: var(--primary); font-weight: bold;}
 .badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
-.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; flex-direction: column; gap:10px; }
+.order-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display:flex; flex-direction: column; gap:10px; position: relative;}
 .order-card.pending { border-left: 4px solid var(--primary); }
 .order-card.accepted { border-left: 4px solid var(--success); }
 .order-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
@@ -83,12 +82,41 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tab { padding: 8px 16px; background: #fff; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;}
 .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .offline-bar { display: none; background: #fef2f2; color: #991b1b; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; }
+
+/* Корзина (Снизу) */
+.cart-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); padding: 16px; border-radius: 20px 20px 0 0; z-index: 9998; transform: translateY(100%); transition: transform 0.3s ease; display: flex; flex-direction: column;}
+.cart-panel.open { transform: translateY(0); }
+.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
+.cart-items-list { max-height: 40vh; overflow-y: auto; margin-bottom: 10px; }
+.cart-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.cart-item input { width: 50px; padding: 5px; text-align: center; border: 1px solid var(--border); border-radius: 6px; }
+.cart-total { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; }
+
+/* Сканер и Ревизия */
+.scan-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #f1f5f9; border-radius: 12px; margin-bottom: 15px; text-align: center; color: var(--text-muted); border: 2px dashed #cbd5e1;}
+.revision-list { margin-top: 15px; }
+.revision-item { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); }
+.revision-item-info { flex: 1; }
+.revision-item-info b { display: block; font-size: 14px; }
+.revision-item-info span { font-size: 12px; color: var(--text-muted); }
+.rev-qty-input { width: 60px; padding: 8px; text-align: center; border: 1px solid var(--border); border-radius: 6px; font-weight: bold; }
 </style>
 </head>
 <body>
 
 <div id="toast" class="toast"></div>
 <div id="offline-bar" class="offline-bar">📶 Нет интернета. Данные сохраняются на телефоне.</div>
+
+<!-- ПАНЕЛЬ КОРЗИНЫ -->
+<div id="cart-panel" class="cart-panel">
+    <div class="cart-header">
+        <span>🛒 Корзина заказов</span>
+        <span onclick="toggleCart(false)" style="cursor:pointer; color:var(--danger); font-size: 20px;">&times;</span>
+    </div>
+    <div class="cart-items-list" id="cart-items-list"></div>
+    <div class="cart-total" id="cart-total"></div>
+    <button class="btn-main" onclick="checkoutCart()" style="background: var(--success);">Перейти к оформлению</button>
+</div>
 
 <!-- ЭКРАН АВТОРИЗАЦИИ -->
 <div id="screen-auth" class="screen active">
@@ -109,18 +137,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <h3 style="text-align: center; margin-top: 0;">Вход для А.А.</h3>
         <div class="pin-display" id="pin-display"></div>
         <div class="pin-pad">
-            <div class="pin-btn" onclick="pressPin('1')">1</div>
-            <div class="pin-btn" onclick="pressPin('2')">2</div>
-            <div class="pin-btn" onclick="pressPin('3')">3</div>
-            <div class="pin-btn" onclick="pressPin('4')">4</div>
-            <div class="pin-btn" onclick="pressPin('5')">5</div>
-            <div class="pin-btn" onclick="pressPin('6')">6</div>
-            <div class="pin-btn" onclick="pressPin('7')">7</div>
-            <div class="pin-btn" onclick="pressPin('8')">8</div>
-            <div class="pin-btn" onclick="pressPin('9')">9</div>
-            <div class="pin-btn" style="background:var(--danger); color:white;" onclick="pressPin('C')">C</div>
-            <div class="pin-btn" onclick="pressPin('0')">0</div>
-            <div class="pin-btn" style="background:var(--primary); color:white;" onclick="checkPin()">OK</div>
+            <div class="pin-btn" onclick="pressPin('1')">1</div><div class="pin-btn" onclick="pressPin('2')">2</div><div class="pin-btn" onclick="pressPin('3')">3</div>
+            <div class="pin-btn" onclick="pressPin('4')">4</div><div class="pin-btn" onclick="pressPin('5')">5</div><div class="pin-btn" onclick="pressPin('6')">6</div>
+            <div class="pin-btn" onclick="pressPin('7')">7</div><div class="pin-btn" onclick="pressPin('8')">8</div><div class="pin-btn" onclick="pressPin('9')">9</div>
+            <div class="pin-btn" style="background:var(--danger); color:white;" onclick="pressPin('C')">C</div><div class="pin-btn" onclick="pressPin('0')">0</div><div class="pin-btn" style="background:var(--primary); color:white;" onclick="checkPin()">OK</div>
         </div>
     </div>
 </div>
@@ -135,8 +155,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <div class="main-tabs">
         <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
+        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📷 Сканер</div>
     </div>
 
+    <!-- ВКЛАДКА ЗАКАЗЫ -->
     <div id="section-orders">
         <div class="card">
             <h3 style="margin-top:0;">Создать запрос в другой магазин</h3>
@@ -176,14 +198,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             </div>
             <div class="input-label">Размер (необязательно)</div>
             <div class="size-pills" id="size-pills">
-                <div class="size-pill" onclick="selectSize(this, 'order')">M</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">L</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">2XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">3XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">4XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">5XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'order')">6XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">M</div><div class="size-pill" onclick="selectSize(this, 'order')">L</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">XL</div><div class="size-pill" onclick="selectSize(this, 'order')">2XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">3XL</div><div class="size-pill" onclick="selectSize(this, 'order')">4XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'order')">5XL</div><div class="size-pill" onclick="selectSize(this, 'order')">6XL</div>
             </div>
             <div class="input-group"><input type="text" id="custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
             <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
@@ -207,6 +225,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
     </div>
 
+    <!-- ВКЛАДКА ВИТРИНА -->
     <div id="section-catalog" style="display: none;">
         <div class="card">
             <h3 style="margin-top:0;">Выставить товар на витрину</h3>
@@ -238,22 +257,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             </div>
             <div class="input-label">Размер (необязательно)</div>
             <div class="size-pills" id="cat-size-pills">
-                <div class="size-pill" onclick="selectSize(this, 'cat')">M</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">L</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">2XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">3XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">4XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">5XL</div>
-                <div class="size-pill" onclick="selectSize(this, 'cat')">6XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">M</div><div class="size-pill" onclick="selectSize(this, 'cat')">L</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">XL</div><div class="size-pill" onclick="selectSize(this, 'cat')">2XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">3XL</div><div class="size-pill" onclick="selectSize(this, 'cat')">4XL</div>
+                <div class="size-pill" onclick="selectSize(this, 'cat')">5XL</div><div class="size-pill" onclick="selectSize(this, 'cat')">6XL</div>
             </div>
             <div class="input-group"><input type="text" id="cat-custom-size" class="input-field" placeholder="Свой размер (если нет в списке)"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="input-group" style="flex: 1;">
-                    <label class="input-label">Год (необязательно)</label>
-                    <select id="cat-year" class="input-field">
-                        <option value="—">—</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option>
-                    </select>
+                    <label class="input-label">Год</label>
+                    <select id="cat-year" class="input-field"></select>
                 </div>
                 <div class="input-group" style="flex: 1;">
                     <label class="input-label">Количество</label>
@@ -264,7 +277,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0;">Витрина магазинов</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">Витрина</h3>
+                <!-- Плашка Все / Мои -->
+                <div class="size-pills" style="margin:0; background:#e2e8f0; padding:4px; border-radius:8px;">
+                    <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="border:none; padding:6px 12px;">Все</div>
+                    <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="border:none; padding:6px 12px;">Мои</div>
+                </div>
+            </div>
             <div class="input-group">
                 <select id="view-filter-shop" class="input-field" onchange="loadCatalog()">
                     <option value="all">Все магазины</option>
@@ -283,20 +303,72 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка витрины...</div></div>
         </div>
     </div>
+
+    <!-- ВКЛАДКА СКАНЕР (ПРОДАВЕЦ) -->
+    <div id="section-scanner" style="display: none;">
+        <div class="card">
+            <h3 style="margin-top:0;">Инвентаризация</h3>
+            <p style="font-size:13px; color:var(--text-muted);">Отсканируйте ТСД штрих-код товара или введите ID вручную. Товар добавится в список ревизии.</p>
+            <div class="input-group">
+                <input type="text" id="scanner-input" class="input-field" placeholder="Штрих-код / ID..." onkeypress="if(event.key==='Enter') addScanToRevision()">
+            </div>
+            <button class="btn-main" onclick="addScanToRevision()">Добавить в список</button>
+        </div>
+        
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="margin:0;">Текущая ревизия</h3>
+                <span id="rev-count" class="badge" style="background:var(--primary);">0</span>
+            </div>
+            <div id="revision-list" class="revision-list">
+                <div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">Список пуст</div>
+            </div>
+            <button class="btn-main" onclick="saveRevision()" style="background:var(--success); margin-top:15px;">Сохранить ревизию</button>
+        </div>
+    </div>
 </div>
 
 <!-- ЭКРАН ДИРЕКТОРА -->
 <div id="screen-director" class="screen">
     <div class="header">
-        <h1>А.А. · Все заказы</h1>
+        <h1>А.А. · Панель</h1>
         <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:16px;">Выйти</button>
     </div>
     <div class="main-tabs">
         <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
         <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">🏪 Витрина</div>
+        <div class="main-tab" id="dir-tab-btn-scanner" onclick="switchDirTab('scanner')">📷 Инвентаризация</div>
     </div>
+    
     <div class="card" id="dir-section-orders"><div id="director-orders-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
     <div class="card" id="dir-section-catalog" style="display:none;"><div id="director-catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px;">Загрузка...</div></div></div>
+    
+    <div id="dir-section-scanner" style="display:none;">
+        <div class="card">
+            <h3 style="margin-top:0;">Инвентаризация (А.А.)</h3>
+            <div class="scan-area">
+                <p style="margin-bottom:10px;">Сканируйте камерой или вводите вручную</p>
+                <button class="btn-main" onclick="startCameraScan()" style="background:var(--primary); margin-bottom:10px;">📷 Сканировать камерой</button>
+                <video id="camera-preview" style="width:100%; max-height:250px; border-radius:12px; display:none;" autoplay playsinline></video>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Ручной ввод</label>
+                <input type="text" id="dir-scanner-input" class="input-field" placeholder="Введите ID товара..." onkeypress="if(event.key==='Enter') addScanToRevision()">
+            </div>
+            <button class="btn-main" onclick="addScanToRevision()">Добавить в список</button>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="margin:0;">Текущая ревизия</h3>
+                <span id="dir-rev-count" class="badge" style="background:var(--primary);">0</span>
+            </div>
+            <div id="dir-revision-list" class="revision-list">
+                <div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">Список пуст</div>
+            </div>
+            <button class="btn-main" onclick="saveRevision(true)" style="background:var(--success); margin-top:15px;">Сохранить ревизию</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -317,6 +389,11 @@ let allCatalogItems = [];
 let selectedCatDept = '';
 let selectedCatSize = '';
 let currentCatalogTab = 'all';
+let currentCatalogFilter = 'all'; // all or mine
+let cart = []; // [{id, shop, category, size, year, photo, qty_to_order, max_qty}]
+
+let revisionList = JSON.parse(localStorage.getItem('current_revision') || '[]'); // Список для ревизии
+let cameraStream = null;
 
 // --- УТИЛИТЫ ---
 function showToast(msg, type = 'default') {
@@ -330,7 +407,7 @@ function updateOnlineStatus() {
     const bar = document.getElementById('offline-bar');
     if (navigator.onLine) {
         bar.style.display = 'none';
-        syncOfflineData(); // Если сеть появилась - отправляем то, что накопилось
+        syncOfflineData();
     } else {
         bar.style.display = 'block';
     }
@@ -342,6 +419,17 @@ window.addEventListener('offline', updateOnlineStatus);
 document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
     document.getElementById('seller-name').value = seller;
+    
+    // Генерация годов (текущий и 5 предыдущих)
+    const currentYear = new Date().getFullYear();
+    let yearOptions = '';
+    for (let y = currentYear; y >= currentYear - 5; y--) {
+        yearOptions += `<option value="${y}">${y}</option>`;
+    }
+    document.getElementById('cat-year').innerHTML = yearOptions;
+
+    renderRevisionList(); // Отрисовка сохраненного списка ревизии
+
     if (shop && seller && !directorMode) {
         document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
         showScreen('screen-seller');
@@ -359,6 +447,7 @@ function showScreen(id) {
     if(id === 'screen-director') {
         loadDirectorOrders();
         loadCatalog(true);
+        renderRevisionList(true);
     }
 }
 
@@ -386,8 +475,10 @@ function logout() {
     localStorage.removeItem('ord_shop');
     localStorage.removeItem('ord_seller');
     shop = ''; seller = ''; directorMode = false;
+    cart = []; updateCartUI();
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     document.getElementById('seller-name').value = '';
+    stopCamera(); // Выключаем камеру, если была включена
     showScreen('screen-auth');
 }
 
@@ -416,14 +507,19 @@ function checkPin() {
 function switchMainTab(tab) {
     document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('tab-btn-scanner').classList.toggle('active', tab === 'scanner');
     document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
     document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+    document.getElementById('section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
 }
 function switchDirTab(tab) {
     document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('dir-tab-btn-scanner').classList.toggle('active', tab === 'scanner');
     document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
     document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+    document.getElementById('dir-section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
+    if (tab !== 'scanner') stopCamera();
 }
 
 // --- ВЫБОР ПАРАМЕТРОВ ---
@@ -514,7 +610,7 @@ function handlePhoto(input, previewId, setter) {
     reader.readAsDataURL(file);
 }
 
-// --- СОХРАНЕНИЕ В ОФЛАЙН И СИНХРОНИЗАЦИЯ ---
+// --- ОФЛАЙН СИНХРОНИЗАЦИЯ ---
 function saveOfflineData(type, data) {
     let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
     queue.push({ type, data, id: Date.now() });
@@ -540,7 +636,7 @@ async function syncOfflineData() {
             successCount++;
         } catch (e) {
             console.error("Sync error", e);
-            break; // Если ошибка сети, останавливаемся
+            break;
         }
     }
 
@@ -549,10 +645,116 @@ async function syncOfflineData() {
         localStorage.setItem('offline_queue', JSON.stringify(queue));
         showToast(`✅ Синхронизировано: ${successCount} записей`, 'success');
         if (document.getElementById('screen-seller').classList.contains('active')) {
-            loadMyOrders();
-            loadCatalog();
+            loadMyOrders(); loadCatalog();
         }
     }
+}
+
+// --- КОРЗИНА ---
+function toggleCart(open) {
+    const panel = document.getElementById('cart-panel');
+    if (open) panel.classList.add('open');
+    else panel.classList.remove('open');
+}
+
+function addToCart(itemId) {
+    const item = allCatalogItems.find(i => i.id === itemId);
+    if (!item) return;
+    if (item.shop === shop) return showToast('Это ваш товар', 'error');
+    
+    const existing = cart.find(c => c.id === itemId);
+    if (existing) {
+        if (existing.qty_to_order < item.qty) existing.qty_to_order++;
+        else showToast('Больше нет в наличии', 'error');
+    } else {
+        cart.push({ 
+            id: item.id, shop: item.shop, category: item.category, 
+            size: item.size, year: item.year, photo: item.photo, 
+            dept: item.dept, qty_to_order: 1, max_qty: item.qty 
+        });
+        showToast('Добавлено в корзину', 'success');
+    }
+    updateCartUI();
+    toggleCart(true);
+}
+
+function updateCartQty(id, delta) {
+    const item = cart.find(c => c.id === id);
+    if (!item) return;
+    item.qty_to_order += delta;
+    if (item.qty_to_order < 1) item.qty_to_order = 1;
+    if (item.qty_to_order > item.max_qty) { item.qty_to_order = item.max_qty; showToast('Максимум в наличии', 'error'); }
+    updateCartUI();
+}
+
+function removeFromCart(id) {
+    cart = cart.filter(c => c.id !== id);
+    updateCartUI();
+    if (cart.length === 0) toggleCart(false);
+}
+
+function updateCartUI() {
+    const list = document.getElementById('cart-items-list');
+    const total = document.getElementById('cart-total');
+    if (cart.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px;">Корзина пуста</div>';
+        total.innerText = '';
+        document.getElementById('cart-panel').classList.remove('open');
+        return;
+    }
+    list.innerHTML = cart.map(c => `
+        <div class="cart-item">
+            <div style="flex:1;">
+                <div style="font-weight:bold;">${c.category} (${c.size})</div>
+                <div style="color:var(--text-muted); font-size:11px;">Магазин: ${c.shop}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+                <button onclick="updateCartQty('${c.id}', -1)" style="padding:2px 8px; border-radius:4px; border:1px solid #ccc; background:#fff;">-</button>
+                <span style="font-weight:bold; width:20px; text-align:center;">${c.qty_to_order}</span>
+                <button onclick="updateCartQty('${c.id}', 1)" style="padding:2px 8px; border-radius:4px; border:1px solid #ccc; background:#fff;">+</button>
+                <button onclick="removeFromCart('${c.id}')" style="background:none; border:none; color:var(--danger); font-size:18px; margin-left:5px;">&times;</button>
+            </div>
+        </div>
+    `).join('');
+    total.innerText = `Всего позиций: ${cart.reduce((a,b) => a + b.qty_to_order, 0)}`;
+}
+
+function checkoutCart() {
+    if (cart.length === 0) return;
+    toggleCart(false);
+    switchMainTab('orders');
+    
+    const first = cart[0];
+    document.getElementById('order-to-shop').value = first.shop;
+    
+    document.querySelectorAll('#dept-pills .size-pill').forEach(p => {
+        if (p.innerText === first.dept) { p.classList.add('active'); selectedOrderDept = first.dept; } else p.classList.remove('active');
+    });
+    
+    const catSelect = document.getElementById('order-category');
+    let found = false;
+    for (let opt of catSelect.options) { if (opt.value === first.category) { found = true; break; } }
+    if (!found) catSelect.innerHTML += `<option value="${first.category}">${first.category}</option>`;
+    catSelect.value = first.category;
+    
+    document.querySelectorAll('#size-pills .size-pill').forEach(p => {
+        if (p.innerText === first.size) { p.classList.add('active'); selectedOrderSize = first.size; } else p.classList.remove('active');
+    });
+    document.getElementById('custom-size').value = '';
+    
+    window.currentOrderPhotoBase64 = first.photo;
+    const preview = document.getElementById('order-photo-preview');
+    preview.src = first.photo;
+    preview.style.display = 'block';
+    
+    let commentText = "Заказ из корзины:\n";
+    cart.forEach(c => {
+        commentText += `- ${c.category} (${c.size}), ${c.year}г. - ${c.qty_to_order} шт.\n`;
+    });
+    document.getElementById('order-comment').value = commentText;
+    
+    showToast('Форма заполнена. Проверьте и отправьте.', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // --- ЗАКАЗЫ ---
@@ -579,13 +781,21 @@ async function createOrder() {
         try {
             await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
             showToast('✅ Запрос отправлен!', 'success');
+            
+            cart = cart.filter(c => c.shop !== toShop);
+            updateCartUI();
+            if (cart.length > 0) {
+                showToast('Остались товары из другого магазина', 'default');
+                setTimeout(() => checkoutCart(), 1000);
+            }
+            
         } catch (e) {
             saveOfflineData('order', orderData);
             showToast('⚠️ Ошибка сети. Сохранено в офлайн.', 'error');
         }
     } else {
         saveOfflineData('order', orderData);
-        showToast('📶 Нет сети. Заказ сохранен на телефоне.', 'success');
+        showToast('📶 Нет сети. Заказ сохранен.', 'success');
     }
     
     document.getElementById('order-photo-file').value = '';
@@ -599,7 +809,6 @@ async function createOrder() {
     if(navigator.onLine) loadMyOrders();
 }
 
-// ... (Функции отрисовки карточек остаются без изменений, чтобы не раздувать код, они те же, что были) ...
 function renderOrderCard(o, isDirector = false) {
     const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : `<div class="order-photo" style="display:flex; align-items:center; justify-content:center; color:#cbd5e1;">📦</div>`;
     const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
@@ -609,7 +818,10 @@ function renderOrderCard(o, isDirector = false) {
         else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--primary); font-weight:bold;">⏳ Ожидает ответа</div>`;
     } else actionsHtml = `<div style="font-size:12px; margin-top:6px; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
     let deleteBtn = isDirector ? `<button class="btn-del" onclick="deleteDocById('${o.id}', 'orders')">Удалить</button>` : '';
-    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} | Размер: ${o.size}</div><div class="order-details">Отдел: ${o.dept}</div>${o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">💬 ${o.comment}</div>` : ''}${actionsHtml}<div style="text-align:right; margin-top:10px;">${deleteBtn}</div></div>`;
+    
+    const commentHtml = o.comment ? `<div style="font-size:13px; color:var(--text-muted); margin-top:4px; white-space:pre-wrap;">💬 ${o.comment}</div>` : '';
+
+    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}<span>${new Date(o.date).toLocaleDateString()}</span></div><div class="order-title">${o.category || 'Без категории'} | Размер: ${o.size}</div><div class="order-details">Отдел: ${o.dept}</div>${commentHtml}${actionsHtml}<div style="text-align:right; margin-top:10px;">${deleteBtn}</div></div>`;
 }
 
 let currentIncomingTab = 'all';
@@ -630,8 +842,8 @@ function renderIncomingOrders() {
 
 async function loadMyOrders() {
     if (!window.fbDB || !navigator.onLine) {
-        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
-        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети для загрузки</div>';
+        document.getElementById('orders-incoming-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети</div>';
+        document.getElementById('orders-outgoing-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Нет сети</div>';
         return;
     }
     try {
@@ -681,12 +893,25 @@ async function addToCatalog() {
     const category = document.getElementById('cat-category').value;
     const customSize = document.getElementById('cat-custom-size').value.trim();
     const finalSize = customSize || selectedCatSize || 'Без размера';
-    const year = document.getElementById('cat-year').value || '—';
+    const year = document.getElementById('cat-year').value;
     const qty = parseInt(document.getElementById('cat-qty').value) || 1;
 
     if (!selectedCatDept) return showToast('Выберите отдел!', 'error');
     if (!category) return showToast('Выберите категорию!', 'error');
     if (!window.currentCatPhotoBase64) return showToast('Сделайте фото товара!', 'error');
+
+    // Проверка на дубли (ищем товар с такими же параметрами в витрине)
+    const isDuplicate = allCatalogItems.some(item => 
+        item.shop === shop && 
+        item.dept === selectedCatDept && 
+        item.category === category && 
+        item.size === finalSize && 
+        item.year === year
+    );
+
+    if (isDuplicate) {
+        return showToast('⚠️ Такой товар уже есть на витрине!', 'error');
+    }
 
     const itemData = {
         shop: shop, seller: seller, dept: selectedCatDept, category: category,
@@ -697,14 +922,14 @@ async function addToCatalog() {
     if (navigator.onLine) {
         try {
             await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
-            showToast('✅ Товар выставлен на витрину!', 'success');
+            showToast('✅ Товар выставлен!', 'success');
         } catch (e) {
             saveOfflineData('catalog', itemData);
             showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
         }
     } else {
         saveOfflineData('catalog', itemData);
-        showToast('📶 Нет сети. Товар сохранен на телефоне.', 'success');
+        showToast('📶 Нет сети. Товар сохранен.', 'success');
     }
     
     document.getElementById('cat-photo-file').value = '';
@@ -712,11 +937,16 @@ async function addToCatalog() {
     window.currentCatPhotoBase64 = '';
     document.getElementById('cat-custom-size').value = '';
     document.getElementById('cat-qty').value = '1';
-    document.getElementById('cat-year').value = '—';
-    document.getElementById('cat-category').value = '';
-    document.querySelectorAll('#cat-size-pills .size-pill, #cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
-    selectedCatSize = ''; selectedCatDept = '';
+    document.getElementById('cat-year').value = new Date().getFullYear();
+    
     if(navigator.onLine) loadCatalog();
+}
+
+function toggleCatalogFilter(type) {
+    currentCatalogFilter = type;
+    document.getElementById('btn-filter-all').classList.toggle('active', type === 'all');
+    document.getElementById('btn-filter-mine').classList.toggle('active', type === 'mine');
+    renderCatalog();
 }
 
 function switchCatalogTab(dept, el) {
@@ -728,7 +958,7 @@ function switchCatalogTab(dept, el) {
 
 async function loadCatalog(isDirector = false) {
     if (!window.fbDB || !navigator.onLine) {
-        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Нет сети для загрузки витрины</div>';
+        if(!isDirector) document.getElementById('catalog-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Нет сети</div>';
         return;
     }
     try {
@@ -738,55 +968,79 @@ async function loadCatalog(isDirector = false) {
         allCatalogItems.sort((a,b) => new Date(b.date) - new Date(a.date));
         if (isDirector) renderDirectorCatalog();
         else renderCatalog();
-    } catch(e) {
-        console.error(e);
-    }
+    } catch(e) { console.error(e); }
 }
 
 function renderCatalog() {
     const list = document.getElementById('catalog-list');
     const filterShop = document.getElementById('view-filter-shop').value;
     let filtered = allCatalogItems;
+    
     if (currentCatalogTab !== 'all') filtered = filtered.filter(o => o.dept === currentCatalogTab);
     if (filterShop !== 'all') filtered = filtered.filter(o => o.shop === filterShop);
+    if (currentCatalogFilter === 'mine') filtered = filtered.filter(o => o.shop === shop);
+    
     if (filtered.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Тут пока пусто</div>'; return; }
+    
     list.innerHTML = filtered.map(item => {
         const isMyItem = item.shop === shop;
-        const orderBtn = isMyItem ? `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px; background:#f1f5f9; border-radius:8px;">Это ваш товар</div>` : `<button class="btn-main" style="padding:10px; font-size:14px; margin-top:8px;" onclick="orderFromCatalog('${item.id}')">🛒 Заказать у ${item.shop}</button>`;
-        return `<div class="order-card"><img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer;"><div class="order-header"><span>Магазин: <b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category}</div><div class="order-details" style="display:flex; justify-content:space-between;"><span>Размер: <b>${item.size}</b> | Год: <b>${item.year}</b></span><span style="color:var(--success); font-weight:bold;">В наличии: ${item.qty} шт.</span></div>${orderBtn}</div>`;
+        let actionHtml = '';
+        
+        if (isMyItem) {
+            actionHtml = `<div style="display:flex; gap:5px; margin-top:8px;">
+                <button class="btn-edit" style="flex:1; padding:10px;" onclick="editCatalogQty('${item.id}', ${item.qty})">✏️ Изменить кол-во</button>
+                <button class="btn-del" style="flex:1; padding:10px;" onclick="deleteCatalogItem('${item.id}')">🗑 Удалить</button>
+            </div>`;
+        } else {
+            actionHtml = `<button class="btn-main" style="padding:10px; font-size:14px; margin-top:8px;" onclick="addToCart('${item.id}')">🛒 Добавить в заказ</button>`;
+        }
+
+        return `<div class="order-card"><img src="${item.photo}" class="order-photo" onclick="viewFullPhoto('${item.photo}')" style="cursor:pointer;">
+            <div class="order-header"><span>Магазин: <b>${item.shop}</b></span><span>${new Date(item.date).toLocaleDateString()}</span></div>
+            <div class="order-title">${item.category}</div>
+            <div class="order-details" style="display:flex; justify-content:space-between;">
+                <span>Размер: <b>${item.size}</b> | Год: <b>${item.year}</b></span>
+                <span style="color:var(--success); font-weight:bold;">В наличии: ${item.qty} шт.</span>
+            </div>
+            ${actionHtml}</div>`;
     }).join('');
 }
 
 function renderDirectorCatalog() {
     const list = document.getElementById('director-catalog-list');
     if (allCatalogItems.length === 0) { list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">Товаров нет</div>'; return; }
-    list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span>Магазин: <b>${item.shop}</b> (${item.seller})</span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div><div class="order-details">В наличии: <b>${item.qty} шт.</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить с витрины</button></div></div>`).join('');
+    list.innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-header"><span>Магазин: <b>${item.shop}</b> (${item.seller})</span><span>${new Date(item.date).toLocaleDateString()}</span></div><div class="order-title">${item.category} | Размер: ${item.size} | Год: ${item.year}</div><div class="order-details">В наличии: <b>${item.qty} шт.</b></div><div style="text-align:right; margin-top:10px;"><button class="btn-del" onclick="deleteDocById('${item.id}', 'catalog')">Удалить</button></div></div>`).join('');
 }
 
-function orderFromCatalog(itemId) {
-    const item = allCatalogItems.find(i => i.id === itemId);
-    if (!item) return;
-    switchMainTab('orders');
-    document.getElementById('order-to-shop').value = item.shop;
-    document.querySelectorAll('#dept-pills .size-pill').forEach(p => {
-        if (p.innerText === item.dept) { p.classList.add('active'); selectedOrderDept = item.dept; } else p.classList.remove('active');
-    });
-    const catSelect = document.getElementById('order-category');
-    let found = false;
-    for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
-    if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
-    catSelect.value = item.category;
-    document.querySelectorAll('#size-pills .size-pill').forEach(p => {
-        if (p.innerText === item.size) { p.classList.add('active'); selectedOrderSize = item.size; } else p.classList.remove('active');
-    });
-    document.getElementById('custom-size').value = '';
-    window.currentOrderPhotoBase64 = item.photo;
-    const preview = document.getElementById('order-photo-preview');
-    preview.src = item.photo;
-    preview.style.display = 'block';
-    document.getElementById('order-comment').value = `Заказ с витрины (Год: ${item.year})`;
-    showToast('Товар добавлен в форму. Нажмите "Отправить запрос".', 'success');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+async function editCatalogQty(id, currentQty) {
+    const newQty = prompt('Введите новое количество (если 0, товар будет удален):', currentQty);
+    if (newQty === null) return;
+    const qtyNum = parseInt(newQty);
+    if (isNaN(qtyNum) || qtyNum < 0) return showToast('Некорректное число', 'error');
+    
+    if (qtyNum === 0) {
+        if (confirm('Товар закончился? Удалить его с витрины?')) {
+            deleteCatalogItem(id);
+        }
+        return;
+    }
+
+    if (!navigator.onLine) return showToast('Нет сети', 'error');
+    try {
+        await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "catalog", id), { qty: qtyNum });
+        showToast('Количество обновлено', 'success');
+        loadCatalog();
+    } catch(e) { showToast('Ошибка обновления', 'error'); }
+}
+
+async function deleteCatalogItem(id) {
+    if (!confirm('Удалить этот товар с витрины?')) return;
+    if (!navigator.onLine) return showToast('Нет сети', 'error');
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", id));
+        showToast('Товар удален', 'success');
+        loadCatalog();
+    } catch(e) { showToast('Ошибка удаления', 'error'); }
 }
 
 // --- ДИРЕКТОР ---
@@ -805,12 +1059,158 @@ async function loadDirectorOrders() {
 
 async function deleteDocById(id, collName) {
     if (!confirm('Удалить безвозвратно?')) return;
+    if (!navigator.onLine) return showToast('Нет сети', 'error');
     try {
         await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, collName, id));
         showToast('Удалено', 'success');
         if (collName === 'catalog') loadCatalog(directorMode);
         else loadDirectorOrders();
     } catch(e) { showToast('Ошибка удаления', 'error'); }
+}
+
+// --- СКАНЕР И РЕВИЗИЯ ---
+function addScanToRevision() {
+    const inputId = directorMode ? 'dir-scanner-input' : 'scanner-input';
+    const code = document.getElementById(inputId).value.trim();
+    if (!code) return showToast('Введите код', 'error');
+    
+    // Ищем товар в базе витрины (по ID)
+    const item = allCatalogItems.find(i => i.id === code || i.id.includes(code));
+    if (!item) return showToast('Товар не найден в витрине', 'error');
+
+    // Проверяем, есть ли уже в списке
+    const existing = revisionList.find(r => r.id === item.id);
+    if (existing) {
+        existing.fact_qty++;
+    } else {
+        revisionList.push({
+            id: item.id,
+            shop: item.shop,
+            category: item.category,
+            size: item.size,
+            year: item.year,
+            photo: item.photo,
+            system_qty: item.qty, // Сколько было в системе
+            fact_qty: 1 // Сколько насчитали
+        });
+    }
+    
+    document.getElementById(inputId).value = '';
+    saveRevisionLocal();
+    renderRevisionList();
+    showToast('Добавлено в ревизию', 'success');
+}
+
+function updateRevQty(id, delta) {
+    const item = revisionList.find(r => r.id === id);
+    if (!item) return;
+    item.fact_qty += delta;
+    if (item.fact_qty < 0) item.fact_qty = 0;
+    saveRevisionLocal();
+    renderRevisionList();
+}
+
+function saveRevisionLocal() {
+    localStorage.setItem('current_revision', JSON.stringify(revisionList));
+}
+
+function renderRevisionList(isDir = false) {
+    const listId = isDir ? 'dir-revision-list' : 'revision-list';
+    const countId = isDir ? 'dir-rev-count' : 'rev-count';
+    const list = document.getElementById(listId);
+    const count = document.getElementById(countId);
+    
+    if (!list) return;
+    if (count) count.innerText = revisionList.length;
+
+    if (revisionList.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">Список пуст</div>';
+        return;
+    }
+
+    list.innerHTML = revisionList.map(r => `
+        <div class="revision-item">
+            <div class="revision-item-info">
+                <b>${r.category} (${r.size})</b>
+                <span>${r.shop} | ${r.year}г. | В системе: ${r.system_qty}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button onclick="updateRevQty('${r.id}', -1)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#fff;">-</button>
+                <input type="number" class="rev-qty-input" value="${r.fact_qty}" onchange="setRevQty('${r.id}', this.value)">
+                <button onclick="updateRevQty('${r.id}', 1)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#fff;">+</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function setRevQty(id, val) {
+    const num = parseInt(val);
+    if (isNaN(num) || num < 0) return;
+    const item = revisionList.find(r => r.id === id);
+    if (item) { item.fact_qty = num; saveRevisionLocal(); }
+}
+
+async function saveRevision() {
+    if (revisionList.length === 0) return showToast('Список пуст', 'error');
+    if (!navigator.onLine) return showToast('Нет сети для сохранения', 'error');
+
+    const revisionData = {
+        seller: directorMode ? 'А.А.' : seller,
+        shop: directorMode ? 'Все' : shop,
+        date: new Date().toISOString(),
+        items: revisionList
+    };
+
+    try {
+        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), revisionData);
+        
+        // Обновляем остатки в витрине
+        for (let item of revisionList) {
+            if (item.fact_qty !== item.system_qty) {
+                if (item.fact_qty === 0) {
+                    await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", item.id));
+                } else {
+                    await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "catalog", item.id), { qty: item.fact_qty });
+                }
+            }
+        }
+
+        showToast('✅ Ревизия сохранена, остатки обновлены!', 'success');
+        revisionList = [];
+        saveRevisionLocal();
+        renderRevisionList();
+        loadCatalog(); // Обновляем витрину
+        
+    } catch (e) {
+        console.error(e);
+        showToast('Ошибка сохранения ревизии', 'error');
+    }
+}
+
+// --- КАМЕРА ДЛЯ А.А. ---
+async function startCameraScan() {
+    const video = document.getElementById('camera-preview');
+    if (cameraStream) { stopCamera(); return; }
+
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = cameraStream;
+        video.style.display = 'block';
+        showToast('Камера включена. Наведите на QR-код (заглушка).', 'default');
+        
+        // Здесь должен быть код библиотеки сканирования (html5-qrcode)
+        // Пока просто заглушка
+    } catch (err) {
+        showToast('Нет доступа к камере', 'error');
+    }
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+        document.getElementById('camera-preview').style.display = 'none';
+    }
 }
 
 function viewFullPhoto(src) {
