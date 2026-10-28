@@ -10,12 +10,11 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Оставил только нужные веса шрифтов для ускорения загрузки -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, enableIndexedDbPersistence, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -29,8 +28,17 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   
+  // Внедрение оффлайн-режима (Пункт 7)
+  enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code == 'failed-precondition') {
+          console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
+      } else if (err.code == 'unimplemented') {
+          console.warn("The current browser does not support all of the features required to enable persistence");
+      }
+  });
+  
   window.fbDB = db;
-  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc };
+  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
@@ -93,6 +101,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 
 .btn-main { background: var(--primary); color: var(--text-main); border: none; padding: 18px; border-radius: var(--radius-pill); font-size: 15px; font-weight: 900; width: 100%; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-primary); text-transform: uppercase; letter-spacing: 0.5px;}
 .btn-main:active { transform: scale(0.97); box-shadow: none; }
+.btn-main:disabled { background: #E5E5EA; color: #8A8A8E; box-shadow: none; cursor: not-allowed; transform: none; }
 .btn-del { background: rgba(255, 69, 58, 0.1); color: var(--danger); border: none; padding: 12px 16px; border-radius: var(--radius-pill); font-size: 14px; cursor: pointer; font-weight: 800; }
 .btn-edit { background: var(--bg-app); color: var(--text-main); border: none; padding: 12px 16px; border-radius: var(--radius-pill); font-size: 14px; cursor: pointer; font-weight: 800; }
 
@@ -141,6 +150,12 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 
 /* Скрытое поле для сканера */
 #hidden-scanner { position: absolute; opacity: 0; pointer-events: none; height: 0; width: 0; }
+
+/* Скелетоны (Пункт 5) */
+.skeleton-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; height: 150px; animation: pulse 1.5s infinite ease-in-out; }
+.skeleton-line { background: #E5E5EA; height: 16px; border-radius: 8px; margin-bottom: 8px; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
 </style>
 </head>
 <body>
@@ -203,7 +218,11 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     <!-- ВКЛАДКА ЗАКАЗЫ -->
     <div id="section-orders">
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">Создать запрос</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+                <h3 style="margin:0; font-weight:900; font-size: 18px;">Создать запрос</h3>
+                <button class="btn-edit" style="padding:8px 12px; font-size:12px;" onclick="resetOrderForm()">Очистить</button>
+            </div>
+            
             <div class="input-group">
                 <label class="input-label">Кому (Магазин)</label>
                 <select id="order-to-shop" class="input-field">
@@ -214,7 +233,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             </div>
             
             <div class="input-label">Отдел</div>
-            <div class="size-pills" style="margin-bottom:12px;">
+            <div class="size-pills" style="margin-bottom:12px;" id="order-dept-pills">
                 <div class="size-pill" onclick="selectDept(this, 'Муж')">Муж</div>
                 <div class="size-pill" onclick="selectDept(this, 'Жен')">Жен</div>
                 <div class="size-pill" onclick="selectDept(this, 'Дет')">Дет</div>
@@ -258,16 +277,16 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             </div>
 
             <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
-            <button class="btn-main" onclick="createOrder()">Отправить запрос</button>
+            <button class="btn-main" id="btn-submit-order" onclick="createOrder()">Отправить запрос</button>
         </div>
 
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Входящие</h3>
-            <div id="orders-incoming-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div>
+            <div id="orders-incoming-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 80%;"></div><div class="skeleton-line" style="width: 60%;"></div></div></div>
         </div>
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Исходящие</h3>
-            <div id="orders-outgoing-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div>
+            <div id="orders-outgoing-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 80%;"></div><div class="skeleton-line" style="width: 60%;"></div></div></div>
         </div>
     </div>
 
@@ -277,7 +296,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">Подбор товара</h3>
             
             <div class="input-label">Отдел</div>
-            <div class="size-pills" style="margin-bottom:12px;">
+            <div class="size-pills" style="margin-bottom:12px;" id="cat-dept-pills">
                 <div class="size-pill" onclick="selectCatDept(this, 'Муж')">Муж</div>
                 <div class="size-pill" onclick="selectCatDept(this, 'Жен')">Жен</div>
                 <div class="size-pill" onclick="selectCatDept(this, 'Дет')">Дет</div>
@@ -336,7 +355,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
                     </div>
                 </div>
             </div>
-            <button class="btn-main" onclick="addToCatalog()">Опубликовать</button>
+            <button class="btn-main" id="btn-submit-catalog" onclick="addToCatalog()">Опубликовать</button>
         </div>
 
         <div class="card" style="background: transparent; box-shadow: none; padding: 0; border: none;">
@@ -347,7 +366,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
                     <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">Мои</div>
                 </div>
             </div>
-            <div id="catalog-list"><div style="text-align: center; color: var(--text-muted); padding: 20px; font-weight:600;">Загрузка...</div></div>
+            <div id="catalog-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 100%; height: 100px;"></div></div></div>
         </div>
     </div>
 
@@ -422,6 +441,34 @@ function showToast(msg, type = 'default') {
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
+// Функция для проверки валидности формы заказа (Пункт 5)
+function validateOrderForm() {
+    const btn = document.getElementById('btn-submit-order');
+    const toShop = document.getElementById('order-to-shop').value;
+    
+    let category = document.getElementById('order-category').value;
+    if (category === 'custom_add') category = document.getElementById('new-category-input').value.trim();
+
+    // Проверка: выбран другой магазин, отдел, категория и есть фото
+    if (toShop && toShop !== shop && selectedOrderDept && category && window.currentOrderPhotoBase64) {
+        btn.disabled = false;
+    } else {
+        btn.disabled = true;
+    }
+}
+
+function validateCatalogForm() {
+    const btn = document.getElementById('btn-submit-catalog');
+    let category = document.getElementById('cat-category').value;
+    if (category === 'custom_add') category = document.getElementById('new-cat-category-input').value.trim();
+
+    if (selectedCatDept && category && window.currentCatPhotoBase64) {
+        btn.disabled = false;
+    } else {
+        btn.disabled = true;
+    }
+}
+
 // --- ИНИЦИАЛИЗАЦИЯ ---
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('seller-name').value = seller;
@@ -443,19 +490,56 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('screen-auth');
     }
 
-    // Слушатели для выпадающих списков "Своя"
+    // Слушатели для выпадающих списков (с очисткой кастомных полей)
     document.getElementById('order-category').addEventListener('change', function() {
-        document.getElementById('new-category-input').style.display = this.value === 'custom_add' ? 'block' : 'none';
+        const customInp = document.getElementById('new-category-input');
+        if (this.value === 'custom_add') {
+            customInp.style.display = 'block';
+        } else {
+            customInp.style.display = 'none';
+            customInp.value = ''; // Очищаем
+        }
+        validateOrderForm();
     });
+    
+    document.getElementById('new-category-input').addEventListener('input', validateOrderForm);
+
     document.getElementById('cat-category').addEventListener('change', function() {
-        document.getElementById('new-cat-category-input').style.display = this.value === 'custom_add' ? 'block' : 'none';
+        const customInp = document.getElementById('new-cat-category-input');
+        if (this.value === 'custom_add') {
+            customInp.style.display = 'block';
+        } else {
+            customInp.style.display = 'none';
+            customInp.value = '';
+        }
+        validateCatalogForm();
     });
+    
+    document.getElementById('new-cat-category-input').addEventListener('input', validateCatalogForm);
+
     document.getElementById('order-size').addEventListener('change', function() {
-        document.getElementById('custom-size-input').style.display = this.value === 'custom_add' ? 'block' : 'none';
+        const customInp = document.getElementById('custom-size-input');
+        if (this.value === 'custom_add') {
+            customInp.style.display = 'block';
+        } else {
+            customInp.style.display = 'none';
+            customInp.value = '';
+        }
     });
+
     document.getElementById('cat-size').addEventListener('change', function() {
-        document.getElementById('custom-cat-size-input').style.display = this.value === 'custom_add' ? 'block' : 'none';
+        const customInp = document.getElementById('custom-cat-size-input');
+        if (this.value === 'custom_add') {
+            customInp.style.display = 'block';
+        } else {
+            customInp.style.display = 'none';
+            customInp.value = '';
+        }
     });
+    
+    // Инициальная проверка кнопок
+    validateOrderForm();
+    validateCatalogForm();
 });
 
 function showScreen(id) {
@@ -542,28 +626,31 @@ function switchDirTab(tab) {
     document.getElementById('dir-section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
 }
 
-// --- ВЫБОР ОТДЕЛОВ ---
+// --- ВЫБОР ОТДЕЛОВ (с синхронизацией) ---
 function selectDept(el, dept) {
     const parent = el.parentElement;
     if (el.classList.contains('active')) {
         el.classList.remove('active');
         selectedOrderDept = '';
-        return;
+    } else {
+        parent.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        selectedOrderDept = dept;
     }
-    parent.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    selectedOrderDept = dept;
+    validateOrderForm();
 }
+
 function selectCatDept(el, dept) {
     const parent = el.parentElement;
     if (el.classList.contains('active')) {
         el.classList.remove('active');
         selectedCatDept = '';
-        return;
+    } else {
+        parent.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        selectedCatDept = dept;
     }
-    parent.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    selectedCatDept = dept;
+    validateCatalogForm();
 }
 
 function changeCatQty(delta) {
@@ -592,10 +679,31 @@ function handlePhoto(input, previewId, setter) {
             const preview = document.getElementById(previewId);
             preview.src = base64;
             preview.style.display = 'block';
+            
+            // Обновляем состояние кнопки
+            if (previewId === 'order-photo-preview') validateOrderForm();
+            if (previewId === 'cat-photo-preview') validateCatalogForm();
         }
         img.src = e.target.result;
     }
     reader.readAsDataURL(file);
+}
+
+// --- ОЧИСТКА ФОРМЫ ---
+function resetOrderForm() {
+    document.getElementById('order-photo-file').value = '';
+    document.getElementById('order-photo-preview').style.display = 'none';
+    window.currentOrderPhotoBase64 = '';
+    document.getElementById('order-comment').value = '';
+    document.getElementById('order-category').value = '';
+    document.getElementById('order-size').value = '';
+    document.getElementById('new-category-input').style.display = 'none';
+    document.getElementById('new-category-input').value = '';
+    document.getElementById('custom-size-input').style.display = 'none';
+    document.getElementById('custom-size-input').value = '';
+    document.querySelectorAll('#order-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+    selectedOrderDept = '';
+    validateOrderForm();
 }
 
 // --- ЗАКАЗЫ ---
@@ -619,37 +727,36 @@ async function createOrder() {
         fromShop: shop, toShop: toShop, seller: seller,
         dept: selectedOrderDept, category: category,
         photo: window.currentOrderPhotoBase64, size: size || 'Без размера',
-        comment: comment, status: 'pending', date: new Date().toISOString()
+        comment: comment, status: 'pending', date: new Date().toISOString(),
+        sourceCatalogId: window.currentOrderCatalogId || null // Привязка к товару витрины
     };
 
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
         showToast('✅ Запрос отправлен!', 'success');
+        resetOrderForm();
+        loadMyOrders();
     } catch (e) {
         showToast('⚠️ Ошибка сети', 'error');
     }
-    
-    document.getElementById('order-photo-file').value = '';
-    document.getElementById('order-photo-preview').style.display = 'none';
-    window.currentOrderPhotoBase64 = '';
-    document.getElementById('order-comment').value = '';
-    document.getElementById('order-category').value = '';
-    document.getElementById('order-size').value = '';
-    document.getElementById('new-category-input').style.display = 'none';
-    document.getElementById('custom-size-input').style.display = 'none';
-    document.querySelectorAll('#section-orders .size-pill').forEach(p => p.classList.remove('active'));
-    selectedOrderDept = '';
-    
-    loadMyOrders();
 }
 
 function renderOrderCard(o, isDirector = false) {
     const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : '';
     const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
     let actionsHtml = '';
+    
+    // Пункт 2: Кнопки "Принять/Отклонить" только для входящих и в статусе pending
     if (o.status === 'pending') {
-        if (o.toShop === shop && !isDirector) actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;"><button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus('${o.id}', 'accepted')">Принять</button><button class="btn-del" style="flex:1;" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button></div>`;
-    } else actionsHtml = `<div style="font-size:12px; margin-top:8px; font-weight:700;">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонен'}</div>`;
+        if (o.toShop === shop && !isDirector) {
+            actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus('${o.id}', 'accepted', '${o.sourceCatalogId || ''}')">Принять</button>
+                <button class="btn-del" style="flex:1;" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
+            </div>`;
+        }
+    } else {
+        actionsHtml = `<div style="font-size:12px; margin-top:8px; font-weight:700;">Статус: ${o.status === 'accepted' ? '✅ Принят (Товар списан)' : '❌ Отклонен'}</div>`;
+    }
     
     return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}</div><div class="order-title">${o.category} <span style="font-size:13px; color:var(--text-muted);">| ${o.size}</span></div><div class="order-details">Отдел: ${o.dept}</div>${o.comment ? `<div style="font-size:13px; color:var(--text-muted); background:var(--bg-app); padding:8px; border-radius:8px;">💬 ${o.comment}</div>` : ''}${actionsHtml}</div>`;
 }
@@ -661,7 +768,7 @@ async function loadMyOrders() {
         const snapIn = await window.fbFns.getDocs(qIn);
         allIncomingOrders = [];
         snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
-        document.getElementById('orders-incoming-list').innerHTML = allIncomingOrders.length ? allIncomingOrders.map(o => renderOrderCard(o)).join('') : 'Нет заказов';
+        document.getElementById('orders-incoming-list').innerHTML = allIncomingOrders.length ? allIncomingOrders.map(o => renderOrderCard(o)).join('') : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет входящих</div>';
     } catch(e) { console.log(e); }
 
     try {
@@ -669,15 +776,37 @@ async function loadMyOrders() {
         const snapOut = await window.fbFns.getDocs(qOut);
         let ordersOut = [];
         snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
-        document.getElementById('orders-outgoing-list').innerHTML = ordersOut.length ? ordersOut.map(o => renderOrderCard(o)).join('') : 'Нет заказов';
+        document.getElementById('orders-outgoing-list').innerHTML = ordersOut.length ? ordersOut.map(o => renderOrderCard(o)).join('') : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет исходящих</div>';
     } catch(e) { console.log(e); }
 }
 
-async function updateOrderStatus(orderId, status) {
+// Пункт 7: Списание товара при принятии заказа
+async function updateOrderStatus(orderId, status, catalogId = '') {
     try {
         await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
+        
+        // Если заказ принят и есть привязка к витрине -> списываем товар
+        if (status === 'accepted' && catalogId && catalogId !== 'null') {
+            try {
+                const itemRef = window.fbFns.doc(window.fbDB, "catalog", catalogId);
+                await window.fbFns.runTransaction(window.fbDB, async (transaction) => {
+                    const docSnap = await transaction.get(itemRef);
+                    if (docSnap.exists()) {
+                        const currentQty = docSnap.data().qty || 0;
+                        if (currentQty > 0) {
+                            // Уменьшаем на 1 (или можно передавать кол-во заказа, если оно есть)
+                            transaction.update(itemRef, { qty: currentQty - 1 });
+                        }
+                    }
+                });
+                showToast('Товар списан с витрины', 'success');
+            } catch (err) {
+                console.error("Ошибка списания:", err);
+                showToast('Заказ принят, но не удалось списать товар', 'error');
+            }
+        }
         loadMyOrders();
-    } catch(e) { showToast('Ошибка', 'error'); }
+    } catch(e) { showToast('Ошибка обновления статуса', 'error'); }
 }
 
 // --- ВИТРИНА ---
@@ -704,20 +833,22 @@ async function addToCatalog() {
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
         showToast('✅ Опубликовано!', 'success');
+        
+        // Сброс формы
+        document.getElementById('cat-photo-file').value = '';
+        document.getElementById('cat-photo-preview').style.display = 'none';
+        window.currentCatPhotoBase64 = '';
+        document.getElementById('cat-category').value = '';
+        document.getElementById('cat-size').value = '';
+        document.getElementById('cat-qty').value = '1';
+        document.getElementById('new-cat-category-input').style.display = 'none';
+        document.getElementById('custom-cat-size-input').style.display = 'none';
+        document.querySelectorAll('#cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+        selectedCatDept = '';
+        validateCatalogForm();
+        
+        loadCatalog();
     } catch (e) { showToast('Ошибка', 'error'); }
-    
-    document.getElementById('cat-photo-file').value = '';
-    document.getElementById('cat-photo-preview').style.display = 'none';
-    window.currentCatPhotoBase64 = '';
-    document.getElementById('cat-category').value = '';
-    document.getElementById('cat-size').value = '';
-    document.getElementById('cat-qty').value = '1';
-    document.getElementById('new-cat-category-input').style.display = 'none';
-    document.getElementById('custom-cat-size-input').style.display = 'none';
-    document.querySelectorAll('#section-catalog .size-pill').forEach(p => p.classList.remove('active'));
-    selectedCatDept = '';
-    
-    loadCatalog();
 }
 
 async function loadCatalog(isDirector = false) {
@@ -734,7 +865,11 @@ async function loadCatalog(isDirector = false) {
             let filtered = allCatalogItems;
             if (currentCatalogFilter === 'mine') filtered = filtered.filter(o => o.shop === shop);
             
-            list.innerHTML = filtered.length ? filtered.map(item => `
+            list.innerHTML = filtered.length ? filtered.map(item => {
+                // Скрываем товары с нулевым остатком
+                if (item.qty <= 0) return ''; 
+                
+                return `
                 <div class="order-card" style="padding: 12px;">
                     <img src="${item.photo}" class="order-photo" style="height: 180px;">
                     <div class="order-header"><span>${item.shop}</span></div>
@@ -745,7 +880,7 @@ async function loadCatalog(isDirector = false) {
                     </div>
                     <button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem('${item.id}')">⚡ Заказать сейчас</button>
                 </div>
-            `).join('') : 'Пусто';
+            `}).join('') : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Пусто</div>';
         }
     } catch(e) { console.log(e); }
 }
@@ -757,20 +892,16 @@ function toggleCatalogFilter(type) {
     loadCatalog();
 }
 
-// Новая функция: Мгновенный заказ одного товара
 function orderSingleItem(itemId) {
     const item = allCatalogItems.find(i => i.id === itemId);
     if (!item) return;
     if (item.shop === shop) return showToast('Это ваш товар', 'error');
+    if (item.qty <= 0) return showToast('Товар закончился', 'error');
 
-    // 1. Переключаем на вкладку Заказы
     switchMainTab('orders');
-    
-    // 2. Заполняем получателя
     document.getElementById('order-to-shop').value = item.shop;
     
-    // 3. Выбираем отдел
-    document.querySelectorAll('#section-orders .size-pill').forEach(p => {
+    document.querySelectorAll('#order-dept-pills .size-pill').forEach(p => {
         if (p.innerText === item.dept) { 
             p.classList.add('active'); 
             selectedOrderDept = item.dept; 
@@ -779,14 +910,12 @@ function orderSingleItem(itemId) {
         }
     });
     
-    // 4. Выбираем категорию (если её нет в списке - добавляем)
     const catSelect = document.getElementById('order-category');
     let found = false;
     for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
     if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
     catSelect.value = item.category;
     
-    // 5. Выбираем размер
     const sizeSelect = document.getElementById('order-size');
     let sizeFound = false;
     for (let opt of sizeSelect.options) { if (opt.value === item.size) { sizeFound = true; break; } }
@@ -799,7 +928,6 @@ function orderSingleItem(itemId) {
         document.getElementById('custom-size-input').value = item.size;
     }
     
-    // 6. Вставляем фото товара
     if (item.photo) {
         window.currentOrderPhotoBase64 = item.photo;
         const preview = document.getElementById('order-photo-preview');
@@ -807,11 +935,13 @@ function orderSingleItem(itemId) {
         preview.style.display = 'block';
     }
     
-    // 7. Очищаем комментарий и пишем, что это быстрый заказ
     document.getElementById('order-comment').value = `Заказ товара с витрины. Год: ${item.year}`;
     
-    // 8. Прокручиваем вверх к форме
+    // Привязка к ID товара для списания
+    window.currentOrderCatalogId = item.id;
+
     showToast('Товар подставлен в форму заказа', 'success');
+    validateOrderForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -916,7 +1046,7 @@ async function loadDirectorOrders() {
         const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
         let orders = [];
         snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
-        document.getElementById('director-orders-list').innerHTML = orders.map(o => renderOrderCard(o, true)).join('');
+        document.getElementById('director-orders-list').innerHTML = orders.length ? orders.map(o => renderOrderCard(o, true)).join('') : 'Нет заказов';
     } catch(e) { console.log(e); }
 }
 
