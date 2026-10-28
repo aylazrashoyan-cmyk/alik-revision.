@@ -133,14 +133,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .order-details { font-size: 14px; color: var(--text-main); margin-bottom: 4px; font-weight: 500;}
 .order-photo { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-input); margin-bottom: 8px; background: var(--bg-app); }
 
-/* Корзина */
-.cart-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); padding: 20px; border-radius: var(--radius-card) var(--radius-card) 0 0; z-index: 9998; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); display: flex; flex-direction: column;}
-.cart-panel.open { transform: translateY(0); }
-.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: 900; font-size: 20px; color: var(--text-main); letter-spacing: -0.5px;}
-.cart-items-list { max-height: 40vh; overflow-y: auto; margin-bottom: 16px; }
-.cart-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); color: var(--text-main); }
-.cart-total { display: flex; justify-content: space-between; font-weight: 900; margin-bottom: 16px; font-size: 16px; color: var(--text-main);}
-
 /* Модалка */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: none; justify-content: center; align-items: flex-end; backdrop-filter: blur(4px); }
 .modal-overlay.open { display: flex; }
@@ -169,14 +161,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             <button class="btn-main" style="flex:2;" onclick="saveEditItem()">Сохранить</button>
         </div>
     </div>
-</div>
-
-<!-- КОРЗИНА -->
-<div id="cart-panel" class="cart-panel">
-    <div class="cart-header"><span>Корзина</span><span onclick="toggleCart(false)" style="cursor:pointer; font-size: 28px;">&times;</span></div>
-    <div class="cart-items-list" id="cart-items-list"></div>
-    <div class="cart-total" id="cart-total"></div>
-    <button class="btn-main" onclick="checkoutCart()">Оформить заказ</button>
 </div>
 
 <!-- ЭКРАН АВТОРИЗАЦИИ -->
@@ -427,7 +411,6 @@ let selectedOrderDept = '';
 let allCatalogItems = [];
 let selectedCatDept = '';
 let currentCatalogFilter = 'all'; 
-let cart = []; 
 
 let scanList = JSON.parse(localStorage.getItem('scan_list_draft') || '[]');
 
@@ -509,7 +492,6 @@ function logout() {
     localStorage.removeItem('ord_shop');
     localStorage.removeItem('ord_seller');
     shop = ''; seller = ''; directorMode = false;
-    cart = []; updateCartUI();
     document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
     document.getElementById('seller-name').value = '';
     showScreen('screen-auth');
@@ -761,7 +743,7 @@ async function loadCatalog(isDirector = false) {
                         <span>${item.size} | ${item.year}</span>
                         <span style="color:var(--success); font-weight:800;">${item.qty} шт.</span>
                     </div>
-                    <button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="addToCart('${item.id}')">🛒 В корзину</button>
+                    <button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem('${item.id}')">⚡ Заказать сейчас</button>
                 </div>
             `).join('') : 'Пусто';
         }
@@ -775,86 +757,63 @@ function toggleCatalogFilter(type) {
     loadCatalog();
 }
 
-function addToCart(itemId) {
+// Новая функция: Мгновенный заказ одного товара
+function orderSingleItem(itemId) {
     const item = allCatalogItems.find(i => i.id === itemId);
     if (!item) return;
     if (item.shop === shop) return showToast('Это ваш товар', 'error');
-    
-    const existing = cart.find(c => c.id === itemId);
-    if (existing) existing.qty_to_order++;
-    else cart.push({ ...item, qty_to_order: 1 });
-    
-    updateCartUI();
-    showToast('Добавлено', 'success');
-    document.getElementById('cart-panel').classList.add('open');
-}
 
-function updateCartUI() {
-    const list = document.getElementById('cart-items-list');
-    if (cart.length === 0) { list.innerHTML = 'Пусто'; document.getElementById('cart-panel').classList.remove('open'); return; }
-    list.innerHTML = cart.map(c => `<div class="cart-item"><div>${c.category} (${c.size})</div><div><b>${c.qty_to_order}</b> шт.</div></div>`).join('');
-    document.getElementById('cart-total').innerText = `Итого: ${cart.reduce((a,b) => a + b.qty_to_order, 0)} шт.`;
-}
-
-// --- ВОТ ТУТ ДОБАВЛЕННЫЕ ФУНКЦИИ ---
-function toggleCart(open) {
-    const panel = document.getElementById('cart-panel');
-    if (open) panel.classList.add('open');
-    else panel.classList.remove('open');
-}
-
-function checkoutCart() {
-    if (cart.length === 0) return;
-    toggleCart(false); 
-    switchMainTab('orders'); 
+    // 1. Переключаем на вкладку Заказы
+    switchMainTab('orders');
     
-    const first = cart[0];
-    document.getElementById('order-to-shop').value = first.shop;
+    // 2. Заполняем получателя
+    document.getElementById('order-to-shop').value = item.shop;
     
+    // 3. Выбираем отдел
     document.querySelectorAll('#section-orders .size-pill').forEach(p => {
-        if (p.innerText === first.dept) { 
+        if (p.innerText === item.dept) { 
             p.classList.add('active'); 
-            selectedOrderDept = first.dept; 
+            selectedOrderDept = item.dept; 
         } else {
             p.classList.remove('active');
         }
     });
     
+    // 4. Выбираем категорию (если её нет в списке - добавляем)
     const catSelect = document.getElementById('order-category');
     let found = false;
-    for (let opt of catSelect.options) { if (opt.value === first.category) { found = true; break; } }
-    if (!found) catSelect.innerHTML += `<option value="${first.category}">${first.category}</option>`;
-    catSelect.value = first.category;
+    for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
+    if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
+    catSelect.value = item.category;
     
+    // 5. Выбираем размер
     const sizeSelect = document.getElementById('order-size');
     let sizeFound = false;
-    for (let opt of sizeSelect.options) { if (opt.value === first.size) { sizeFound = true; break; } }
+    for (let opt of sizeSelect.options) { if (opt.value === item.size) { sizeFound = true; break; } }
     if (sizeFound) {
-        sizeSelect.value = first.size;
+        sizeSelect.value = item.size;
         document.getElementById('custom-size-input').style.display = 'none';
     } else {
         sizeSelect.value = 'custom_add';
         document.getElementById('custom-size-input').style.display = 'block';
-        document.getElementById('custom-size-input').value = first.size;
+        document.getElementById('custom-size-input').value = item.size;
     }
     
-    if (first.photo) {
-        window.currentOrderPhotoBase64 = first.photo;
+    // 6. Вставляем фото товара
+    if (item.photo) {
+        window.currentOrderPhotoBase64 = item.photo;
         const preview = document.getElementById('order-photo-preview');
-        preview.src = first.photo;
+        preview.src = item.photo;
         preview.style.display = 'block';
     }
     
-    let commentText = "Заказ из корзины:\n";
-    cart.forEach(c => {
-        commentText += `- ${c.category} (${c.size}), ${c.year}г. - ${c.qty_to_order} шт.\n`;
-    });
-    document.getElementById('order-comment').value = commentText;
+    // 7. Очищаем комментарий и пишем, что это быстрый заказ
+    document.getElementById('order-comment').value = `Заказ товара с витрины. Год: ${item.year}`;
     
-    showToast('Форма заполнена. Проверьте и отправьте.', 'success');
+    // 8. Прокручиваем вверх к форме
+    showToast('Товар подставлен в форму заказа', 'success');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-// --- КОНЕЦ ДОБАВЛЕННЫХ ФУНКЦИЙ ---
 
 // --- ИНВЕНТАРИЗАЦИЯ ---
 function processScan(code) {
