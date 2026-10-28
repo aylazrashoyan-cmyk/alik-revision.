@@ -410,12 +410,17 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         </div>
     </div>
 
-    <!-- ВКЛАДКА ИНВЕНТАРИЗАЦИЯ -->
+    <!-- ВКЛАДКА ИНВЕНТАРИЗАЦИЯ (ИСПРАВЛЕНО) -->
     <div id="section-scanner" style="display: none;">
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Инвентаризация</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">Наведите ТСД для сканирования.</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">Наведите ТСД или используйте камеру для сканирования.</p>
             
+            <!-- НОВАЯ КНОПКА ДЛЯ КАМЕРЫ -->
+            <button class="btn-main" onclick="openCameraScanner('seller')" style="margin-bottom: 16px; background: var(--dark-pill); color: var(--primary);">
+                📷 Сканировать камерой
+            </button>
+
             <div id="scan-list-container"></div>
             
             <div id="scan-summary" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 2px dashed #D1D5DB; justify-content: space-between;">
@@ -469,7 +474,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
                 Используйте ТСД или камеру телефона для сканирования.
             </p>
 
-            <!-- Кнопка запуска камеры -->
             <button class="btn-main" onclick="openCameraScanner('director')" style="margin-bottom: 16px; background: var(--dark-pill); color: var(--primary);">
                 📷 Сканировать камерой
             </button>
@@ -531,8 +535,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         window.fbFns = { collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction };
         console.log('✅ Firebase ready');
 
-        // 🔧 FIX: после инициализации Firebase подгружаем данные для текущего пользователя
-        // (на случай, если initApp выполнился раньше, чем Firebase успел подняться)
         try {
             if (typeof shop !== 'undefined' && shop && seller) {
                 if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
@@ -553,7 +555,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         console.error('❌ Firebase init failed:', err);
         window.fbDB = null;
         window.fbFns = null;
-        // 🔧 FIX: показываем пользователю, что база недоступна, вместо вечных скелетонов
         try {
             var inEl = document.getElementById('orders-incoming-list');
             if (inEl) inEl.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Нет связи с базой</div>';
@@ -608,7 +609,6 @@ try {
     scanList = [];
 }
 
-/* Список сканирования для директора */
 var directorScanList = [];
 try {
     var rawDir = localStorage.getItem('director_scan_list_draft');
@@ -619,7 +619,6 @@ try {
     directorScanList = [];
 }
 
-/* Переменные для камеры-сканера */
 var html5QrCode = null;
 var currentScannerTarget = 'seller';
 var cameraIsRunning = false;
@@ -674,14 +673,12 @@ window.showCustomConfirm = function(title, text, onConfirm) {
     };
 };
 
-// 🔧 FIX: добавлена загрузка данных продавца при показе экрана screen-seller
 window.showScreen = function(id) {
     var screens = document.querySelectorAll('.screen');
     for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
     var el = document.getElementById(id);
     if (el) el.classList.add('active');
 
-    // 🔧 FIX: грузим данные продавца при показе экрана
     if (id === 'screen-seller' && window.fbDB) {
         try { if (window.loadMyOrders) window.loadMyOrders(); } catch(e) {}
         try { if (window.loadCatalog) window.loadCatalog(false, true); } catch(e) {}
@@ -781,6 +778,14 @@ window.switchMainTab = function(tab) {
         var sec = document.getElementById('section-' + t);
         if (btn) btn.classList.toggle('active', t === tab);
         if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
+    }
+    
+    // АВТОФОКУС ДЛЯ ТСД при открытии вкладки сканера
+    if (tab === 'scanner') {
+        setTimeout(function() {
+            var scanner = document.getElementById('hidden-scanner');
+            if (scanner) scanner.focus();
+        }, 300);
     }
 };
 
@@ -1063,7 +1068,6 @@ function renderOrderCard(o, isDirector) {
         commentHtml + actionsHtml + '</div>';
 }
 
-// 🔧 FIX: убраны "вечные скелетоны" при отсутствии связи с базой
 window.loadMyOrders = async function() {
     if (!window.fbDB) {
         var inEl0 = document.getElementById('orders-incoming-list');
@@ -1475,27 +1479,45 @@ window.orderSingleItem = function(itemId) {
 };
 
 /* ============================================================
-   ИНВЕНТАРИЗАЦИЯ (продавец)
+   ИНВЕНТАРИЗАЦИЯ (продавец) - ИСПРАВЛЕНО
    ============================================================ */
 window.processScan = function(code) {
     var scanner = document.getElementById('hidden-scanner');
     if (scanner) scanner.value = '';
+    
     if (!code || !code.trim()) return;
-    var scannedCode = code.trim();
+    
+    // Очищаем от пробелов и невидимых символов, которые может добавлять ТСД
+    var scannedCode = code.trim(); 
     var name = 'Товар ' + scannedCode;
     var existing = null;
+    
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === scannedCode) { existing = scanList[i]; break; }
     }
+    
     if (existing) {
         existing.qty += 1;
         showToast('+1 к ' + name, 'success');
     } else {
-        scanList.unshift({ id: Date.now().toString(), code: scannedCode, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        scanList.unshift({ 
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Уникальный ID
+            code: scannedCode, 
+            name: name, 
+            size: 'Без размера', 
+            year: 'Без года', 
+            qty: 1 
+        });
         showToast('Добавлен: ' + name, 'success');
     }
+    
     try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
+    
+    // Обязательно возвращаем фокус на скрытое поле для следующего сканирования
+    setTimeout(function() {
+        if (scanner) scanner.focus();
+    }, 100);
 };
 
 window.renderScanList = function() {
@@ -1730,16 +1752,32 @@ function onScanSuccess(decodedText) {
 }
 
 function addScannedCodeToSellerList(code) {
+    // Защита от двойного считывания камерой
+    var now = Date.now();
+    if (code === lastScannedCode && (now - lastScanTime) < SCAN_COOLDOWN) {
+        return;
+    }
+    lastScannedCode = code;
+    lastScanTime = now;
+
     var name = 'Товар ' + code;
     var existing = null;
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === code) { existing = scanList[i]; break; }
     }
+    
     if (existing) {
         existing.qty += 1;
         showToast('+1 к ' + name, 'success');
     } else {
-        scanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        scanList.unshift({ 
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), 
+            code: code, 
+            name: name, 
+            size: 'Без размера', 
+            year: 'Без года', 
+            qty: 1 
+        });
         showToast('Добавлен: ' + name, 'success');
     }
     try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
@@ -1908,7 +1946,6 @@ document.addEventListener('DOMContentLoaded', function() {
    ДИРЕКТОР — остальное
    ============================================================ */
 
-/* ---- ИСПРАВЛЕНО: window.loadDirectorOrders ---- */
 window.loadDirectorOrders = async function() {
     if (!window.fbDB) return;
     try {
@@ -1920,7 +1957,6 @@ window.loadDirectorOrders = async function() {
     } catch(e) { console.log(e); }
 };
 
-/* ---- ИСПРАВЛЕНО: window.loadRevisions ---- */
 window.loadRevisions = async function() {
     if (!window.fbDB) return;
     try {
@@ -1945,7 +1981,6 @@ window.directorDeleteOrder = async function(orderId) {
     });
 };
 
-/* ---- ИСПРАВЛЕНО: используем getDoc вместо загрузки всей коллекции ---- */
 window.directorEditOrder = async function(orderId) {
     if (!window.fbDB) return;
     try {
@@ -1978,7 +2013,6 @@ window.directorDeleteCatalog = async function(itemId) {
     });
 };
 
-/* ---- ИСПРАВЛЕНО: используем getDoc ---- */
 window.directorEditCatalog = async function(itemId) {
     if (!window.fbDB) return;
     try {
