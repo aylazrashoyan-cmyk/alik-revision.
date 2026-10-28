@@ -1,6 +1,4 @@
-К2 финальный раб
-
-<! DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -142,6 +140,9 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .rev-details.open { display: block; }
 .rev-item { font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; justify-content: space-between; gap: 8px; }
 .rev-item:last-child { border-bottom: none; }
+
+/* НОВОЕ: подсветка ошибочной позиции в истории ревизии */
+.rev-item-error { background: rgba(255, 69, 58, 0.08); border-radius: 6px; padding-left: 6px; padding-right: 6px; }
 
 /* КАМЕРА (только директор) */
 #camera-scanner-modal { align-items: center; z-index: 10002; }
@@ -412,6 +413,14 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">Инвентаризация</h3>
 
+            <!-- НОВОЕ: категория ревизии через select -->
+            <div class="input-group">
+                <label class="input-label">Категория ревизии</label>
+                <select id="revision-category-input" class="input-field">
+                    <option value="">Загрузка справочника...</option>
+                </select>
+            </div>
+
             <div class="input-group">
                 <label class="input-label">Штрих-код</label>
                 <input id="manual-scan-input" class="input-field" placeholder="Введите код вручную"
@@ -483,6 +492,14 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">
                 Используйте ТСД или камеру телефона для сканирования.
             </p>
+
+            <!-- НОВОЕ: категория ревизии директора через select -->
+            <div class="input-group">
+                <label class="input-label">Категория ревизии</label>
+                <select id="director-revision-category-input" class="input-field">
+                    <option value="">Загрузка справочника...</option>
+                </select>
+            </div>
 
             <button class="btn-main" onclick="openCameraScanner('director')" style="margin-bottom: 16px; background: var(--dark-pill); color: var(--primary);">
                 📷 Сканировать камерой
@@ -618,9 +635,6 @@ var CATALOG_CACHE_TTL = 60 * 1000;
 
 /* ============================================================
    Справочник ШК по магазинам
-   Алик       → 1.json
-   Мода       → 3.json
-   Твой стиль → 2.json
    ============================================================ */
 var BARCODE_FILES = {
   'Алик':       '1.json',
@@ -628,14 +642,67 @@ var BARCODE_FILES = {
   'Твой стиль': '2.json'
 };
 
-var barcodeDB = {};              // для продавца
-var barcodesLoadedFor = '';      // для какого магазина загружен barcodeDB
-
-var barcodeDBDirector = {};      // для директора (мерж всех магазинов)
+var barcodeDB = {};
+var barcodesLoadedFor = '';
+var barcodeDBDirector = {};
 var barcodesDirectorLoaded = false;
 
 /* ============================================================
-   ЧЕРНОВИКИ (localStorage)
+   ЗВУК (Web Audio API) — блок 4 ТЗ
+   ============================================================ */
+var audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch(e) {}
+    }
+    try {
+        if (audioCtx && audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+            audioCtx.resume();
+        }
+    } catch(_) {}
+}
+
+function playSuccessSound() {
+    initAudio();
+    if (!audioCtx) return;
+    try {
+        if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') audioCtx.resume();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+    } catch(_) {}
+}
+
+function playErrorSound() {
+    initAudio();
+    if (!audioCtx) return;
+    try {
+        if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') audioCtx.resume();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.value = 220;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    } catch(_) {}
+}
+
+/* ============================================================
+   ЧЕРНОВИКИ
    ============================================================ */
 function draftKey() { return 'scan_list_draft_' + (shop || 'anon'); }
 function loadDraft() {
@@ -756,7 +823,6 @@ window.loginSeller = function() {
         } catch(_) {}
         var titleEl = document.getElementById('shop-title');
         if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
-        // Черновик продавца привязан к магазину — перечитываем
         scanList = loadDraft();
         if (!Array.isArray(scanList)) scanList = [];
         showScreen('screen-seller');
@@ -779,6 +845,13 @@ window.logout = function() {
         localStorage.removeItem('ord_seller');
     } catch(_) {}
     shop = ''; seller = ''; directorMode = false;
+
+    /* Блок 5 ТЗ: сброс справочников */
+    barcodeDB = {};
+    barcodesLoadedFor = '';
+    barcodeDBDirector = {};
+    barcodesDirectorLoaded = false;
+
     var pills = document.querySelectorAll('#shop-pills .size-pill');
     for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
     var nameInput = document.getElementById('seller-name');
@@ -797,6 +870,7 @@ window.updatePinDisplay = function() {
 
 window.pressPin = function(num) {
     try {
+        initAudio();
         if (num === 'C') currentPin = '';
         else if (currentPin.length < 4) currentPin += num;
         updatePinDisplay();
@@ -814,6 +888,7 @@ window.checkPin = function() {
             showToast('Добро пожаловать', 'success');
         } else {
             showToast('Неверный PIN', 'error');
+            playErrorSound();
             currentPin = '';
             updatePinDisplay();
         }
@@ -1551,18 +1626,92 @@ function normalizeBarcodeJSON(raw) {
 }
 
 /* ============================================================
+   БЛОК 1 ТЗ: проверка категории ревизии
+   ============================================================ */
+function extractCategory(ownerLabel) {
+    var s = String(ownerLabel || '').trim();
+    if (!s) return '';
+    // Отрезаем цену с конца: "1299₽", "1299 р", "1 299,50 руб.", "1299р.", "1299 рублей"
+    var re = /\s*[\d\s.,]+\s*(?:₽|руб\.?|рублей|р\.?|р)\s*$/i;
+    var stripped = s.replace(re, '').trim();
+    return stripped || s;
+}
+
+function normalizeCategory(s) {
+    return String(s || '')
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/[^a-zа-я0-9]+/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getCanonicalCategory(meta) {
+    if (!meta || !meta.name) return '';
+    return extractCategory(meta.name);
+}
+
+function isCategoryMatch(meta, goal) {
+    var g = String(goal || '').trim();
+    if (!g) return true;         // проверка не выполняется
+    if (!meta) return false;     // нет данных — не совпало
+    var a = normalizeCategory(getCanonicalCategory(meta));
+    var b = normalizeCategory(g);
+    return a === b;
+}
+
+/* ============================================================
+   БЛОК 2 ТЗ: наполнение select категорий из справочника
+   ============================================================ */
+function fillRevisionCategories(selectEl, db) {
+    if (!selectEl) return;
+    var prevValue = selectEl.value || '';
+    var cats = {};
+    Object.keys(db || {}).forEach(function(code) {
+        var meta = db[code];
+        if (!meta) return;
+        var cat = extractCategory(meta.name || '');
+        if (!cat) return;
+        cats[cat] = (cats[cat] || 0) + 1;
+    });
+    var catList = Object.keys(cats).sort(function(a, b) { return a.localeCompare(b, 'ru'); });
+
+    if (catList.length === 0) {
+        selectEl.innerHTML = '<option value="">Справочник не загружен</option>';
+        return;
+    }
+
+    var html = '<option value="">Выберите категорию...</option>';
+    catList.forEach(function(c) {
+        html += '<option value="' + c.replace(/"/g, '&quot;') + '">' +
+            c + ' (' + cats[c] + ')</option>';
+    });
+    selectEl.innerHTML = html;
+
+    // Сохраняем выбор, если он есть в новом списке
+    if (prevValue) {
+        for (var i = 0; i < selectEl.options.length; i++) {
+            if (selectEl.options[i].value === prevValue) { selectEl.value = prevValue; break; }
+        }
+    }
+}
+
+/* ============================================================
    СПРАВОЧНИК ШК — ЗАГРУЗКА ДЛЯ ПРОДАВЦА
    ============================================================ */
 async function loadBarcodes() {
-    if (barcodesLoadedFor === shop) return;
+    if (barcodesLoadedFor === shop && Object.keys(barcodeDB).length > 0) {
+        fillRevisionCategories(document.getElementById('revision-category-input'), barcodeDB);
+        return;
+    }
 
-    var statusEl = document.getElementById('load-status');
     var file = BARCODE_FILES[shop];
     var cacheKey = 'barcode_cache_' + shop;
 
     if (!file) {
         barcodeDB = {};
         barcodesLoadedFor = shop;
+        fillRevisionCategories(document.getElementById('revision-category-input'), barcodeDB);
         return;
     }
 
@@ -1573,6 +1722,7 @@ async function loadBarcodes() {
         barcodeDB = normalizeBarcodeJSON(raw);
         try { localStorage.setItem(cacheKey, JSON.stringify(barcodeDB)); } catch(_) {}
         barcodesLoadedFor = shop;
+        fillRevisionCategories(document.getElementById('revision-category-input'), barcodeDB);
         return;
     } catch (e) {
         console.warn('loadBarcodes: fetch failed', file, e);
@@ -1583,19 +1733,27 @@ async function loadBarcodes() {
         if (cached) {
             barcodeDB = JSON.parse(cached) || {};
             barcodesLoadedFor = shop;
+            fillRevisionCategories(document.getElementById('revision-category-input'), barcodeDB);
             return;
         }
     } catch(_) {}
 
     barcodeDB = {};
     barcodesLoadedFor = shop;
+    fillRevisionCategories(document.getElementById('revision-category-input'), barcodeDB);
 }
 
 /* ============================================================
-   СПРАВОЧНИК ШК — ЗАГРУЗКА ДЛЯ ДИРЕКТОРА (мерж трёх магазинов)
+   СПРАВОЧНИК ШК — ЗАГРУЗКА ДЛЯ ДИРЕКТОРА
    ============================================================ */
 async function loadBarcodesForDirector() {
-    if (barcodesDirectorLoaded) return;
+    var selectEl = document.getElementById('director-revision-category-input');
+
+    if (barcodesDirectorLoaded) {
+        fillRevisionCategories(selectEl, barcodeDBDirector);
+        return;
+    }
+
     var merged = {};
     var sources = ['Алик', 'Мода', 'Твой стиль'];
 
@@ -1631,13 +1789,12 @@ async function loadBarcodesForDirector() {
 
     barcodeDBDirector = merged;
     barcodesDirectorLoaded = true;
+    fillRevisionCategories(selectEl, barcodeDBDirector);
 }
 
 function mergeInto(target, source, sourceName) {
     Object.keys(source).forEach(function(code) {
-        if (target[code]) {
-            return;
-        }
+        if (target[code]) return;
         var copy = Object.assign({}, source[code]);
         copy.__shop = sourceName;
         target[code] = copy;
@@ -1699,18 +1856,18 @@ window.addEventListener('online', function() { updateOnlineStatus(); syncOffline
 window.addEventListener('offline', updateOnlineStatus);
 
 /* ============================================================
-   СКАНЕР ПРОДАВЦА
+   СКАНЕР ПРОДАВЦА — с проверкой категории
    ============================================================ */
 window.processScan = async function(rawCode) {
     var code = String(rawCode || '').replace(/[^0-9]/g, '');
     if (!/^\d{6,14}$/.test(code)) {
         showToast('Неверный штрих-код', 'error');
+        playErrorSound();
         return;
     }
 
     var meta = barcodeDB[code] || null;
-    
-    // Если нет в локальном файле, ищем в базе данных (Firestore)
+
     if (!meta && window.fbDB) {
         try {
             const q = window.fbFns.query(window.fbFns.collection(window.fbDB, "catalog"), window.fbFns.where("barcode", "==", code));
@@ -1733,6 +1890,11 @@ window.processScan = async function(rawCode) {
     var year = (meta && meta.year) || 'Без года';
     var name = (meta && meta.name) || ('Товар ' + code);
 
+    // БЛОК 1 ТЗ: проверка категории ревизии
+    var revCategoryInput = document.getElementById('revision-category-input');
+    var revCategory = revCategoryInput ? revCategoryInput.value : '';
+    var isError = !isCategoryMatch(meta, revCategory);
+
     var existing = null;
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === code && scanList[i].size === size && scanList[i].year === year) {
@@ -1741,7 +1903,9 @@ window.processScan = async function(rawCode) {
     }
     if (existing) {
         existing.qty += 1;
+        existing.isError = existing.isError || isError;   // «прилипание» ошибки
         showToast('+1 · ' + existing.name, 'success');
+        playSuccessSound();
     } else {
         scanList.unshift({
             id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
@@ -1752,9 +1916,16 @@ window.processScan = async function(rawCode) {
             size: size,
             year: year,
             qty: 1,
-            system_qty: Number(meta && meta.system_qty) || 0
+            system_qty: Number(meta && meta.system_qty) || 0,
+            isError: isError
         });
-        showToast('Добавлен: ' + name, 'success');
+        if (isError) {
+            showToast('⚠️ Категория не совпадает: ' + name, 'error');
+            playErrorSound();
+        } else {
+            showToast('Добавлен: ' + name, 'success');
+            playSuccessSound();
+        }
     }
     persistDraft();
     renderScanList();
@@ -1808,7 +1979,15 @@ window.renderScanList = function() {
             systemLine = '<div style="font-size:12px; font-weight:700; color:' + color + '; margin-top:6px;">Система: ' + item.system_qty + (diff !== 0 ? ' (Δ ' + (diff > 0 ? '+' : '') + diff + ')' : '') + '</div>';
         }
 
-        return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;">' +
+        var errLine = item.isError
+            ? '<div style="font-size:12px; font-weight:800; color:var(--danger); margin-top:6px;">⚠️ ОШИБКА КАТЕГОРИИ</div>'
+            : '';
+
+        var cardStyle = item.isError
+            ? 'background:rgba(255,69,58,0.08); padding:12px; border-radius:12px; margin-bottom:8px; border:1px solid rgba(255,69,58,0.25);'
+            : 'background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;';
+
+        return '<div style="' + cardStyle + '">' +
             '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">' +
             '<div style="flex:1;">' +
             '<div style="font-weight:800; font-size:14px;">' + item.name + '</div>' +
@@ -1817,6 +1996,7 @@ window.renderScanList = function() {
             '</div>' +
             '<button onclick="removeScanItem(\'' + item.id + '\')" style="background:none; border:none; color:var(--danger); font-size:22px; line-height:1; padding:0;">&times;</button>' +
             '</div>' +
+            errLine +
             '<div style="display:flex; gap:8px; margin-top:8px;">' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem(\'' + item.id + '\', \'size\', this.value)">' + sizeOptsHtml + '</select>' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem(\'' + item.id + '\', \'year\', this.value)">' + yearOptsHtml + '</select>' +
@@ -1840,6 +2020,7 @@ function updateSummary() {
     var totalDiff = scanList.reduce(function(s, i) {
         return s + (i.system_qty > 0 ? (i.qty - i.system_qty) : 0);
     }, 0);
+    var errorCount = scanList.filter(function(i) { return i.isError; }).length;
 
     var tp = document.getElementById('total-positions');
     if (tp) tp.innerText = scanList.length;
@@ -1847,8 +2028,13 @@ function updateSummary() {
     if (tq) tq.innerText = totalQty;
     var td = document.getElementById('total-diff');
     if (td) {
-        td.innerText = (totalDiff > 0 ? '+' : '') + totalDiff;
-        td.style.color = totalDiff !== 0 ? 'var(--danger)' : 'var(--text-main)';
+        if (errorCount > 0) {
+            td.innerText = 'Ошибки: ' + errorCount;
+            td.style.color = 'var(--danger)';
+        } else {
+            td.innerText = (totalDiff > 0 ? '+' : '') + totalDiff;
+            td.style.color = totalDiff !== 0 ? 'var(--danger)' : 'var(--text-main)';
+        }
     }
 }
 
@@ -1893,6 +2079,9 @@ window.saveInventory = async function() {
     if (scanList.length === 0) return showToast('Пустой список', 'error');
     if (!shop || !seller) return showToast('Нет данных магазина/продавца', 'error');
 
+    var revCategoryInput = document.getElementById('revision-category-input');
+    var revCategory = revCategoryInput ? revCategoryInput.value : '';
+
     var totalQty = scanList.reduce(function(s, i) { return s + i.qty; }, 0);
     var totalDiff = scanList.reduce(function(s, i) {
         return s + (i.system_qty > 0 ? (i.qty - i.system_qty) : 0);
@@ -1901,6 +2090,7 @@ window.saveInventory = async function() {
     var docData = {
         shop: shop,
         seller: seller,
+        revCategory: revCategory,
         date: new Date().toISOString(),
         items: JSON.parse(JSON.stringify(scanList)),
         totalPositions: scanList.length,
@@ -1908,29 +2098,40 @@ window.saveInventory = async function() {
         totalDiff: totalDiff
     };
 
-    var clearAfter = function() {
-        scanList = [];
-        persistDraft();
-        renderScanList();
-        if (typeof loadRevisions === 'function') loadRevisions();
+    var doSave = async function() {
+        var clearAfter = function() {
+            scanList = [];
+            persistDraft();
+            renderScanList();
+            if (typeof loadRevisions === 'function') loadRevisions();
+        };
+
+        if (!navigator.onLine || !window.fbDB) {
+            queueOffline('revision', docData);
+            showToast('📶 Нет сети. Сохранено офлайн.', 'success');
+            clearAfter();
+            return;
+        }
+
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, 'revisions'), docData);
+            showToast('✅ Ревизия сохранена', 'success');
+            clearAfter();
+        } catch (e) {
+            console.error(e);
+            queueOffline('revision', docData);
+            showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
+            clearAfter();
+        }
     };
 
-    if (!navigator.onLine || !window.fbDB) {
-        queueOffline('revision', docData);
-        showToast('📶 Нет сети. Сохранено офлайн.', 'success');
-        clearAfter();
-        return;
-    }
-
-    try {
-        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, 'revisions'), docData);
-        showToast('✅ Ревизия сохранена', 'success');
-        clearAfter();
-    } catch (e) {
-        console.error(e);
-        queueOffline('revision', docData);
-        showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
-        clearAfter();
+    var errorCount = scanList.filter(function(i) { return i.isError; }).length;
+    if (errorCount > 0) {
+        showCustomConfirm('Есть расхождения',
+            'Позиций с ошибкой категории: ' + errorCount + '. Всё равно сохранить?',
+            doSave);
+    } else {
+        doSave();
     }
 };
 
@@ -1941,6 +2142,7 @@ window.addScannedCodeToDirectorList = function(rawCode) {
     var code = String(rawCode || '').replace(/[^0-9]/g, '');
     if (!/^\d{6,14}$/.test(code)) {
         showToast('Неверный штрих-код', 'error');
+        playErrorSound();
         return;
     }
 
@@ -1954,6 +2156,10 @@ window.addScannedCodeToDirectorList = function(rawCode) {
     var year = (meta && meta.year) || 'Без года';
     var name = (meta && meta.name) || ('Товар ' + code);
 
+    var revCategoryInput = document.getElementById('director-revision-category-input');
+    var revCategory = revCategoryInput ? revCategoryInput.value : '';
+    var isError = !isCategoryMatch(meta, revCategory);
+
     var existing = null;
     for (var i = 0; i < directorScanList.length; i++) {
         if (directorScanList[i].code === code && directorScanList[i].size === size && directorScanList[i].year === year) {
@@ -1962,7 +2168,9 @@ window.addScannedCodeToDirectorList = function(rawCode) {
     }
     if (existing) {
         existing.qty += 1;
+        existing.isError = existing.isError || isError;
         showToast('+1 · ' + existing.name, 'success');
+        playSuccessSound();
     } else {
         directorScanList.unshift({
             id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
@@ -1974,9 +2182,16 @@ window.addScannedCodeToDirectorList = function(rawCode) {
             year: year,
             qty: 1,
             system_qty: Number(meta && meta.system_qty) || 0,
-            src_shop: (meta && meta.__shop) || ''
+            src_shop: (meta && meta.__shop) || '',
+            isError: isError
         });
-        showToast('Добавлен: ' + name, 'success');
+        if (isError) {
+            showToast('⚠️ Категория не совпадает: ' + name, 'error');
+            playErrorSound();
+        } else {
+            showToast('Добавлен: ' + name, 'success');
+            playSuccessSound();
+        }
     }
     persistDirectorDraft();
     renderDirectorScanList();
@@ -2025,7 +2240,15 @@ window.renderDirectorScanList = function() {
             systemLine = '<div style="font-size:12px; font-weight:700; color:' + color + '; margin-top:6px;">Система: ' + item.system_qty + (diff !== 0 ? ' (Δ ' + (diff > 0 ? '+' : '') + diff + ')' : '') + '</div>';
         }
 
-        return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;">' +
+        var errLine = item.isError
+            ? '<div style="font-size:12px; font-weight:800; color:var(--danger); margin-top:6px;">⚠️ ОШИБКА КАТЕГОРИИ</div>'
+            : '';
+
+        var cardStyle = item.isError
+            ? 'background:rgba(255,69,58,0.08); padding:12px; border-radius:12px; margin-bottom:8px; border:1px solid rgba(255,69,58,0.25);'
+            : 'background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;';
+
+        return '<div style="' + cardStyle + '">' +
             '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">' +
             '<div style="flex:1;">' +
             '<div style="font-weight:800; font-size:14px;">' + item.name + '</div>' +
@@ -2034,6 +2257,7 @@ window.renderDirectorScanList = function() {
             '</div>' +
             '<button onclick="removeDirectorScanItem(\'' + item.id + '\')" style="background:none; border:none; color:var(--danger); font-size:22px; line-height:1; padding:0;">&times;</button>' +
             '</div>' +
+            errLine +
             '<div style="display:flex; gap:8px; margin-top:8px;">' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateDirectorScanItem(\'' + item.id + '\', \'size\', this.value)">' + sizeOptsHtml + '</select>' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateDirectorScanItem(\'' + item.id + '\', \'year\', this.value)">' + yearOptsHtml + '</select>' +
@@ -2057,14 +2281,21 @@ function updateDirectorSummary() {
     var totalDiff = directorScanList.reduce(function(s, i) {
         return s + (i.system_qty > 0 ? (i.qty - i.system_qty) : 0);
     }, 0);
+    var errorCount = directorScanList.filter(function(i) { return i.isError; }).length;
+
     var tp = document.getElementById('director-total-positions');
     if (tp) tp.innerText = directorScanList.length;
     var tq = document.getElementById('director-total-qty');
     if (tq) tq.innerText = totalQty;
     var td = document.getElementById('director-total-diff');
     if (td) {
-        td.innerText = (totalDiff > 0 ? '+' : '') + totalDiff;
-        td.style.color = totalDiff !== 0 ? 'var(--danger)' : 'var(--text-main)';
+        if (errorCount > 0) {
+            td.innerText = 'Ошибки: ' + errorCount;
+            td.style.color = 'var(--danger)';
+        } else {
+            td.innerText = (totalDiff > 0 ? '+' : '') + totalDiff;
+            td.style.color = totalDiff !== 0 ? 'var(--danger)' : 'var(--text-main)';
+        }
     }
 }
 
@@ -2100,6 +2331,9 @@ window.removeDirectorScanItem = function(id) {
 window.saveDirectorInventory = async function() {
     if (directorScanList.length === 0) return showToast('Список пуст', 'error');
 
+    var revCategoryInput = document.getElementById('director-revision-category-input');
+    var revCategory = revCategoryInput ? revCategoryInput.value : '';
+
     var totalQty = directorScanList.reduce(function(s, i) { return s + i.qty; }, 0);
     var totalDiff = directorScanList.reduce(function(s, i) {
         return s + (i.system_qty > 0 ? (i.qty - i.system_qty) : 0);
@@ -2108,6 +2342,7 @@ window.saveDirectorInventory = async function() {
     var docData = {
         shop: 'А.А.',
         seller: 'А.А.',
+        revCategory: revCategory,
         date: new Date().toISOString(),
         items: JSON.parse(JSON.stringify(directorScanList)),
         totalPositions: directorScanList.length,
@@ -2115,29 +2350,40 @@ window.saveDirectorInventory = async function() {
         totalDiff: totalDiff
     };
 
-    var clearAfter = function() {
-        directorScanList = [];
-        persistDirectorDraft();
-        renderDirectorScanList();
-        if (typeof loadRevisions === 'function') loadRevisions();
+    var doSave = async function() {
+        var clearAfter = function() {
+            directorScanList = [];
+            persistDirectorDraft();
+            renderDirectorScanList();
+            if (typeof loadRevisions === 'function') loadRevisions();
+        };
+
+        if (!navigator.onLine || !window.fbDB) {
+            queueOffline('revision', docData);
+            showToast('📶 Нет сети. Сохранено офлайн.', 'success');
+            clearAfter();
+            return;
+        }
+
+        try {
+            await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), docData);
+            showToast('✅ Ревизия А.А. сохранена!', 'success');
+            clearAfter();
+        } catch(e) {
+            console.error(e);
+            queueOffline('revision', docData);
+            showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
+            clearAfter();
+        }
     };
 
-    if (!navigator.onLine || !window.fbDB) {
-        queueOffline('revision', docData);
-        showToast('📶 Нет сети. Сохранено офлайн.', 'success');
-        clearAfter();
-        return;
-    }
-
-    try {
-        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), docData);
-        showToast('✅ Ревизия А.А. сохранена!', 'success');
-        clearAfter();
-    } catch(e) {
-        console.error(e);
-        queueOffline('revision', docData);
-        showToast('⚠️ Ошибка сети. Сохранено офлайн.', 'error');
-        clearAfter();
+    var errorCount = directorScanList.filter(function(i) { return i.isError; }).length;
+    if (errorCount > 0) {
+        showCustomConfirm('Есть расхождения',
+            'Позиций с ошибкой категории: ' + errorCount + '. Всё равно сохранить?',
+            doSave);
+    } else {
+        doSave();
     }
 };
 
@@ -2154,6 +2400,8 @@ window.saveDirectorInventory = async function() {
     var sellerTimer = null;
 
     document.addEventListener('keydown', function(e) {
+        initAudio();
+
         var camModal = document.getElementById('camera-scanner-modal');
         var editModal = document.getElementById('edit-modal');
         var confirmModal = document.getElementById('custom-confirm-modal');
@@ -2168,7 +2416,7 @@ window.saveDirectorInventory = async function() {
 
         var tag = (e.target.tagName || '').toUpperCase();
         var inputType = (e.target.type || '').toLowerCase();
-        var isRealInput = (tag === 'INPUT' || tag === 'TEXTAREA') &&
+        var isRealInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') &&
                           ['checkbox','radio','file','submit','button','range','date','datetime-local','month','week','time','color'].indexOf(inputType) === -1;
 
         var onDirector = document.getElementById('screen-director') &&
@@ -2178,7 +2426,7 @@ window.saveDirectorInventory = async function() {
 
         if (onSeller && !onDirector) {
             if (isRealInput) return;
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' || e.key === '\n' || e.key === '\r') {
                 if (sellerBuffer.length >= 3) {
                     processScan(sellerBuffer);
                     sellerBuffer = '';
@@ -2204,7 +2452,7 @@ window.saveDirectorInventory = async function() {
             if (now - lastKeyTime > SCAN_TIMEOUT) scanBuffer = '';
             lastKeyTime = now;
 
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' || e.key === '\n' || e.key === '\r') {
                 var code = scanBuffer.trim();
                 scanBuffer = '';
                 if (code.length >= MIN_CODE_LENGTH) {
@@ -2223,7 +2471,7 @@ window.saveDirectorInventory = async function() {
 })();
 
 /* ============================================================
-   КАМЕРА-СКАНЕР (только директор)
+   КАМЕРА-СКАНЕР (только директор) — фикс двойной загрузки
    ============================================================ */
 function onScanSuccess(decodedText) {
     var now = Date.now();
@@ -2269,15 +2517,20 @@ function startQrScanner() {
         html5QrCode = null;
     }
 
+    // БЛОК 8 ТЗ: не вставляем второй <script>, а ждём существующий
     if (typeof Html5Qrcode === 'undefined') {
-        var script = document.createElement('script');
-        script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-        script.onload = function() { initHtml5QrCode(); };
-        script.onerror = function() {
-            showToast('Не удалось загрузить библиотеку сканера', 'error');
-            closeCameraScanner();
-        };
-        document.head.appendChild(script);
+        var waited = 0;
+        var waitTimer = setInterval(function() {
+            waited += 200;
+            if (typeof Html5Qrcode !== 'undefined') {
+                clearInterval(waitTimer);
+                initHtml5QrCode();
+            } else if (waited > 5000) {
+                clearInterval(waitTimer);
+                showToast('Не удалось загрузить библиотеку сканера', 'error');
+                closeCameraScanner();
+            }
+        }, 200);
     } else {
         initHtml5QrCode();
     }
@@ -2491,7 +2744,7 @@ window.saveEditItem = async function() {
 };
 
 /* ============================================================
-   ИСТОРИЯ РЕВИЗИЙ
+   БЛОК 3 ТЗ: Excel-выгрузка с новыми колонками и csvEscape
    ============================================================ */
 var revisionsCache = [];
 var directorRevisionFilter = 'all';
@@ -2502,6 +2755,14 @@ function sortByDateDesc(arr) {
     });
 }
 
+function csvEscape(v) {
+    var s = String(v == null ? '' : v);
+    if (/[";\n\r]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+}
+
 window.downloadRevisionExcel = function(revId) {
     var rev = null;
     for (var i = 0; i < revisionsCache.length; i++) {
@@ -2510,26 +2771,31 @@ window.downloadRevisionExcel = function(revId) {
     if (!rev) return showToast('Ревизия не найдена', 'error');
 
     var csv = "\uFEFF";
-    // Заголовки
-    csv += "Наименование;Штрих-код;Категория;Отдел;Размер;Год;Факт;Система;Расхождение\n";
-    
+    csv += "Владелец (полный);Категория (без цены);Штрих-код;Категория из справочника;Отдел;Размер;Год;Факт;Система;Расхождение\n";
+
     var items = Array.isArray(rev.items) ? rev.items : [];
     items.forEach(function(i) {
-        var diff = (i.system_qty || 0) > 0 ? (i.qty - i.system_qty) : '';
+        var fullName = i.name || '';
+        var catNoPrice = extractCategory(fullName);
+        var sysQty = (i.system_qty || 0);
+        var sysStr = sysQty > 0 ? sysQty : '';                 // 0 → пусто
+        var diff = sysQty > 0 ? (i.qty - sysQty) : '';          // считаем только при >0
+
         var row = [
-            i.name || '', 
-            i.code || '', 
-            i.category || '', 
-            i.dept || '', 
-            i.size || '', 
-            i.year || '', 
-            i.qty || 0, 
-            i.system_qty || 0, 
+            fullName,
+            catNoPrice,
+            i.code || '',
+            i.category || '',
+            i.dept || '',
+            i.size || '',
+            i.year || '',
+            i.qty || 0,
+            sysStr,
             diff
         ];
-        csv += row.map(function(v) { return String(v).replace(/;/g, ','); }).join(';') + '\n';
+        csv += row.map(csvEscape).join(';') + '\n';
     });
-    
+
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -2538,6 +2804,9 @@ window.downloadRevisionExcel = function(revId) {
     link.click();
 };
 
+/* ============================================================
+   БЛОК 9 ТЗ: карточка ревизии с revCategory, ⚠️ N ошиб., .rev-item-error
+   ============================================================ */
 function renderRevisionCard(r) {
     var dateStr = r.date ? new Date(r.date).toLocaleString('ru-RU') : '—';
     var items = Array.isArray(r.items) ? r.items : [];
@@ -2546,21 +2815,31 @@ function renderRevisionCard(r) {
     var totalDiff = (r.totalDiff != null) ? r.totalDiff : items.reduce(function(s, i) {
         return s + ((Number(i.system_qty) || 0) > 0 ? ((Number(i.qty) || 0) - Number(i.system_qty)) : 0);
     }, 0);
+    var errorCount = items.filter(function(i) { return i.isError; }).length;
+
     var diffColor = totalDiff !== 0 ? 'var(--danger)' : 'var(--text-muted)';
     var diffStr = (totalDiff > 0 ? '+' : '') + totalDiff;
+    if (errorCount > 0) {
+        diffStr = '⚠️ ' + errorCount + ' ошиб.';
+        diffColor = 'var(--danger)';
+    }
 
-    // Получаем список уникальных категорий
     var cats = {};
     items.forEach(function(i) { if(i.category) cats[i.category] = true; });
     var catString = Object.keys(cats).join(', ');
     var catLine = catString ? '<div style="font-size:11px; color:var(--text-main); font-weight:700; margin-top:4px;">Категории: ' + catString + '</div>' : '';
 
+    // Блок 9.1 ТЗ: заголовок — shop · revCategory (вместо seller)
+    var titleCategory = (r.revCategory && r.revCategory.trim()) ? r.revCategory : (r.seller || '—');
+
     var itemsHtml = items.map(function(i) {
         var sys = (Number(i.system_qty) || 0) > 0 ? ' · Система: ' + i.system_qty : '';
         var cat = i.category ? ' · ' + i.category : '';
         var dept = i.dept ? ' · ' + i.dept : '';
-        return '<div class="rev-item">' +
-            '<span>' + (i.name || ('Товар ' + i.code)) + ' · ' + (i.size || '') + ' / ' + (i.year || '') + cat + dept + sys + '</span>' +
+        var errMark = i.isError ? ' <span style="color:var(--danger); font-weight:900;">(ОШИБКА)</span>' : '';
+        var errClass = i.isError ? 'rev-item-error' : '';
+        return '<div class="rev-item ' + errClass + '">' +
+            '<span>' + (i.name || ('Товар ' + i.code)) + ' · ' + (i.size || '') + ' / ' + (i.year || '') + cat + dept + sys + errMark + '</span>' +
             '<strong>' + (i.qty || 0) + ' шт.</strong>' +
             '</div>';
     }).join('');
@@ -2568,7 +2847,7 @@ function renderRevisionCard(r) {
     return '<div class="rev-card" data-rev-id="' + r.id + '">' +
         '<div class="rev-header" onclick="toggleDetails(\'' + r.id + '\')">' +
         '<div>' +
-        '<div class="rev-title">🏪 ' + (r.shop || '—') + ' · ' + (r.seller || '—') + '</div>' +
+        '<div class="rev-title">🏪 ' + (r.shop || '—') + ' · ' + titleCategory + '</div>' +
         '<div class="rev-meta">' + dateStr + ' · ' + totalPos + ' поз. · ' + totalQty + ' шт. · <span style="color:' + diffColor + ';font-weight:800;">Δ ' + diffStr + '</span></div>' +
         catLine +
         '</div>' +
@@ -2799,7 +3078,7 @@ if (document.readyState === 'loading') {
 }
 </script>
 
-<!-- html5-qrcode (только директор) -->
+<!-- html5-qrcode -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </body>
