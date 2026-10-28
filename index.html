@@ -106,15 +106,17 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 24px; animation: slideUp 0.3s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* КРИТИЧНО: полностью убираем hidden-scanner с экрана — он перекрывал тапы */
+/* КРИТИЧНО: сканер убран за пределы экрана без использования absolute */
 #hidden-scanner { 
-    position: absolute; 
-    top: -9999px; 
-    left: -9999px; 
-    opacity: 0; 
-    pointer-events: none; 
-    height: 1px; 
+    position: fixed; 
+    top: -100px; 
+    left: 0; 
     width: 1px; 
+    height: 1px; 
+    opacity: 0; 
+    z-index: -1;
+    border: none;
+    outline: none;
 }
 
 .skeleton-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; height: 150px; animation: pulse 1.5s infinite ease-in-out; }
@@ -394,11 +396,9 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 </div>
 
 <!-- ===================================================== -->
-<!-- FIREBASE: отдельный скрипт, обёрнут в try/catch       -->
-<!-- Если Firebase упадёт — кнопки продолжат работать      -->
+<!-- FIREBASE: Загружается в фоне, чтобы не блокировать кнопки -->
 <!-- ===================================================== -->
 <script type="module">
-  // Показываем ошибку прямо на экране телефона
   window.addEventListener('error', (e) => {
     const banner = document.getElementById('js-error-banner');
     if (banner) {
@@ -407,46 +407,51 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     }
   });
 
-  try {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
-    const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  // Оборачиваем в setTimeout, чтобы дать основному скрипту загрузиться первым
+  setTimeout(async () => {
+      try {
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+        const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
-      authDomain: "revisionset.firebaseapp.com",
-      projectId: "revisionset",
-      storageBucket: "revisionset.firebasestorage.app",
-      messagingSenderId: "904187992853",
-      appId: "1:904187992853:web:c009614e1cf718d950271c"
-    };
+        const firebaseConfig = {
+          apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
+          authDomain: "revisionset.firebaseapp.com",
+          projectId: "revisionset",
+          storageBucket: "revisionset.firebasestorage.app",
+          messagingSenderId: "904187992853",
+          appId: "1:904187992853:web:c009614e1cf718d950271c"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    window.fbDB = db;
-    window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
-    console.log('✅ Firebase ready');
+        window.fbDB = db;
+        window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
+        console.log('✅ Firebase ready');
 
-    // Service Worker — регистрируем ПОСЛЕ Firebase, с updateViaCache: none
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-        .then(reg => console.log('SW registered'))
-        .catch(err => console.log('SW error', err));
-    }
-  } catch (err) {
-    console.error('❌ Firebase init failed:', err);
-    window.fbDB = null;
-    window.fbFns = null;
-    // Не роняем приложение — кнопки продолжают работать
-  }
+        // Перезагружаем данные, если мы уже на экране магазина
+        if (shop && seller) {
+            if (typeof loadMyOrders === 'function') loadMyOrders();
+            if (typeof loadCatalog === 'function') loadCatalog();
+        }
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW error', err));
+        }
+      } catch (err) {
+        console.error('❌ Firebase init failed:', err);
+        window.fbDB = null;
+        window.fbFns = null;
+      }
+  }, 100);
 </script>
 
 <!-- ===================================================== -->
-<!-- ОСНОВНОЙ КОД — выполняется синхронно, БЕЗ DOMContentLoaded -->
-<!-- Скрипт в конце body → DOM уже готов                    -->
+<!-- ОСНОВНОЙ КОД (выполняется моментально, кнопки работают) -->
 <!-- ===================================================== -->
 <script>
-// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 let shop = localStorage.getItem('ord_shop') || '';
 let seller = localStorage.getItem('ord_seller') || '';
 let directorMode = false;
@@ -465,7 +470,6 @@ let currentCatalogFilter = 'all';
 
 let scanList = JSON.parse(localStorage.getItem('scan_list_draft') || '[]');
 
-// --- УТИЛИТЫ ---
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
     if (!t) return;
@@ -474,17 +478,10 @@ function showToast(msg, type = 'default') {
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
-function safeRun(fn, name) {
-    try { fn(); } catch(e) {
-        console.error('Ошибка в ' + name + ':', e);
-    }
-}
-
 function validateOrderForm() {
     const btn = document.getElementById('btn-submit-order');
     if (!btn) return;
     const toShop = document.getElementById('order-to-shop').value;
-    
     let category = document.getElementById('order-category').value;
     if (category === 'custom_add') category = document.getElementById('new-category-input').value.trim();
 
@@ -508,7 +505,7 @@ function validateCatalogForm() {
     }
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ (без DOMContentLoaded — скрипт уже в конце body) ---
+// --- ИНИЦИАЛИЗАЦИЯ ---
 (function init() {
     try {
         const sellerInput = document.getElementById('seller-name');
@@ -526,13 +523,11 @@ function validateCatalogForm() {
             const titleEl = document.getElementById('shop-title');
             if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
             showScreen('screen-seller');
-            if (window.fbDB) { loadMyOrders(); loadCatalog(); }
             renderScanList();
         } else {
             showScreen('screen-auth');
         }
 
-        // Обработчики категорий/размеров
         const orderCat = document.getElementById('order-category');
         if (orderCat) orderCat.addEventListener('change', function() {
             const customInp = document.getElementById('new-category-input');
@@ -582,9 +577,9 @@ function showScreen(id) {
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
     if (id === 'screen-director' && window.fbDB) {
-        loadDirectorOrders();
-        loadCatalog(true);
-        loadRevisions();
+        if (typeof loadDirectorOrders === 'function') loadDirectorOrders();
+        if (typeof loadCatalog === 'function') loadCatalog(true);
+        if (typeof loadRevisions === 'function') loadRevisions();
     }
 }
 
@@ -607,8 +602,13 @@ function loginSeller() {
         localStorage.setItem('ord_seller', seller);
         document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
         showScreen('screen-seller');
-        if (window.fbDB) { loadMyOrders(); loadCatalog(); }
         renderScanList();
+        
+        // Если база уже загрузилась, подгружаем данные
+        if (window.fbDB) { 
+            if (typeof loadMyOrders === 'function') loadMyOrders(); 
+            if (typeof loadCatalog === 'function') loadCatalog(); 
+        }
     } catch(e) { console.error('loginSeller:', e); }
 }
 
@@ -1223,9 +1223,6 @@ async function saveEditItem() {
         showToast('Ошибка сохранения', 'error');
     }
 }
-
-// Финальный лог для отладки
-console.log('✅ Pilo App loaded. FB:', !!window.fbDB);
 </script>
 </body>
 </html>
