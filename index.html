@@ -796,6 +796,66 @@ function updateCartUI() {
     document.getElementById('cart-total').innerText = `Итого: ${cart.reduce((a,b) => a + b.qty_to_order, 0)} шт.`;
 }
 
+// --- ВОТ ТУТ ДОБАВЛЕННЫЕ ФУНКЦИИ ---
+function toggleCart(open) {
+    const panel = document.getElementById('cart-panel');
+    if (open) panel.classList.add('open');
+    else panel.classList.remove('open');
+}
+
+function checkoutCart() {
+    if (cart.length === 0) return;
+    toggleCart(false); 
+    switchMainTab('orders'); 
+    
+    const first = cart[0];
+    document.getElementById('order-to-shop').value = first.shop;
+    
+    document.querySelectorAll('#section-orders .size-pill').forEach(p => {
+        if (p.innerText === first.dept) { 
+            p.classList.add('active'); 
+            selectedOrderDept = first.dept; 
+        } else {
+            p.classList.remove('active');
+        }
+    });
+    
+    const catSelect = document.getElementById('order-category');
+    let found = false;
+    for (let opt of catSelect.options) { if (opt.value === first.category) { found = true; break; } }
+    if (!found) catSelect.innerHTML += `<option value="${first.category}">${first.category}</option>`;
+    catSelect.value = first.category;
+    
+    const sizeSelect = document.getElementById('order-size');
+    let sizeFound = false;
+    for (let opt of sizeSelect.options) { if (opt.value === first.size) { sizeFound = true; break; } }
+    if (sizeFound) {
+        sizeSelect.value = first.size;
+        document.getElementById('custom-size-input').style.display = 'none';
+    } else {
+        sizeSelect.value = 'custom_add';
+        document.getElementById('custom-size-input').style.display = 'block';
+        document.getElementById('custom-size-input').value = first.size;
+    }
+    
+    if (first.photo) {
+        window.currentOrderPhotoBase64 = first.photo;
+        const preview = document.getElementById('order-photo-preview');
+        preview.src = first.photo;
+        preview.style.display = 'block';
+    }
+    
+    let commentText = "Заказ из корзины:\n";
+    cart.forEach(c => {
+        commentText += `- ${c.category} (${c.size}), ${c.year}г. - ${c.qty_to_order} шт.\n`;
+    });
+    document.getElementById('order-comment').value = commentText;
+    
+    showToast('Форма заполнена. Проверьте и отправьте.', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// --- КОНЕЦ ДОБАВЛЕННЫХ ФУНКЦИЙ ---
+
 // --- ИНВЕНТАРИЗАЦИЯ ---
 function processScan(code) {
     document.getElementById('hidden-scanner').value = '';
