@@ -1,4 +1,4 @@
-const CACHE_NAME = 'orders-cache-v7';
+const CACHE_NAME = 'orders-cache-v8';
 
 const ASSETS = [
   './',
