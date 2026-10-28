@@ -62,7 +62,7 @@
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); margin: 0; padding: 16px; padding-bottom: 100px; font-size: 15px; }
 
-/* ИСПРАВЛЕНИЕ ШАПКИ: Уменьшен шрифт, выравнивание в одну строку */
+/* Шапка */
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
 .header h1 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .header button { background: none; border: none; color: var(--danger); font-weight: 800; font-size: 13px; text-transform: uppercase; white-space: nowrap; padding: 0; }
@@ -74,7 +74,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(-
 .main-tab { flex: 1; text-align: center; padding: 12px 8px; font-weight: 700; font-size: 13px; border-radius: var(--radius-pill); cursor: pointer; color: var(--text-muted); background: transparent; transition: 0.3s; white-space: nowrap; }
 .main-tab.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
 
-/* ВОЗВРАЩЕННЫЕ СТИЛИ ДЛЯ КНОПОК-ПИЛЮЛЬ */
+/* Кнопки-пилюли */
 .size-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .size-pill { padding: 12px 22px; border: none; border-radius: var(--radius-pill); font-size: 15px; font-weight: 700; color: var(--text-main); background: var(--bg-app); cursor: pointer; transition: 0.2s; text-align: center;}
 .size-pill:active { transform: scale(0.95); }
@@ -96,7 +96,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .btn-del { background: rgba(255, 69, 58, 0.1); color: var(--danger); border: none; padding: 12px 16px; border-radius: var(--radius-pill); font-size: 14px; cursor: pointer; font-weight: 800; }
 .btn-edit { background: var(--bg-app); color: var(--text-main); border: none; padding: 12px 16px; border-radius: var(--radius-pill); font-size: 14px; cursor: pointer; font-weight: 800; }
 
-/* Кнопки + и - для количества */
+/* Кнопки + и - */
 .qty-control { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border-radius: var(--radius-pill); padding: 4px; border: 1px solid var(--bg-app); width: 140px;}
 .qty-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--bg-app); font-weight: 800; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main);}
 .qty-input { width: 100%; text-align: center; border: none; background: transparent; font-weight: 800; font-size: 16px; outline: none; }
@@ -205,7 +205,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 
 <!-- ЭКРАН ПРОДАВЦА -->
 <div id="screen-seller" class="screen">
-    <!-- ИСПРАВЛЕНИЕ: Шапка в одну строку -->
     <div class="header">
         <h1 id="shop-title">Магазин</h1>
         <button onclick="logout()">Выйти</button>
@@ -291,7 +290,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     <!-- ВКЛАДКА ВИТРИНА -->
     <div id="section-catalog" style="display: none;">
         <div class="card">
-            <!-- ИСПРАВЛЕНИЕ: Название заменено -->
             <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">Подбор товара</h3>
             
             <div class="input-label">Отдел</div>
@@ -392,7 +390,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 
 <!-- ЭКРАН ДИРЕКТОРА -->
 <div id="screen-director" class="screen">
-    <!-- ИСПРАВЛЕНИЕ: Шапка в одну строку -->
     <div class="header">
         <h1>А.А. · Панель</h1>
         <button onclick="logout()">Выйти</button>
@@ -631,7 +628,6 @@ async function createOrder() {
 
     const comment = document.getElementById('order-comment').value.trim();
     
-    // ВАЛИДАЦИЯ
     if (toShop === shop) return showToast('Нельзя заказать у себя', 'error');
     if (!selectedOrderDept) return showToast('Выберите отдел!', 'error');
     if (!category) return showToast('Выберите категорию!', 'error');
@@ -651,7 +647,6 @@ async function createOrder() {
         showToast('⚠️ Ошибка сети', 'error');
     }
     
-    // Очистка формы
     document.getElementById('order-photo-file').value = '';
     document.getElementById('order-photo-preview').style.display = 'none';
     window.currentOrderPhotoBase64 = '';
