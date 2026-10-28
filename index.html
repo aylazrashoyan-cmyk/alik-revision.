@@ -136,7 +136,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     to { opacity: 1; transform: scale(1); }
 }
 
-/* Ð¡Ð¢ÐÐÐ ÐÐÐ¯ ÐÐÐÐÐ Ð«-Ð¡ÐÐÐÐÐ Ð */
+/* СТИЛИ ДЛЯ КАМЕРЫ-СКАНЕРА */
 #camera-scanner-modal { align-items: center; z-index: 10002; }
 #camera-scanner-modal .modal-content { border-radius: var(--radius-card); max-width: 500px; width: 94%; padding: 20px; }
 #qr-reader {
@@ -164,219 +164,219 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 
 <div id="js-error-banner"></div>
 
-<!-- ÐÐ°ÑÑÐ¾Ð¼Ð½Ð¾Ðµ confirm -->
+<!-- Кастомное confirm -->
 <div id="custom-confirm-modal" class="modal-overlay" style="align-items: center; z-index: 10001;">
     <div class="modal-content" style="border-radius: var(--radius-card); max-width: 320px; width: 90%; padding: 24px; text-align: center; animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-        <h3 id="custom-confirm-title" style="margin: 0 0 8px 0; font-weight: 900; font-size: 18px; color: var(--text-main);">ÐÐ¾Ð´ÑÐ²ÐµÑÐ´Ð¸ÑÐµ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ</h3>
+        <h3 id="custom-confirm-title" style="margin: 0 0 8px 0; font-weight: 900; font-size: 18px; color: var(--text-main);">Подтвердите действие</h3>
         <p id="custom-confirm-text" style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted); font-weight: 500; line-height: 1.4;"></p>
         <div style="display: flex; gap: 12px;">
-            <button class="btn-edit" id="custom-confirm-cancel" style="flex: 1; padding: 14px; font-size: 14px;">ÐÑÐ¼ÐµÐ½Ð°</button>
-            <button class="btn-main" id="custom-confirm-ok" style="flex: 1; padding: 14px; font-size: 14px; margin: 0; text-transform: none; letter-spacing: 0;">ÐÐ°</button>
+            <button class="btn-edit" id="custom-confirm-cancel" style="flex: 1; padding: 14px; font-size: 14px;">Отмена</button>
+            <button class="btn-main" id="custom-confirm-ok" style="flex: 1; padding: 14px; font-size: 14px; margin: 0; text-transform: none; letter-spacing: 0;">Да</button>
         </div>
     </div>
 </div>
 
-<!-- ÐÐÐÐÐÐ¬ÐÐÐ ÐÐÐÐ ÐÐÐÐÐ Ð«-Ð¡ÐÐÐÐÐ Ð -->
+<!-- МОДАЛЬНОЕ ОКНО КАМЕРЫ-СКАНЕРА -->
 <div id="camera-scanner-modal" class="modal-overlay">
     <div class="modal-content">
-        <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 12px;">ð· Ð¡ÐºÐ°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð¸Ðµ ÐºÐ°Ð¼ÐµÑÐ¾Ð¹</h3>
-        <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0; font-weight: 500;">ÐÐ°Ð²ÐµÐ´Ð¸ÑÐµ ÐºÐ°Ð¼ÐµÑÑ Ð½Ð° ÑÑÑÐ¸Ñ-ÐºÐ¾Ð´. Ð Ð°ÑÐ¿Ð¾Ð·Ð½Ð°Ð½Ð½ÑÐµ ÐºÐ¾Ð´Ñ Ð¿Ð¾ÑÐ²ÑÑÑÑ Ð² ÑÐ¿Ð¸ÑÐºÐµ.</p>
+        <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 12px;">📷 Сканирование камерой</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0; font-weight: 500;">Наведите камеру на штрих-код. Распознанные коды появятся в списке.</p>
         <div id="qr-reader"></div>
         <div id="scan-last-result" style="text-align:center; margin-bottom: 12px;"></div>
-        <button class="btn-edit" style="width:100%; padding: 16px; font-size: 15px;" onclick="closeCameraScanner()">ÐÐ°ÐºÑÑÑÑ</button>
+        <button class="btn-edit" style="width:100%; padding: 16px; font-size: 15px;" onclick="closeCameraScanner()">Закрыть</button>
     </div>
 </div>
 
 <div id="toast" class="toast"></div>
 <input type="text" id="hidden-scanner" onkeypress="if(event.key==='Enter') processScan(this.value);" autocomplete="off">
 
-<!-- ÐÐÐÐÐÐ¬ÐÐÐ ÐÐÐÐ Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐÐÐ¯ -->
+<!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
 <div id="edit-modal" class="modal-overlay">
     <div class="modal-content">
-        <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 16px;">Ð ÐµÐ´Ð°ÐºÑÐ¸ÑÐ¾Ð²Ð°ÑÑ</h3>
+        <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 16px;">Редактировать</h3>
         <input type="hidden" id="edit-item-id">
         <input type="hidden" id="edit-item-type">
-        <div class="input-group"><label class="input-label">Ð Ð°Ð·Ð¼ÐµÑ</label><input type="text" id="edit-size" class="input-field"></div>
-        <div class="input-group"><label class="input-label">ÐÐ¾Ð´</label><input type="number" id="edit-year" class="input-field"></div>
-        <div class="input-group"><label class="input-label">ÐÐ¾Ð»Ð¸ÑÐµÑÑÐ²Ð¾</label><input type="number" id="edit-qty" class="input-field"></div>
+        <div class="input-group"><label class="input-label">Размер</label><input type="text" id="edit-size" class="input-field"></div>
+        <div class="input-group"><label class="input-label">Год</label><input type="number" id="edit-year" class="input-field"></div>
+        <div class="input-group"><label class="input-label">Количество</label><input type="number" id="edit-qty" class="input-field"></div>
         <div style="display:flex; gap:12px; margin-top: 12px;">
-            <button class="btn-edit" style="flex:1;" onclick="closeEditModal()">ÐÑÐ¼ÐµÐ½Ð°</button>
-            <button class="btn-main" style="flex:2;" onclick="saveEditItem()">Ð¡Ð¾ÑÑÐ°Ð½Ð¸ÑÑ</button>
+            <button class="btn-edit" style="flex:1;" onclick="closeEditModal()">Отмена</button>
+            <button class="btn-main" style="flex:2;" onclick="saveEditItem()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- Ð­ÐÐ ÐÐ ÐÐÐ¢ÐÐ ÐÐÐÐ¦ÐÐ -->
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
 <div id="screen-auth" class="screen active">
     <div class="card">
-        <h2>ÐÑÐ¾Ð´</h2>
+        <h2>Вход</h2>
         <div class="size-pills" style="justify-content: space-between; margin-bottom: 16px;" id="shop-pills">
-            <div class="size-pill" style="flex:1;" onclick="selectShop(this, 'ÐÐ»Ð¸Ðº')">ÐÐ»Ð¸Ðº</div>
-            <div class="size-pill" style="flex:1;" onclick="selectShop(this, 'ÐÐ¾Ð´Ð°')">ÐÐ¾Ð´Ð°</div>
-            <div class="size-pill" style="flex:1;" onclick="selectShop(this, 'Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ')">Ð¡ÑÐ¸Ð»Ñ</div>
+            <div class="size-pill" style="flex:1;" onclick="selectShop(this, 'Алик')">Алик</div>
+            <div class="size-pill" style="flex:1;" onclick="selectShop(this, 'Мода')">Мода</div>
+            <div class="size-pill" style="flex:1;" onclick="selectShop(this, 'Твой стиль')">Стиль</div>
         </div>
-        <div class="input-group"><input type="text" class="input-field" id="seller-name" placeholder="ÐÐ²ÐµÐ´Ð¸ÑÐµ Ð¸Ð¼Ñ" autocomplete="off"></div>
-        <button class="btn-main" onclick="loginSeller()">ÐÐ¾Ð¹ÑÐ¸</button>
+        <div class="input-group"><input type="text" class="input-field" id="seller-name" placeholder="Введите имя" autocomplete="off"></div>
+        <button class="btn-main" onclick="loginSeller()">Войти</button>
     </div>
     <div class="pin-zone">
-        <div class="pin-title">ÐÑÐ¾Ð´ Ð´Ð»Ñ Ð.Ð.</div>
+        <div class="pin-title">Вход для А.А.</div>
         <div class="pin-display" id="pin-display"><div class="pin-dash"></div><div class="pin-dash"></div><div class="pin-dash"></div><div class="pin-dash"></div></div>
         <div class="pin-pad">
             <div class="pin-btn" onclick="pressPin('1')">1</div><div class="pin-btn" onclick="pressPin('2')">2</div><div class="pin-btn" onclick="pressPin('3')">3</div>
             <div class="pin-btn" onclick="pressPin('4')">4</div><div class="pin-btn" onclick="pressPin('5')">5</div><div class="pin-btn" onclick="pressPin('6')">6</div>
             <div class="pin-btn" onclick="pressPin('7')">7</div><div class="pin-btn" onclick="pressPin('8')">8</div><div class="pin-btn" onclick="pressPin('9')">9</div>
-            <div class="pin-btn clear" onclick="pressPin('C')">Ð¡ÐÐ ÐÐ¡</div><div class="pin-btn" onclick="pressPin('0')">0</div><div class="pin-btn ok" onclick="checkPin()">OK</div>
+            <div class="pin-btn clear" onclick="pressPin('C')">СБРОС</div><div class="pin-btn" onclick="pressPin('0')">0</div><div class="pin-btn ok" onclick="checkPin()">OK</div>
         </div>
     </div>
 </div>
 
-<!-- Ð­ÐÐ ÐÐ ÐÐ ÐÐÐÐÐ¦Ð -->
+<!-- ЭКРАН ПРОДАВЦА -->
 <div id="screen-seller" class="screen">
     <div class="header">
-        <h1 id="shop-title">ÐÐ°Ð³Ð°Ð·Ð¸Ð½</h1>
-        <button onclick="logout()">ÐÑÐ¹ÑÐ¸</button>
+        <h1 id="shop-title">Магазин</h1>
+        <button onclick="logout()">Выйти</button>
     </div>
 
     <div class="main-tabs">
-        <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">ð¦ ÐÐ°ÐºÐ°Ð·Ñ</div>
-        <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">ðª ÐÐ¸ÑÑÐ¸Ð½Ð°</div>
-        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">ð ÐÐ½Ð²ÐµÐ½ÑÐ°ÑÐ¸Ð·Ð°ÑÐ¸Ñ</div>
+        <div class="main-tab active" id="tab-btn-orders" onclick="switchMainTab('orders')">📦 Заказы</div>
+        <div class="main-tab" id="tab-btn-catalog" onclick="switchMainTab('catalog')">🏪 Витрина</div>
+        <div class="main-tab" id="tab-btn-scanner" onclick="switchMainTab('scanner')">📋 Инвентаризация</div>
     </div>
 
-    <!-- ÐÐÐÐÐÐÐ ÐÐÐÐÐÐ« -->
+    <!-- ВКЛАДКА ЗАКАЗЫ -->
     <div id="section-orders">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
-                <h3 style="margin:0; font-weight:900; font-size: 18px;">Ð¡Ð¾Ð·Ð´Ð°ÑÑ Ð·Ð°Ð¿ÑÐ¾Ñ</h3>
+                <h3 style="margin:0; font-weight:900; font-size: 18px;">Создать запрос</h3>
             </div>
             
             <div class="input-group">
-                <label class="input-label">ÐÐ¾Ð¼Ñ (ÐÐ°Ð³Ð°Ð·Ð¸Ð½)</label>
+                <label class="input-label">Кому (Магазин)</label>
                 <select id="order-to-shop" class="input-field">
-                    <option value="ÐÐ»Ð¸Ðº">ÐÐ»Ð¸Ðº</option>
-                    <option value="ÐÐ¾Ð´Ð°">ÐÐ¾Ð´Ð°</option>
-                    <option value="Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ">Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ</option>
+                    <option value="Алик">Алик</option>
+                    <option value="Мода">Мода</option>
+                    <option value="Твой стиль">Твой стиль</option>
                 </select>
             </div>
             
-            <div class="input-label">ÐÑÐ´ÐµÐ»</div>
+            <div class="input-label">Отдел</div>
             <div class="size-pills" style="margin-bottom:12px;" id="order-dept-pills">
-                <div class="size-pill" onclick="selectDept(this, 'ÐÑÐ¶')">ÐÑÐ¶</div>
-                <div class="size-pill" onclick="selectDept(this, 'ÐÐµÐ½')">ÐÐµÐ½</div>
-                <div class="size-pill" onclick="selectDept(this, 'ÐÐµÑ')">ÐÐµÑ</div>
-                <div class="size-pill" onclick="selectDept(this, 'ÐÐ±ÑÐ²Ñ')">ÐÐ±ÑÐ²Ñ</div>
+                <div class="size-pill" onclick="selectDept(this, 'Муж')">Муж</div>
+                <div class="size-pill" onclick="selectDept(this, 'Жен')">Жен</div>
+                <div class="size-pill" onclick="selectDept(this, 'Дет')">Дет</div>
+                <div class="size-pill" onclick="selectDept(this, 'Обувь')">Обувь</div>
             </div>
 
             <div class="input-group">
-                <label class="input-label">ÐÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ</label>
+                <label class="input-label">Категория</label>
                 <select id="order-category" class="input-field">
-                    <option value="">ÐÑÐ±ÐµÑÐ¸ÑÐµ...</option>
-                    <option value="ÐÑÑÑÐºÐ¸">ÐÑÑÑÐºÐ¸</option>
-                    <option value="ÐÐµÑÑÐ¾Ð²ÐºÐ¸">ÐÐµÑÑÐ¾Ð²ÐºÐ¸</option>
-                    <option value="Ð¨ÑÐ±Ñ">Ð¨ÑÐ±Ñ</option>
-                    <option value="Ð¡Ð¿Ð¾ÑÑ-ÐºÐ¾ÑÑÑÐ¼Ñ">Ð¡Ð¿Ð¾ÑÑ-ÐºÐ¾ÑÑÑÐ¼Ñ</option>
-                    <option value="ÐÐ¾ÑÑÑ">ÐÐ¾ÑÑÑ</option>
-                    <option value="Ð¢Ð¾Ð»ÑÑÐ¾Ð²ÐºÐ¸">Ð¢Ð¾Ð»ÑÑÐ¾Ð²ÐºÐ¸</option>
-                    <option value="ÐÐ±ÑÐ²Ñ">ÐÐ±ÑÐ²Ñ</option>
-                    <option value="custom_add">â Ð¡Ð²Ð¾Ñ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ...</option>
+                    <option value="">Выберите...</option>
+                    <option value="Куртки">Куртки</option>
+                    <option value="Ветровки">Ветровки</option>
+                    <option value="Шубы">Шубы</option>
+                    <option value="Спорт-костюмы">Спорт-костюмы</option>
+                    <option value="Кофты">Кофты</option>
+                    <option value="Толстовки">Толстовки</option>
+                    <option value="Обувь">Обувь</option>
+                    <option value="custom_add">➕ Своя категория...</option>
                 </select>
-                <input type="text" class="input-field" id="new-category-input" placeholder="ÐÐ²ÐµÐ´Ð¸ÑÐµ ÑÐ²Ð¾Ñ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ" style="display:none; margin-top:8px;">
+                <input type="text" class="input-field" id="new-category-input" placeholder="Введите свою категорию" style="display:none; margin-top:8px;">
             </div>
 
             <div class="input-group">
-                <label class="input-label">Ð¤Ð¾ÑÐ¾</label>
+                <label class="input-label">Фото</label>
                 <input type="file" accept="image/*" capture="environment" class="input-field" id="order-photo-file" onchange="handlePhoto(this, 'order-photo-preview', (val)=>window.currentOrderPhotoBase64=val)" style="padding: 12px;">
                 <img id="order-photo-preview" style="width:100%; max-height:200px; object-fit:contain; border-radius:var(--radius-input); background:var(--bg-app); margin-top:8px; display:none; padding: 8px;">
             </div>
 
             <div class="input-group">
-                <label class="input-label">Ð Ð°Ð·Ð¼ÐµÑ</label>
+                <label class="input-label">Размер</label>
                 <select id="order-size" class="input-field">
-                    <option value="">ÐÑÐ±ÐµÑÐ¸ÑÐµ...</option>
+                    <option value="">Выберите...</option>
                     <option value="M">M</option>
                     <option value="L">L</option>
                     <option value="XL">XL</option>
                     <option value="2XL">2XL</option>
                     <option value="3XL">3XL</option>
-                    <option value="custom_add">â Ð¡Ð²Ð¾Ð¹ ÑÐ°Ð·Ð¼ÐµÑ...</option>
+                    <option value="custom_add">➕ Свой размер...</option>
                 </select>
-                <input type="text" class="input-field" id="custom-size-input" placeholder="ÐÐ²ÐµÐ´Ð¸ÑÐµ ÑÐ²Ð¾Ð¹ ÑÐ°Ð·Ð¼ÐµÑ" style="display:none; margin-top:8px;">
+                <input type="text" class="input-field" id="custom-size-input" placeholder="Введите свой размер" style="display:none; margin-top:8px;">
             </div>
 
-            <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="ÐÐ¾Ð¼Ð¼ÐµÐ½ÑÐ°ÑÐ¸Ð¹"></div>
+            <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
             
             <div style="display:flex; gap:12px; margin-top:8px;">
-                <button class="btn-edit" id="btn-reset-order" style="flex:1; padding:18px; text-transform:uppercase; letter-spacing:0.5px; font-weight:900; font-size:14px;" onclick="resetOrderForm()">Ð¡Ð±ÑÐ¾ÑÐ¸ÑÑ</button>
-                <button class="btn-main" id="btn-submit-order" style="flex:2; margin:0;" onclick="createOrder()">ÐÑÐ¿ÑÐ°Ð²Ð¸ÑÑ Ð·Ð°Ð¿ÑÐ¾Ñ</button>
+                <button class="btn-edit" id="btn-reset-order" style="flex:1; padding:18px; text-transform:uppercase; letter-spacing:0.5px; font-weight:900; font-size:14px;" onclick="resetOrderForm()">Сбросить</button>
+                <button class="btn-main" id="btn-submit-order" style="flex:2; margin:0;" onclick="createOrder()">Отправить запрос</button>
             </div>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">ÐÑÐ¾Ð´ÑÑÐ¸Ðµ</h3>
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Входящие</h3>
             <div id="orders-incoming-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 80%;"></div><div class="skeleton-line" style="width: 60%;"></div></div></div>
         </div>
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">ÐÑÑÐ¾Ð´ÑÑÐ¸Ðµ</h3>
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Исходящие</h3>
             <div id="orders-outgoing-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 80%;"></div><div class="skeleton-line" style="width: 60%;"></div></div></div>
         </div>
     </div>
 
-    <!-- ÐÐÐÐÐÐÐ ÐÐÐ¢Ð ÐÐÐ -->
+    <!-- ВКЛАДКА ВИТРИНА -->
     <div id="section-catalog" style="display: none;">
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">ÐÐ¾Ð´Ð±Ð¾Ñ ÑÐ¾Ð²Ð°ÑÐ°</h3>
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">Подбор товара</h3>
 
-            <div class="input-label">ÐÑÐ´ÐµÐ»</div>
+            <div class="input-label">Отдел</div>
             <div class="size-pills" style="margin-bottom:12px;" id="cat-dept-pills">
-                <div class="size-pill" onclick="selectCatDept(this, 'ÐÑÐ¶')">ÐÑÐ¶</div>
-                <div class="size-pill" onclick="selectCatDept(this, 'ÐÐµÐ½')">ÐÐµÐ½</div>
-                <div class="size-pill" onclick="selectCatDept(this, 'ÐÐµÑ')">ÐÐµÑ</div>
-                <div class="size-pill" onclick="selectCatDept(this, 'ÐÐ±ÑÐ²Ñ')">ÐÐ±ÑÐ²Ñ</div>
+                <div class="size-pill" onclick="selectCatDept(this, 'Муж')">Муж</div>
+                <div class="size-pill" onclick="selectCatDept(this, 'Жен')">Жен</div>
+                <div class="size-pill" onclick="selectCatDept(this, 'Дет')">Дет</div>
+                <div class="size-pill" onclick="selectCatDept(this, 'Обувь')">Обувь</div>
             </div>
 
             <div class="input-group">
-                <label class="input-label">ÐÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ</label>
+                <label class="input-label">Категория</label>
                 <select id="cat-category" class="input-field">
-                    <option value="">ÐÑÐ±ÐµÑÐ¸ÑÐµ...</option>
-                    <option value="ÐÑÑÑÐºÐ¸">ÐÑÑÑÐºÐ¸</option>
-                    <option value="ÐÐµÑÑÐ¾Ð²ÐºÐ¸">ÐÐµÑÑÐ¾Ð²ÐºÐ¸</option>
-                    <option value="Ð¨ÑÐ±Ñ">Ð¨ÑÐ±Ñ</option>
-                    <option value="Ð¡Ð¿Ð¾ÑÑ-ÐºÐ¾ÑÑÑÐ¼Ñ">Ð¡Ð¿Ð¾ÑÑ-ÐºÐ¾ÑÑÑÐ¼Ñ</option>
-                    <option value="ÐÐ¾ÑÑÑ">ÐÐ¾ÑÑÑ</option>
-                    <option value="Ð¢Ð¾Ð»ÑÑÐ¾Ð²ÐºÐ¸">Ð¢Ð¾Ð»ÑÑÐ¾Ð²ÐºÐ¸</option>
-                    <option value="ÐÐ±ÑÐ²Ñ">ÐÐ±ÑÐ²Ñ</option>
-                    <option value="custom_add">â Ð¡Ð²Ð¾Ñ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ...</option>
+                    <option value="">Выберите...</option>
+                    <option value="Куртки">Куртки</option>
+                    <option value="Ветровки">Ветровки</option>
+                    <option value="Шубы">Шубы</option>
+                    <option value="Спорт-костюмы">Спорт-костюмы</option>
+                    <option value="Кофты">Кофты</option>
+                    <option value="Толстовки">Толстовки</option>
+                    <option value="Обувь">Обувь</option>
+                    <option value="custom_add">➕ Своя категория...</option>
                 </select>
-                <input type="text" class="input-field" id="new-cat-category-input" placeholder="ÐÐ²ÐµÐ´Ð¸ÑÐµ ÑÐ²Ð¾Ñ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ" style="display:none; margin-top:8px;">
+                <input type="text" class="input-field" id="new-cat-category-input" placeholder="Введите свою категорию" style="display:none; margin-top:8px;">
             </div>
 
             <div class="input-group">
-                <label class="input-label">Ð¤Ð¾ÑÐ¾</label>
+                <label class="input-label">Фото</label>
                 <input type="file" accept="image/*" capture="environment" class="input-field" id="cat-photo-file" onchange="handlePhoto(this, 'cat-photo-preview', (val)=>window.currentCatPhotoBase64=val)" style="padding: 12px;">
                 <img id="cat-photo-preview" style="width:100%; max-height:200px; object-fit:contain; border-radius:var(--radius-input); background:var(--bg-app); margin-top:8px; display:none; padding: 8px;">
             </div>
 
             <div class="input-group">
-                <label class="input-label">Ð Ð°Ð·Ð¼ÐµÑ</label>
+                <label class="input-label">Размер</label>
                 <select id="cat-size" class="input-field">
-                    <option value="">ÐÑÐ±ÐµÑÐ¸ÑÐµ...</option>
+                    <option value="">Выберите...</option>
                     <option value="M">M</option>
                     <option value="L">L</option>
                     <option value="XL">XL</option>
                     <option value="2XL">2XL</option>
                     <option value="3XL">3XL</option>
-                    <option value="custom_add">â Ð¡Ð²Ð¾Ð¹ ÑÐ°Ð·Ð¼ÐµÑ...</option>
+                    <option value="custom_add">➕ Свой размер...</option>
                 </select>
-                <input type="text" class="input-field" id="custom-cat-size-input" placeholder="ÐÐ²ÐµÐ´Ð¸ÑÐµ ÑÐ²Ð¾Ð¹ ÑÐ°Ð·Ð¼ÐµÑ" style="display:none; margin-top:8px;">
+                <input type="text" class="input-field" id="custom-cat-size-input" placeholder="Введите свой размер" style="display:none; margin-top:8px;">
             </div>
 
             <div style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px;">
                 <div class="input-group" style="flex: 1; margin-bottom: 0;">
-                    <label class="input-label">ÐÐ¾Ð´</label>
+                    <label class="input-label">Год</label>
                     <select id="cat-year" class="input-field"></select>
                 </div>
                 <div class="input-group" style="flex: 1; margin-bottom: 0;">
-                    <label class="input-label">ÐÐ¾Ð»-Ð²Ð¾</label>
+                    <label class="input-label">Кол-во</label>
                     <div class="qty-control" style="width: 100%;">
                         <button class="qty-btn" onclick="changeCatQty(-1)">-</button>
                         <input type="number" id="cat-qty" class="qty-input" value="1" min="1" readonly>
@@ -386,22 +386,22 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             </div>
 
             <div style="display:flex; gap:12px;">
-                <button class="btn-edit" id="btn-reset-catalog" style="flex:1; padding:18px; text-transform:uppercase; letter-spacing:0.5px; font-weight:900; font-size:14px;" onclick="resetCatalogForm()">Ð¡Ð±ÑÐ¾ÑÐ¸ÑÑ</button>
-                <button class="btn-main" id="btn-submit-catalog" style="flex:2; margin:0;" onclick="addToCatalog()">ÐÐ¿ÑÐ±Ð»Ð¸ÐºÐ¾Ð²Ð°ÑÑ</button>
+                <button class="btn-edit" id="btn-reset-catalog" style="flex:1; padding:18px; text-transform:uppercase; letter-spacing:0.5px; font-weight:900; font-size:14px;" onclick="resetCatalogForm()">Сбросить</button>
+                <button class="btn-main" id="btn-submit-catalog" style="flex:2; margin:0;" onclick="addToCatalog()">Опубликовать</button>
             </div>
         </div>
 
         <div class="card" style="background: transparent; box-shadow: none; padding: 0; border: none;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
-                <h3 style="margin:0; font-weight:900; font-size: 20px;">ÐÐ¸ÑÑÐ¸Ð½Ð°</h3>
+                <h3 style="margin:0; font-weight:900; font-size: 20px;">Витрина</h3>
             </div>
 
             <div class="size-pills" style="margin:0 0 8px 0; background: var(--bg-card); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
-                <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">ÐÑÐµ</div>
-                <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">ÐÐ¾Ð¸</div>
-                <div class="size-pill" id="btn-filter-alik" onclick="toggleCatalogFilter('ÐÐ»Ð¸Ðº')" style="padding:6px 12px; font-size: 12px;">ÐÐ»Ð¸Ðº</div>
-                <div class="size-pill" id="btn-filter-moda" onclick="toggleCatalogFilter('ÐÐ¾Ð´Ð°')" style="padding:6px 12px; font-size: 12px;">ÐÐ¾Ð´Ð°</div>
-                <div class="size-pill" id="btn-filter-style" onclick="toggleCatalogFilter('Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ')" style="padding:6px 12px; font-size: 12px;">Ð¡ÑÐ¸Ð»Ñ</div>
+                <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
+                <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">Мои</div>
+                <div class="size-pill" id="btn-filter-alik" onclick="toggleCatalogFilter('Алик')" style="padding:6px 12px; font-size: 12px;">Алик</div>
+                <div class="size-pill" id="btn-filter-moda" onclick="toggleCatalogFilter('Мода')" style="padding:6px 12px; font-size: 12px;">Мода</div>
+                <div class="size-pill" id="btn-filter-style" onclick="toggleCatalogFilter('Твой стиль')" style="padding:6px 12px; font-size: 12px;">Стиль</div>
             </div>
 
             <div id="catalog-category-pills" class="size-pills" style="margin:0 0 12px 0; flex-wrap:wrap; display:none;"></div>
@@ -410,51 +410,51 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         </div>
     </div>
 
-    <!-- ÐÐÐÐÐÐÐ ÐÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¦ÐÐ¯ -->
+    <!-- ВКЛАДКА ИНВЕНТАРИЗАЦИЯ -->
     <div id="section-scanner" style="display: none;">
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">ÐÐ½Ð²ÐµÐ½ÑÐ°ÑÐ¸Ð·Ð°ÑÐ¸Ñ</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">ÐÐ°Ð²ÐµÐ´Ð¸ÑÐµ Ð¢Ð¡Ð Ð´Ð»Ñ ÑÐºÐ°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð¸Ñ.</p>
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Инвентаризация</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">Наведите ТСД для сканирования.</p>
             
             <div id="scan-list-container"></div>
             
             <div id="scan-summary" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 2px dashed #D1D5DB; justify-content: space-between;">
-                <span style="color: var(--text-muted); font-weight: 600;">ÐÐ¾Ð·Ð¸ÑÐ¸Ð¹:</span>
+                <span style="color: var(--text-muted); font-weight: 600;">Позиций:</span>
                 <strong id="total-positions" style="color: var(--text-main); font-size: 16px;">0</strong>
-                <span style="color: var(--text-muted); font-weight: 600; margin-left: 12px;">Ð¨ÑÑÐº:</span>
+                <span style="color: var(--text-muted); font-weight: 600; margin-left: 12px;">Штук:</span>
                 <strong id="total-qty" style="color: var(--success); font-size: 16px;">0</strong>
             </div>
 
-            <button class="btn-main" onclick="saveInventory()" style="margin-top: 20px; background: var(--dark-pill); color: var(--primary);">Ð¡Ð¾ÑÑÐ°Ð½Ð¸ÑÑ ÑÐµÐ²Ð¸Ð·Ð¸Ñ</button>
-            <button class="btn-main" onclick="downloadCurrentRevisionExcel()" style="margin-top: 10px; background: var(--success); color: #fff;">ð¥ Ð¡ÐºÐ°ÑÐ°ÑÑ Ð² Excel</button>
+            <button class="btn-main" onclick="saveInventory()" style="margin-top: 20px; background: var(--dark-pill); color: var(--primary);">Сохранить ревизию</button>
+            <button class="btn-main" onclick="downloadCurrentRevisionExcel()" style="margin-top: 10px; background: var(--success); color: #fff;">📥 Скачать в Excel</button>
         </div>
     </div>
 </div>
 
-<!-- Ð­ÐÐ ÐÐ ÐÐÐ ÐÐÐ¢ÐÐ Ð -->
+<!-- ЭКРАН ДИРЕКТОРА -->
 <div id="screen-director" class="screen">
     <div class="header">
-        <h1>Ð.Ð. Â· ÐÐ°Ð½ÐµÐ»Ñ</h1>
-        <button onclick="logout()">ÐÑÐ¹ÑÐ¸</button>
+        <h1>А.А. · Панель</h1>
+        <button onclick="logout()">Выйти</button>
     </div>
     <div class="main-tabs">
-        <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">ð¦ ÐÐ°ÐºÐ°Ð·Ñ</div>
-        <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">ðª ÐÐ¸ÑÑÐ¸Ð½Ð°</div>
-        <div class="main-tab" id="dir-tab-btn-scanner" onclick="switchDirTab('scanner')">ð ÐÐ½Ð²ÐµÐ½ÑÐ°ÑÐ¸Ð·Ð°ÑÐ¸Ñ</div>
+        <div class="main-tab active" id="dir-tab-btn-orders" onclick="switchDirTab('orders')">📦 Заказы</div>
+        <div class="main-tab" id="dir-tab-btn-catalog" onclick="switchDirTab('catalog')">🏪 Витрина</div>
+        <div class="main-tab" id="dir-tab-btn-scanner" onclick="switchDirTab('scanner')">📋 Инвентаризация</div>
     </div>
     
     <div class="card" id="dir-section-orders" style="padding: 16px;"><div id="director-orders-list"></div></div>
     
     <div class="card" id="dir-section-catalog" style="display:none; padding: 16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
-            <h3 style="margin:0; font-weight:900; font-size: 18px;">ÐÐ¸ÑÑÐ¸Ð½Ð°</h3>
+            <h3 style="margin:0; font-weight:900; font-size: 18px;">Витрина</h3>
         </div>
 
         <div class="size-pills" style="margin:0 0 8px 0; background: var(--bg-app); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
-            <div class="size-pill active" id="dir-filter-all" onclick="toggleDirectorCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">ÐÑÐµ</div>
-            <div class="size-pill" id="dir-filter-alik" onclick="toggleDirectorCatalogFilter('ÐÐ»Ð¸Ðº')" style="padding:6px 12px; font-size: 12px;">ÐÐ»Ð¸Ðº</div>
-            <div class="size-pill" id="dir-filter-moda" onclick="toggleDirectorCatalogFilter('ÐÐ¾Ð´Ð°')" style="padding:6px 12px; font-size: 12px;">ÐÐ¾Ð´Ð°</div>
-            <div class="size-pill" id="dir-filter-style" onclick="toggleDirectorCatalogFilter('Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ')" style="padding:6px 12px; font-size: 12px;">Ð¡ÑÐ¸Ð»Ñ</div>
+            <div class="size-pill active" id="dir-filter-all" onclick="toggleDirectorCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
+            <div class="size-pill" id="dir-filter-alik" onclick="toggleDirectorCatalogFilter('Алик')" style="padding:6px 12px; font-size: 12px;">Алик</div>
+            <div class="size-pill" id="dir-filter-moda" onclick="toggleDirectorCatalogFilter('Мода')" style="padding:6px 12px; font-size: 12px;">Мода</div>
+            <div class="size-pill" id="dir-filter-style" onclick="toggleDirectorCatalogFilter('Твой стиль')" style="padding:6px 12px; font-size: 12px;">Стиль</div>
         </div>
 
         <div id="director-category-pills" class="size-pills" style="margin:0 0 12px 0; flex-wrap:wrap; display:none;"></div>
@@ -464,35 +464,35 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     
     <div id="dir-section-scanner" style="display:none;">
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">ÐÐ½Ð²ÐµÐ½ÑÐ°ÑÐ¸Ð·Ð°ÑÐ¸Ñ (Ð.Ð.)</h3>
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Инвентаризация (А.А.)</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">
-                ÐÑÐ¿Ð¾Ð»ÑÐ·ÑÐ¹ÑÐµ Ð¢Ð¡Ð Ð¸Ð»Ð¸ ÐºÐ°Ð¼ÐµÑÑ ÑÐµÐ»ÐµÑÐ¾Ð½Ð° Ð´Ð»Ñ ÑÐºÐ°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð¸Ñ.
+                Используйте ТСД или камеру телефона для сканирования.
             </p>
 
-            <!-- ÐÐ½Ð¾Ð¿ÐºÐ° Ð·Ð°Ð¿ÑÑÐºÐ° ÐºÐ°Ð¼ÐµÑÑ -->
+            <!-- Кнопка запуска камеры -->
             <button class="btn-main" onclick="openCameraScanner('director')" style="margin-bottom: 16px; background: var(--dark-pill); color: var(--primary);">
-                ð· Ð¡ÐºÐ°Ð½Ð¸ÑÐ¾Ð²Ð°ÑÑ ÐºÐ°Ð¼ÐµÑÐ¾Ð¹
+                📷 Сканировать камерой
             </button>
 
             <div id="director-scan-list-container"></div>
 
             <div id="director-scan-summary" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 2px dashed #D1D5DB; justify-content: space-between;">
-                <span style="color: var(--text-muted); font-weight: 600;">ÐÐ¾Ð·Ð¸ÑÐ¸Ð¹:</span>
+                <span style="color: var(--text-muted); font-weight: 600;">Позиций:</span>
                 <strong id="director-total-positions" style="color: var(--text-main); font-size: 16px;">0</strong>
-                <span style="color: var(--text-muted); font-weight: 600; margin-left: 12px;">Ð¨ÑÑÐº:</span>
+                <span style="color: var(--text-muted); font-weight: 600; margin-left: 12px;">Штук:</span>
                 <strong id="director-total-qty" style="color: var(--success); font-size: 16px;">0</strong>
             </div>
 
             <button class="btn-main" onclick="saveDirectorInventory()" style="margin-top: 20px; background: var(--success); color: #fff;">
-                â Ð¡Ð¾ÑÑÐ°Ð½Ð¸ÑÑ ÑÐµÐ²Ð¸Ð·Ð¸Ñ Ð.Ð.
+                ✅ Сохранить ревизию А.А.
             </button>
             <button class="btn-main" onclick="downloadDirectorRevisionExcel()" style="margin-top: 10px; background: var(--dark-pill); color: var(--primary);">
-                ð¥ Ð¡ÐºÐ°ÑÐ°ÑÑ Ð² Excel
+                📥 Скачать в Excel
             </button>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">ÐÑÑÐ¾ÑÐ¸Ñ ÑÐµÐ²Ð¸Ð·Ð¸Ð¹</h3>
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">История ревизий</h3>
             <div id="revisions-list"></div>
         </div>
     </div>
@@ -506,7 +506,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     const banner = document.getElementById('js-error-banner');
     if (banner) {
       banner.style.display = 'block';
-      banner.textContent = 'â ï¸ ÐÑÐ¸Ð±ÐºÐ°: ' + (e.message || 'unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
+      banner.textContent = '⚠️ Ошибка: ' + (e.message || 'unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
     }
   });
 
@@ -529,14 +529,14 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 
         window.fbDB = db;
         window.fbFns = { collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction };
-        console.log('â Firebase ready');
+        console.log('✅ Firebase ready');
 
-        // ÐÐ¾ÑÐ»Ðµ Ð¸Ð½Ð¸ÑÐ¸Ð°Ð»Ð¸Ð·Ð°ÑÐ¸Ð¸ Firebase Ð¿Ð¾Ð´Ð³ÑÑÐ¶Ð°ÐµÐ¼ Ð´Ð°Ð½Ð½ÑÐµ Ð´Ð»Ñ ÑÐµÐºÑÑÐµÐ³Ð¾ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ
+        // После инициализации Firebase подгружаем данные для текущего пользователя
         if (typeof shop !== 'undefined' && shop && seller) {
             if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
             if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
         }
-        // ÐÑÐ»Ð¸ Ð´Ð¸ÑÐµÐºÑÐ¾Ñ ÑÐ¶Ðµ Ð¾ÑÐºÑÑÑ â Ð³ÑÑÐ·Ð¸Ð¼ ÐµÐ³Ð¾ Ð´Ð°Ð½Ð½ÑÐµ
+        // Если директор уже открыт — грузим его данные
         if (typeof directorMode !== 'undefined' && directorMode) {
             if (typeof window.loadDirectorOrders === 'function') window.loadDirectorOrders();
             if (typeof window.loadRevisions === 'function') window.loadRevisions();
@@ -548,7 +548,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             .catch(err => console.log('SW error', err));
         }
       } catch (err) {
-        console.error('â Firebase init failed:', err);
+        console.error('❌ Firebase init failed:', err);
         window.fbDB = null;
         window.fbFns = null;
       }
@@ -556,11 +556,11 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 </script>
 
 <!-- ===================================================== -->
-<!-- ÐÐ¡ÐÐÐÐÐÐ ÐÐÐ -->
+<!-- ОСНОВНОЙ КОД -->
 <!-- ===================================================== -->
 <script>
 /* ============================================================
-   ÐÐÐÐÐÐÐ¡ÐÐÐ¯ ÐÐÐÐ¦ÐÐÐÐÐÐÐ¦ÐÐ¯ ÐÐÐÐÐ«Ð¥
+   БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ДАННЫХ
    ============================================================ */
 var shop = '';
 var seller = '';
@@ -599,7 +599,7 @@ try {
     scanList = [];
 }
 
-/* Ð¡Ð¿Ð¸ÑÐ¾Ðº ÑÐºÐ°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð¸Ñ Ð´Ð»Ñ Ð´Ð¸ÑÐµÐºÑÐ¾ÑÐ° */
+/* Список сканирования для директора */
 var directorScanList = [];
 try {
     var rawDir = localStorage.getItem('director_scan_list_draft');
@@ -610,7 +610,7 @@ try {
     directorScanList = [];
 }
 
-/* ÐÐµÑÐµÐ¼ÐµÐ½Ð½ÑÐµ Ð´Ð»Ñ ÐºÐ°Ð¼ÐµÑÑ-ÑÐºÐ°Ð½ÐµÑÐ° */
+/* Переменные для камеры-сканера */
 var html5QrCode = null;
 var currentScannerTarget = 'seller';
 var cameraIsRunning = false;
@@ -619,7 +619,7 @@ var lastScanTime = 0;
 var SCAN_COOLDOWN = 1500;
 
 /* ============================================================
-   ÐÐÐÐÐÐÐ¬ÐÐ«Ð Ð¤Ð£ÐÐÐ¦ÐÐ
+   ГЛОБАЛЬНЫЕ ФУНКЦИИ
    ============================================================ */
 
 window.showToast = function(msg, type) {
@@ -641,7 +641,7 @@ window.showCustomConfirm = function(title, text, onConfirm) {
 
     if (!modal) return;
 
-    titleEl.innerText = title || 'ÐÐ¾Ð´ÑÐ²ÐµÑÐ´Ð¸ÑÐµ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ';
+    titleEl.innerText = title || 'Подтвердите действие';
     textEl.innerText = text || '';
     
     var newBtnOk = btnOk.cloneNode(true);
@@ -691,15 +691,15 @@ window.loginSeller = function() {
     try {
         var nameInput = document.getElementById('seller-name');
         var name = nameInput ? nameInput.value.trim() : '';
-        if (!shop) return showToast('ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½!', 'error');
-        if (!name) return showToast('ÐÐ²ÐµÐ´Ð¸ÑÐµ Ð¸Ð¼Ñ!', 'error');
+        if (!shop) return showToast('Выберите магазин!', 'error');
+        if (!name) return showToast('Введите имя!', 'error');
         seller = name;
         try {
             localStorage.setItem('ord_shop', shop);
             localStorage.setItem('ord_seller', seller);
         } catch(_) {}
         var titleEl = document.getElementById('shop-title');
-        if (titleEl) titleEl.innerText = 'ÐÐ°Ð³Ð°Ð·Ð¸Ð½ Â· ' + shop;
+        if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
         showScreen('screen-seller');
         renderScanList();
         if (window.fbDB) {
@@ -722,7 +722,7 @@ window.logout = function() {
     showScreen('screen-auth');
 };
 
-/* --- ÐÐÐ-ÐÐÐ --- */
+/* --- ПИН-ПАД --- */
 window.updatePinDisplay = function() {
     var dashes = document.querySelectorAll('#pin-display .pin-dash');
     for (var i = 0; i < dashes.length; i++) {
@@ -746,16 +746,16 @@ window.checkPin = function() {
             currentPin = '';
             updatePinDisplay();
             showScreen('screen-director');
-            showToast('ÐÐ¾Ð±ÑÐ¾ Ð¿Ð¾Ð¶Ð°Ð»Ð¾Ð²Ð°ÑÑ', 'success');
+            showToast('Добро пожаловать', 'success');
         } else {
-            showToast('ÐÐµÐ²ÐµÑÐ½ÑÐ¹ PIN', 'error');
+            showToast('Неверный PIN', 'error');
             currentPin = '';
             updatePinDisplay();
         }
     } catch(e) { console.error('checkPin:', e); }
 };
 
-/* --- ÐÐÐÐÐÐÐ --- */
+/* --- ВКЛАДКИ --- */
 window.switchMainTab = function(tab) {
     var tabs = ['orders','catalog','scanner'];
     for (var i = 0; i < tabs.length; i++) {
@@ -778,7 +778,7 @@ window.switchDirTab = function(tab) {
     }
 };
 
-/* --- ÐÐ¢ÐÐÐÐ« --- */
+/* --- ОТДЕЛЫ --- */
 window.selectDept = function(el, dept) {
     var parent = el.parentElement;
     if (el.classList.contains('active')) {
@@ -814,7 +814,7 @@ window.changeCatQty = function(delta) {
     if (val + delta >= 1) input.value = val + delta;
 };
 
-/* --- ÐÐÐÐÐÐÐ¦ÐÐ¯ --- */
+/* --- ВАЛИДАЦИЯ --- */
 function validateOrderForm() {
     var btn = document.getElementById('btn-submit-order');
     if (!btn) return;
@@ -845,7 +845,7 @@ function validateCatalogForm() {
     btn.disabled = !ok;
 }
 
-/* --- Ð¤ÐÐ¢Ð --- */
+/* --- ФОТО --- */
 window.handlePhoto = function(input, previewId, setter) {
     var file = input.files && input.files[0];
     if (!file) return;
@@ -870,13 +870,13 @@ window.handlePhoto = function(input, previewId, setter) {
             if (previewId === 'order-photo-preview') validateOrderForm();
             if (previewId === 'cat-photo-preview') validateCatalogForm();
         };
-        img.onerror = function() { showToast('ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿ÑÐ¾ÑÐ¸ÑÐ°ÑÑ ÑÐ¾ÑÐ¾', 'error'); };
+        img.onerror = function() { showToast('Не удалось прочитать фото', 'error'); };
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 };
 
-/* --- ÐÐ§ÐÐ¡Ð¢ÐÐ Ð¤ÐÐ Ð --- */
+/* --- ОЧИСТКА ФОРМ --- */
 window.resetOrderForm = function() {
     var fields = ['order-photo-file','order-comment','order-category','order-size','new-category-input','custom-size-input'];
     var hasData = false;
@@ -910,11 +910,11 @@ window.resetOrderForm = function() {
             }
         }
         validateOrderForm();
-        showToast('Ð¤Ð¾ÑÐ¼Ð° Ð¾ÑÐ¸ÑÐµÐ½Ð°', 'success');
+        showToast('Форма очищена', 'success');
     };
 
     if (hasData) {
-        showCustomConfirm('ÐÑÐ¸ÑÑÐ¸ÑÑ ÑÐ¾ÑÐ¼Ñ?', 'ÐÑÐµ Ð²Ð²ÐµÐ´ÐµÐ½Ð½ÑÐµ Ð´Ð°Ð½Ð½ÑÐµ Ð¸ ÑÐ¾ÑÐ¾ Ð±ÑÐ´ÑÑ ÑÐ´Ð°Ð»ÐµÐ½Ñ.', doReset);
+        showCustomConfirm('Очистить форму?', 'Все введенные данные и фото будут удалены.', doReset);
     } else {
         doReset();
     }
@@ -948,19 +948,19 @@ window.resetCatalogForm = function() {
         for (var j = 0; j < deptPills.length; j++) deptPills[j].classList.remove('active');
         selectedCatDept = '';
         validateCatalogForm();
-        showToast('Ð¤Ð¾ÑÐ¼Ð° Ð¾ÑÐ¸ÑÐµÐ½Ð°', 'success');
+        showToast('Форма очищена', 'success');
     };
 
     if (hasData) {
-        showCustomConfirm('ÐÑÐ¸ÑÑÐ¸ÑÑ Ð²Ð¸ÑÑÐ¸Ð½Ñ?', 'ÐÑÐµ Ð²Ð²ÐµÐ´ÐµÐ½Ð½ÑÐµ Ð´Ð°Ð½Ð½ÑÐµ Ð¸ ÑÐ¾ÑÐ¾ Ð±ÑÐ´ÑÑ ÑÐ´Ð°Ð»ÐµÐ½Ñ.', doReset);
+        showCustomConfirm('Очистить витрину?', 'Все введенные данные и фото будут удалены.', doReset);
     } else {
         doReset();
     }
 };
 
-/* --- ÐÐÐÐÐÐ« --- */
+/* --- ЗАКАЗЫ --- */
 window.createOrder = async function() {
-    if (!window.fbDB) return showToast('ÐÐµÑ ÑÐ²ÑÐ·Ð¸ Ñ Ð±Ð°Ð·Ð¾Ð¹', 'error');
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
     var toShopEl = document.getElementById('order-to-shop');
     var catEl = document.getElementById('order-category');
     var sizeEl = document.getElementById('order-size');
@@ -980,28 +980,28 @@ window.createOrder = async function() {
     }
     var comment = commentEl ? commentEl.value.trim() : '';
 
-    if (toShop === shop) return showToast('ÐÐµÐ»ÑÐ·Ñ Ð·Ð°ÐºÐ°Ð·Ð°ÑÑ Ñ ÑÐµÐ±Ñ', 'error');
-    if (!selectedOrderDept) return showToast('ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð¾ÑÐ´ÐµÐ»!', 'error');
-    if (!category) return showToast('ÐÑÐ±ÐµÑÐ¸ÑÐµ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ!', 'error');
-    if (!window.currentOrderPhotoBase64) return showToast('Ð¡Ð´ÐµÐ»Ð°Ð¹ÑÐµ ÑÐ¾ÑÐ¾!', 'error');
+    if (toShop === shop) return showToast('Нельзя заказать у себя', 'error');
+    if (!selectedOrderDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!window.currentOrderPhotoBase64) return showToast('Сделайте фото!', 'error');
 
     var orderData = {
         fromShop: shop, toShop: toShop, seller: seller,
         dept: selectedOrderDept, category: category,
-        photo: window.currentOrderPhotoBase64, size: size || 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°',
+        photo: window.currentOrderPhotoBase64, size: size || 'Без размера',
         comment: comment, status: 'pending', date: new Date().toISOString(),
         sourceCatalogId: window.currentOrderCatalogId || null
     };
 
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
-        showToast('â ÐÐ°Ð¿ÑÐ¾Ñ Ð¾ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½!', 'success');
+        showToast('✅ Запрос отправлен!', 'success');
         resetOrderForm();
         window.currentOrderCatalogId = null;
         if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
     } catch (e) {
         console.error(e);
-        showToast('â ï¸ ÐÑÐ¸Ð±ÐºÐ° ÑÐµÑÐ¸', 'error');
+        showToast('⚠️ Ошибка сети', 'error');
     }
 };
 
@@ -1010,43 +1010,43 @@ function renderOrderCard(o, isDirector) {
     var photoHtml = o.photo ? '<img src="' + o.photo + '" class="order-photo" loading="lazy">' : '';
     var header;
     if (isDirector) {
-        header = '<span><b>' + o.fromShop + '</b> â <b>' + o.toShop + '</b></span>';
+        header = '<span><b>' + o.fromShop + '</b> → <b>' + o.toShop + '</b></span>';
     } else if (o.toShop === shop) {
-        header = '<span>ÐÑ: <b>' + o.fromShop + '</b> (' + o.seller + ')</span>';
+        header = '<span>От: <b>' + o.fromShop + '</b> (' + o.seller + ')</span>';
     } else {
-        header = '<span>ÐÐ¾Ð¼Ñ: <b>' + o.toShop + '</b></span>';
+        header = '<span>Кому: <b>' + o.toShop + '</b></span>';
     }
     var actionsHtml = '';
 
     if (isDirector) {
         actionsHtml = '<div style="display:flex; gap:8px; margin-top:8px;">' +
-            '<button class="btn-edit" style="flex:1;" onclick="directorEditOrder(\'' + o.id + '\')">âï¸ ÐÐ·Ð¼ÐµÐ½Ð¸ÑÑ</button>' +
-            '<button class="btn-del" style="flex:1;" onclick="directorDeleteOrder(\'' + o.id + '\')">ð Ð£Ð´Ð°Ð»Ð¸ÑÑ</button>' +
+            '<button class="btn-edit" style="flex:1;" onclick="directorEditOrder(\'' + o.id + '\')">✏️ Изменить</button>' +
+            '<button class="btn-del" style="flex:1;" onclick="directorDeleteOrder(\'' + o.id + '\')">🗑 Удалить</button>' +
             '</div>';
         if (o.status !== 'pending') {
-            actionsHtml = '<div style="font-size:12px; margin-top:8px; font-weight:700; color:var(--text-muted);">Ð¡ÑÐ°ÑÑÑ: ' + (o.status === 'accepted' ? 'â ÐÑÐ¸Ð½ÑÑ' : 'â ÐÑÐºÐ»Ð¾Ð½ÑÐ½') + '</div>' + actionsHtml;
+            actionsHtml = '<div style="font-size:12px; margin-top:8px; font-weight:700; color:var(--text-muted);">Статус: ' + (o.status === 'accepted' ? '✅ Принят' : '❌ Отклонён') + '</div>' + actionsHtml;
         }
     } else if (o.status === 'pending') {
         if (o.toShop === shop) {
             actionsHtml = '<div style="display:flex; gap:8px; margin-top:8px;">' +
-                '<button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus(\'' + o.id + '\', \'accepted\', \'' + (o.sourceCatalogId || '') + '\')">ÐÑÐ¸Ð½ÑÑÑ</button>' +
-                '<button class="btn-del" style="flex:1;" onclick="updateOrderStatus(\'' + o.id + '\', \'rejected\')">ÐÑÐºÐ»Ð¾Ð½Ð¸ÑÑ</button>' +
+                '<button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus(\'' + o.id + '\', \'accepted\', \'' + (o.sourceCatalogId || '') + '\')">Принять</button>' +
+                '<button class="btn-del" style="flex:1;" onclick="updateOrderStatus(\'' + o.id + '\', \'rejected\')">Отклонить</button>' +
                 '</div>';
         }
     } else {
-        actionsHtml = '<div style="font-size:12px; margin-top:8px; font-weight:700;">Ð¡ÑÐ°ÑÑÑ: ' + (o.status === 'accepted' ? 'â ÐÑÐ¸Ð½ÑÑ (Ð¢Ð¾Ð²Ð°Ñ ÑÐ¿Ð¸ÑÐ°Ð½)' : 'â ÐÑÐºÐ»Ð¾Ð½ÐµÐ½') + '</div>';
+        actionsHtml = '<div style="font-size:12px; margin-top:8px; font-weight:700;">Статус: ' + (o.status === 'accepted' ? '✅ Принят (Товар списан)' : '❌ Отклонен') + '</div>';
     }
 
-    var commentHtml = o.comment ? '<div style="font-size:13px; color:var(--text-muted); background:var(--bg-app); padding:8px; border-radius:8px;">ð¬ ' + o.comment + '</div>' : '';
+    var commentHtml = o.comment ? '<div style="font-size:13px; color:var(--text-muted); background:var(--bg-app); padding:8px; border-radius:8px;">💬 ' + o.comment + '</div>' : '';
 
     return '<div class="order-card ' + o.status + '">' + photoHtml +
         '<div class="order-header">' + header + '</div>' +
         '<div class="order-title">' + o.category + ' <span style="font-size:13px; color:var(--text-muted);">| ' + o.size + '</span></div>' +
-        '<div class="order-details">ÐÑÐ´ÐµÐ»: ' + o.dept + '</div>' +
+        '<div class="order-details">Отдел: ' + o.dept + '</div>' +
         commentHtml + actionsHtml + '</div>';
 }
 
-/* ---- ÐÐ¡ÐÐ ÐÐÐÐÐÐ: window.loadMyOrders ---- */
+/* ---- ИСПРАВЛЕНО: window.loadMyOrders ---- */
 window.loadMyOrders = async function() {
     if (!window.fbDB) return;
     try {
@@ -1057,7 +1057,7 @@ window.loadMyOrders = async function() {
         var inEl = document.getElementById('orders-incoming-list');
         if (inEl) inEl.innerHTML = allIncomingOrders.length
             ? allIncomingOrders.map(function(o) { return renderOrderCard(o); }).join('')
-            : '<div style="text-align:center; color:var(--text-muted); padding:10px;">ÐÐµÑ Ð²ÑÐ¾Ð´ÑÑÐ¸Ñ</div>';
+            : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет входящих</div>';
     } catch(e) { console.log(e); }
 
     try {
@@ -1068,13 +1068,13 @@ window.loadMyOrders = async function() {
         var outEl = document.getElementById('orders-outgoing-list');
         if (outEl) outEl.innerHTML = ordersOut.length
             ? ordersOut.map(function(o) { return renderOrderCard(o); }).join('')
-            : '<div style="text-align:center; color:var(--text-muted); padding:10px;">ÐÐµÑ Ð¸ÑÑÐ¾Ð´ÑÑÐ¸Ñ</div>';
+            : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет исходящих</div>';
     } catch(e) { console.log(e); }
 };
 
 window.updateOrderStatus = async function(orderId, status, catalogId) {
     catalogId = catalogId || '';
-    if (!window.fbDB) return showToast('ÐÐµÑ ÑÐ²ÑÐ·Ð¸', 'error');
+    if (!window.fbDB) return showToast('Нет связи', 'error');
     try {
         await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
         if (status === 'accepted' && catalogId && catalogId !== 'null') {
@@ -1088,19 +1088,19 @@ window.updateOrderStatus = async function(orderId, status, catalogId) {
                     }
                 });
                 catalogCache = null;
-                showToast('Ð¢Ð¾Ð²Ð°Ñ ÑÐ¿Ð¸ÑÐ°Ð½ Ñ Ð²Ð¸ÑÑÐ¸Ð½Ñ', 'success');
+                showToast('Товар списан с витрины', 'success');
             } catch (err) {
-                console.error("ÐÑÐ¸Ð±ÐºÐ° ÑÐ¿Ð¸ÑÐ°Ð½Ð¸Ñ:", err);
-                showToast('ÐÐ°ÐºÐ°Ð· Ð¿ÑÐ¸Ð½ÑÑ, Ð½Ð¾ Ð½Ðµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ¿Ð¸ÑÐ°ÑÑ ÑÐ¾Ð²Ð°Ñ', 'error');
+                console.error("Ошибка списания:", err);
+                showToast('Заказ принят, но не удалось списать товар', 'error');
             }
         }
         if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
-    } catch(e) { console.error(e); showToast('ÐÑÐ¸Ð±ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ ÑÑÐ°ÑÑÑÐ°', 'error'); }
+    } catch(e) { console.error(e); showToast('Ошибка обновления статуса', 'error'); }
 };
 
-/* --- ÐÐÐ¢Ð ÐÐÐ --- */
+/* --- ВИТРИНА --- */
 window.addToCatalog = async function() {
-    if (!window.fbDB) return showToast('ÐÐµÑ ÑÐ²ÑÐ·Ð¸ Ñ Ð±Ð°Ð·Ð¾Ð¹', 'error');
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
     var catEl = document.getElementById('cat-category');
     var sizeEl = document.getElementById('cat-size');
     var yearEl = document.getElementById('cat-year');
@@ -1117,22 +1117,22 @@ window.addToCatalog = async function() {
         var inp2 = document.getElementById('custom-cat-size-input');
         size = inp2 ? inp2.value.trim() : '';
     }
-    var year = yearEl ? yearEl.value : 'ÐÐµÐ· Ð³Ð¾Ð´Ð°';
+    var year = yearEl ? yearEl.value : 'Без года';
     var qty = qtyEl ? (parseInt(qtyEl.value) || 1) : 1;
 
-    if (!selectedCatDept) return showToast('ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð¾ÑÐ´ÐµÐ»!', 'error');
-    if (!category) return showToast('ÐÑÐ±ÐµÑÐ¸ÑÐµ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ñ!', 'error');
-    if (!window.currentCatPhotoBase64) return showToast('Ð¡Ð´ÐµÐ»Ð°Ð¹ÑÐµ ÑÐ¾ÑÐ¾!', 'error');
+    if (!selectedCatDept) return showToast('Выберите отдел!', 'error');
+    if (!category) return showToast('Выберите категорию!', 'error');
+    if (!window.currentCatPhotoBase64) return showToast('Сделайте фото!', 'error');
 
     var itemData = {
         shop: shop, seller: seller, dept: selectedCatDept, category: category,
-        photo: window.currentCatPhotoBase64, size: size || 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°', year: year, qty: qty,
+        photo: window.currentCatPhotoBase64, size: size || 'Без размера', year: year, qty: qty,
         date: new Date().toISOString()
     };
 
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
-        showToast('â ÐÐ¿ÑÐ±Ð»Ð¸ÐºÐ¾Ð²Ð°Ð½Ð¾!', 'success');
+        showToast('✅ Опубликовано!', 'success');
 
         var photoFile = document.getElementById('cat-photo-file');
         if (photoFile) photoFile.value = '';
@@ -1152,11 +1152,11 @@ window.addToCatalog = async function() {
         validateCatalogForm();
         catalogCache = null;
         if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
-    } catch (e) { console.error(e); showToast('ÐÑÐ¸Ð±ÐºÐ°', 'error'); }
+    } catch (e) { console.error(e); showToast('Ошибка', 'error'); }
 };
 
 /* ============================================================
-   Ð¤ÐÐÐ¬Ð¢Ð Ð« + ÐÐÐ¢ÐÐÐÐÐÐ ÐÐÐÐÐÐ«Ð Ð ÐÐÐÐÐ 
+   ФИЛЬТРЫ + ОПТИМИЗИРОВАННЫЙ РЕНДЕР
    ============================================================ */
 window.selectCatalogCategory = function(cat) {
     if (cat === '' || currentCatalogCategory === cat) currentCatalogCategory = '';
@@ -1179,9 +1179,9 @@ window.toggleCatalogFilter = function(type) {
     var idMap = {
         'all': 'btn-filter-all',
         'mine': 'btn-filter-mine',
-        'ÐÐ»Ð¸Ðº': 'btn-filter-alik',
-        'ÐÐ¾Ð´Ð°': 'btn-filter-moda',
-        'Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ': 'btn-filter-style'
+        'Алик': 'btn-filter-alik',
+        'Мода': 'btn-filter-moda',
+        'Твой стиль': 'btn-filter-style'
     };
     var target = document.getElementById(idMap[type]);
     if (target) target.classList.add('active');
@@ -1196,9 +1196,9 @@ window.toggleDirectorCatalogFilter = function(type) {
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
     var idMap = {
         'all': 'dir-filter-all',
-        'ÐÐ»Ð¸Ðº': 'dir-filter-alik',
-        'ÐÐ¾Ð´Ð°': 'dir-filter-moda',
-        'Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ': 'dir-filter-style'
+        'Алик': 'dir-filter-alik',
+        'Мода': 'dir-filter-moda',
+        'Твой стиль': 'dir-filter-style'
     };
     var target = document.getElementById(idMap[type]);
     if (target) target.classList.add('active');
@@ -1246,7 +1246,7 @@ function renderCategoryPills(containerId, items, currentCat, onClickName) {
 
     container.style.display = 'flex';
     var html = '<div class="size-pill ' + (currentCat === '' ? 'active' : '') +
-        '" style="padding:6px 12px; font-size:12px;" onclick="' + onClickName + '(\'\')">ÐÑÐµ ÐºÐ°ÑÐµÐ³Ð¾ÑÐ¸Ð¸</div>';
+        '" style="padding:6px 12px; font-size:12px;" onclick="' + onClickName + '(\'\')">Все категории</div>';
     catList.forEach(function(c) {
         html += '<div class="size-pill ' + (currentCat === c ? 'active' : '') +
             '" style="padding:6px 12px; font-size:12px;" onclick="' + onClickName + '(\'' +
@@ -1274,7 +1274,7 @@ function renderSellerCatalog() {
     var visible = filtered.filter(function(i) { return i.qty > 0; });
 
     if (visible.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px;">ÐÑÑÑÐ¾</div>';
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px;">Пусто</div>';
         return;
     }
     list.innerHTML = visible.map(function(item) {
@@ -1284,9 +1284,9 @@ function renderSellerCatalog() {
             '<div class="order-title">' + item.category + '</div>' +
             '<div class="order-details" style="display:flex; justify-content:space-between;">' +
             '<span>' + item.size + ' | ' + item.year + '</span>' +
-            '<span style="color:var(--success); font-weight:800;">' + item.qty + ' ÑÑ.</span>' +
+            '<span style="color:var(--success); font-weight:800;">' + item.qty + ' шт.</span>' +
             '</div>' +
-            '<button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem(\'' + item.id + '\')">â¡ ÐÐ°ÐºÐ°Ð·Ð°ÑÑ ÑÐµÐ¹ÑÐ°Ñ</button>' +
+            '<button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem(\'' + item.id + '\')">⚡ Заказать сейчас</button>' +
             '</div>';
     }).join('');
 }
@@ -1295,21 +1295,21 @@ function renderDirectorCatalog() {
     var el = document.getElementById('director-catalog-list');
     if (!el) return;
 
-    var counts = { all: allCatalogItems.length, 'ÐÐ»Ð¸Ðº': 0, 'ÐÐ¾Ð´Ð°': 0, 'Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ': 0 };
+    var counts = { all: allCatalogItems.length, 'Алик': 0, 'Мода': 0, 'Твой стиль': 0 };
     allCatalogItems.forEach(function(i) {
         if (counts[i.shop] !== undefined) counts[i.shop]++;
     });
     var labels = {
-        'dir-filter-all': 'ÐÑÐµ',
-        'dir-filter-alik': 'ÐÐ»Ð¸Ðº',
-        'dir-filter-moda': 'ÐÐ¾Ð´Ð°',
-        'dir-filter-style': 'Ð¡ÑÐ¸Ð»Ñ'
+        'dir-filter-all': 'Все',
+        'dir-filter-alik': 'Алик',
+        'dir-filter-moda': 'Мода',
+        'dir-filter-style': 'Стиль'
     };
     var keyMap = {
         'dir-filter-all': 'all',
-        'dir-filter-alik': 'ÐÐ»Ð¸Ðº',
-        'dir-filter-moda': 'ÐÐ¾Ð´Ð°',
-        'dir-filter-style': 'Ð¢Ð²Ð¾Ð¹ ÑÑÐ¸Ð»Ñ'
+        'dir-filter-alik': 'Алик',
+        'dir-filter-moda': 'Мода',
+        'dir-filter-style': 'Твой стиль'
     };
     Object.keys(labels).forEach(function(id) {
         var tabEl = document.getElementById(id);
@@ -1332,19 +1332,19 @@ function renderDirectorCatalog() {
     }
 
     if (filteredDir.length === 0) {
-        el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px;">ÐÐµÑ ÑÐ¾Ð²Ð°ÑÐ¾Ð²</div>';
+        el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет товаров</div>';
         return;
     }
     el.innerHTML = filteredDir.map(function(item) {
         return '<div class="order-card" style="padding:12px;">' +
             '<img src="' + item.photo + '" class="order-photo" loading="lazy">' +
-            '<div class="order-header"><span>ðª <b>' + item.shop + '</b></span><span>' + (item.seller || '') + '</span></div>' +
+            '<div class="order-header"><span>🏪 <b>' + item.shop + '</b></span><span>' + (item.seller || '') + '</span></div>' +
             '<div class="order-title">' + item.category + '</div>' +
             '<div class="order-details">' + item.size + ' | ' + item.year +
-            ' | <span style="color:var(--success); font-weight:800;">' + item.qty + ' ÑÑ.</span></div>' +
+            ' | <span style="color:var(--success); font-weight:800;">' + item.qty + ' шт.</span></div>' +
             '<div style="display:flex; gap:8px; margin-top:8px;">' +
-            '<button class="btn-edit" style="flex:1;" onclick="directorEditCatalog(\'' + item.id + '\')">âï¸ ÐÐ·Ð¼ÐµÐ½Ð¸ÑÑ</button>' +
-            '<button class="btn-del" style="flex:1;" onclick="directorDeleteCatalog(\'' + item.id + '\')">ð Ð£Ð´Ð°Ð»Ð¸ÑÑ</button>' +
+            '<button class="btn-edit" style="flex:1;" onclick="directorEditCatalog(\'' + item.id + '\')">✏️ Изменить</button>' +
+            '<button class="btn-del" style="flex:1;" onclick="directorDeleteCatalog(\'' + item.id + '\')">🗑 Удалить</button>' +
             '</div></div>';
     }).join('');
 }
@@ -1385,8 +1385,8 @@ window.orderSingleItem = function(itemId) {
         if (allCatalogItems[i].id === itemId) { item = allCatalogItems[i]; break; }
     }
     if (!item) return;
-    if (item.shop === shop) return showToast('Ð­ÑÐ¾ Ð²Ð°Ñ ÑÐ¾Ð²Ð°Ñ', 'error');
-    if (item.qty <= 0) return showToast('Ð¢Ð¾Ð²Ð°Ñ Ð·Ð°ÐºÐ¾Ð½ÑÐ¸Ð»ÑÑ', 'error');
+    if (item.shop === shop) return showToast('Это ваш товар', 'error');
+    if (item.qty <= 0) return showToast('Товар закончился', 'error');
 
     switchMainTab('orders');
     var toEl = document.getElementById('order-to-shop');
@@ -1436,32 +1436,32 @@ window.orderSingleItem = function(itemId) {
     }
 
     var commentEl = document.getElementById('order-comment');
-    if (commentEl) commentEl.value = 'ÐÐ°ÐºÐ°Ð· ÑÐ¾Ð²Ð°ÑÐ° Ñ Ð²Ð¸ÑÑÐ¸Ð½Ñ. ÐÐ¾Ð´: ' + item.year;
+    if (commentEl) commentEl.value = 'Заказ товара с витрины. Год: ' + item.year;
     window.currentOrderCatalogId = item.id;
-    showToast('Ð¢Ð¾Ð²Ð°Ñ Ð¿Ð¾Ð´ÑÑÐ°Ð²Ð»ÐµÐ½ Ð² ÑÐ¾ÑÐ¼Ñ Ð·Ð°ÐºÐ°Ð·Ð°', 'success');
+    showToast('Товар подставлен в форму заказа', 'success');
     validateOrderForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 /* ============================================================
-   ÐÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¦ÐÐ¯ (Ð¿ÑÐ¾Ð´Ð°Ð²ÐµÑ)
+   ИНВЕНТАРИЗАЦИЯ (продавец)
    ============================================================ */
 window.processScan = function(code) {
     var scanner = document.getElementById('hidden-scanner');
     if (scanner) scanner.value = '';
     if (!code || !code.trim()) return;
     var scannedCode = code.trim();
-    var name = 'Ð¢Ð¾Ð²Ð°Ñ ' + scannedCode;
+    var name = 'Товар ' + scannedCode;
     var existing = null;
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === scannedCode) { existing = scanList[i]; break; }
     }
     if (existing) {
         existing.qty += 1;
-        showToast('+1 Ðº ' + name, 'success');
+        showToast('+1 к ' + name, 'success');
     } else {
-        scanList.unshift({ id: Date.now().toString(), code: scannedCode, name: name, size: 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°', year: 'ÐÐµÐ· Ð³Ð¾Ð´Ð°', qty: 1 });
-        showToast('ÐÐ¾Ð±Ð°Ð²Ð»ÐµÐ½: ' + name, 'success');
+        scanList.unshift({ id: Date.now().toString(), code: scannedCode, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        showToast('Добавлен: ' + name, 'success');
     }
     try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
@@ -1471,7 +1471,7 @@ window.renderScanList = function() {
     var container = document.getElementById('scan-list-container');
     if (!container) return;
     if (scanList.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Ð¡Ð¿Ð¸ÑÐ¾Ðº Ð¿ÑÑÑ</div>';
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Список пуст</div>';
         var summary = document.getElementById('scan-summary');
         if (summary) summary.style.display = 'none';
         return;
@@ -1485,13 +1485,13 @@ window.renderScanList = function() {
             '</div>' +
             '<div style="display:flex; gap:12px;">' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem(\'' + item.id + '\', \'size\', this.value)">' +
-            '<option ' + (item.size === 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°' ? 'selected' : '') + '>ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°</option>' +
+            '<option ' + (item.size === 'Без размера' ? 'selected' : '') + '>Без размера</option>' +
             '<option ' + (item.size === 'M' ? 'selected' : '') + '>M</option>' +
             '<option ' + (item.size === 'L' ? 'selected' : '') + '>L</option>' +
             '<option ' + (item.size === 'XL' ? 'selected' : '') + '>XL</option>' +
             '</select>' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem(\'' + item.id + '\', \'year\', this.value)">' +
-            '<option ' + (item.year === 'ÐÐµÐ· Ð³Ð¾Ð´Ð°' ? 'selected' : '') + '>ÐÐµÐ· Ð³Ð¾Ð´Ð°</option>' +
+            '<option ' + (item.year === 'Без года' ? 'selected' : '') + '>Без года</option>' +
             '<option ' + (item.year === '2023' ? 'selected' : '') + '>2023</option>' +
             '<option ' + (item.year === '2024' ? 'selected' : '') + '>2024</option>' +
             '<option ' + (item.year === '2025' ? 'selected' : '') + '>2025</option>' +
@@ -1541,39 +1541,39 @@ window.removeScanItem = function(id) {
 };
 
 window.saveInventory = async function() {
-    if (!window.fbDB) return showToast('ÐÐµÑ ÑÐ²ÑÐ·Ð¸ Ñ Ð±Ð°Ð·Ð¾Ð¹', 'error');
-    if (scanList.length === 0) return showToast('ÐÑÑÑÐ¾', 'error');
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
+    if (scanList.length === 0) return showToast('Пусто', 'error');
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), {
             shop: shop, seller: seller, date: new Date().toISOString(), items: scanList
         });
-        showToast('â Ð¡Ð¾ÑÑÐ°Ð½ÐµÐ½Ð¾!', 'success');
-    } catch(e) { console.error(e); showToast('ÐÑÐ¸Ð±ÐºÐ°', 'error'); }
+        showToast('✅ Сохранено!', 'success');
+    } catch(e) { console.error(e); showToast('Ошибка', 'error'); }
     scanList = [];
     try { localStorage.removeItem('scan_list_draft'); } catch(_) {}
     renderScanList();
 };
 
 window.downloadCurrentRevisionExcel = function() {
-    if (scanList.length === 0) return showToast('ÐÑÑÑÐ¾', 'error');
-    var csv = "\uFEFFÐÐ°Ð¸Ð¼ÐµÐ½Ð¾Ð²Ð°Ð½Ð¸Ðµ;Ð¨ÑÑÐ¸Ñ-ÐºÐ¾Ð´;Ð Ð°Ð·Ð¼ÐµÑ;ÐÐ¾Ð´;ÐÐ¾Ð»Ð¸ÑÐµÑÑÐ²Ð¾\n";
+    if (scanList.length === 0) return showToast('Пусто', 'error');
+    var csv = "\uFEFFНаименование;Штрих-код;Размер;Год;Количество\n";
     scanList.forEach(function(i) { csv += i.name + ';' + i.code + ';' + i.size + ';' + i.year + ';' + i.qty + '\n'; });
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = 'Ð ÐµÐ²Ð¸Ð·Ð¸Ñ_' + new Date().toLocaleDateString() + '.csv';
+    link.download = 'Ревизия_' + new Date().toLocaleDateString() + '.csv';
     link.click();
 };
 
 /* ============================================================
-   ÐÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¦ÐÐ¯ (Ð´Ð¸ÑÐµÐºÑÐ¾Ñ)
+   ИНВЕНТАРИЗАЦИЯ (директор)
    ============================================================ */
 window.renderDirectorScanList = function() {
     var container = document.getElementById('director-scan-list-container');
     if (!container) return;
 
     if (directorScanList.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Ð¡Ð¿Ð¸ÑÐ¾Ðº Ð¿ÑÑÑ. ÐÑÑÐºÐ°Ð½Ð¸ÑÑÐ¹ÑÐµ ÑÐ¾Ð²Ð°Ñ.</div>';
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Список пуст. Отсканируйте товар.</div>';
         var summary = document.getElementById('director-scan-summary');
         if (summary) summary.style.display = 'none';
         return;
@@ -1587,13 +1587,13 @@ window.renderDirectorScanList = function() {
             '</div>' +
             '<div style="display:flex; gap:12px;">' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateDirectorScanItem(\'' + item.id + '\', \'size\', this.value)">' +
-            '<option ' + (item.size === 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°' ? 'selected' : '') + '>ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°</option>' +
+            '<option ' + (item.size === 'Без размера' ? 'selected' : '') + '>Без размера</option>' +
             '<option ' + (item.size === 'M' ? 'selected' : '') + '>M</option>' +
             '<option ' + (item.size === 'L' ? 'selected' : '') + '>L</option>' +
             '<option ' + (item.size === 'XL' ? 'selected' : '') + '>XL</option>' +
             '</select>' +
             '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateDirectorScanItem(\'' + item.id + '\', \'year\', this.value)">' +
-            '<option ' + (item.year === 'ÐÐµÐ· Ð³Ð¾Ð´Ð°' ? 'selected' : '') + '>ÐÐµÐ· Ð³Ð¾Ð´Ð°</option>' +
+            '<option ' + (item.year === 'Без года' ? 'selected' : '') + '>Без года</option>' +
             '<option ' + (item.year === '2023' ? 'selected' : '') + '>2023</option>' +
             '<option ' + (item.year === '2024' ? 'selected' : '') + '>2024</option>' +
             '<option ' + (item.year === '2025' ? 'selected' : '') + '>2025</option>' +
@@ -1643,17 +1643,17 @@ window.removeDirectorScanItem = function(id) {
 };
 
 window.saveDirectorInventory = async function() {
-    if (!window.fbDB) return showToast('ÐÐµÑ ÑÐ²ÑÐ·Ð¸ Ñ Ð±Ð°Ð·Ð¾Ð¹', 'error');
-    if (directorScanList.length === 0) return showToast('Ð¡Ð¿Ð¸ÑÐ¾Ðº Ð¿ÑÑÑ', 'error');
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
+    if (directorScanList.length === 0) return showToast('Список пуст', 'error');
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), {
-            shop: 'Ð.Ð.',
-            seller: 'Ð.Ð.',
+            shop: 'А.А.',
+            seller: 'А.А.',
             date: new Date().toISOString(),
             items: directorScanList
         });
-        showToast('â Ð ÐµÐ²Ð¸Ð·Ð¸Ñ Ð.Ð. ÑÐ¾ÑÑÐ°Ð½ÐµÐ½Ð°!', 'success');
-    } catch(e) { console.error(e); showToast('ÐÑÐ¸Ð±ÐºÐ° ÑÐ¾ÑÑÐ°Ð½ÐµÐ½Ð¸Ñ', 'error'); }
+        showToast('✅ Ревизия А.А. сохранена!', 'success');
+    } catch(e) { console.error(e); showToast('Ошибка сохранения', 'error'); }
     directorScanList = [];
     try { localStorage.removeItem('director_scan_list_draft'); } catch(_) {}
     renderDirectorScanList();
@@ -1661,18 +1661,18 @@ window.saveDirectorInventory = async function() {
 };
 
 window.downloadDirectorRevisionExcel = function() {
-    if (directorScanList.length === 0) return showToast('Ð¡Ð¿Ð¸ÑÐ¾Ðº Ð¿ÑÑÑ', 'error');
-    var csv = "\uFEFFÐÐ°Ð¸Ð¼ÐµÐ½Ð¾Ð²Ð°Ð½Ð¸Ðµ;Ð¨ÑÑÐ¸Ñ-ÐºÐ¾Ð´;Ð Ð°Ð·Ð¼ÐµÑ;ÐÐ¾Ð´;ÐÐ¾Ð»Ð¸ÑÐµÑÑÐ²Ð¾\n";
+    if (directorScanList.length === 0) return showToast('Список пуст', 'error');
+    var csv = "\uFEFFНаименование;Штрих-код;Размер;Год;Количество\n";
     directorScanList.forEach(function(i) { csv += i.name + ';' + i.code + ';' + i.size + ';' + i.year + ';' + i.qty + '\n'; });
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = 'Ð ÐµÐ²Ð¸Ð·Ð¸Ñ_ÐÐ_' + new Date().toLocaleDateString() + '.csv';
+    link.download = 'Ревизия_АА_' + new Date().toLocaleDateString() + '.csv';
     link.click();
 };
 
 /* ============================================================
-   ÐÐÐÐÐ Ð-Ð¡ÐÐÐÐÐ  (html5-qrcode)
+   КАМЕРА-СКАНЕР (html5-qrcode)
    ============================================================ */
 function onScanSuccess(decodedText) {
     var now = Date.now();
@@ -1684,7 +1684,7 @@ function onScanSuccess(decodedText) {
 
     var badge = document.getElementById('scan-last-result');
     if (badge) {
-        badge.innerHTML = '<span class="scan-result-badge">â ' + decodedText + '</span>';
+        badge.innerHTML = '<span class="scan-result-badge">✅ ' + decodedText + '</span>';
     }
 
     if (currentScannerTarget === 'director') {
@@ -1699,34 +1699,34 @@ function onScanSuccess(decodedText) {
 }
 
 function addScannedCodeToSellerList(code) {
-    var name = 'Ð¢Ð¾Ð²Ð°Ñ ' + code;
+    var name = 'Товар ' + code;
     var existing = null;
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === code) { existing = scanList[i]; break; }
     }
     if (existing) {
         existing.qty += 1;
-        showToast('+1 Ðº ' + name, 'success');
+        showToast('+1 к ' + name, 'success');
     } else {
-        scanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°', year: 'ÐÐµÐ· Ð³Ð¾Ð´Ð°', qty: 1 });
-        showToast('ÐÐ¾Ð±Ð°Ð²Ð»ÐµÐ½: ' + name, 'success');
+        scanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        showToast('Добавлен: ' + name, 'success');
     }
     try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
 }
 
 function addScannedCodeToDirectorList(code) {
-    var name = 'Ð¢Ð¾Ð²Ð°Ñ ' + code;
+    var name = 'Товар ' + code;
     var existing = null;
     for (var i = 0; i < directorScanList.length; i++) {
         if (directorScanList[i].code === code) { existing = directorScanList[i]; break; }
     }
     if (existing) {
         existing.qty += 1;
-        showToast('+1 Ðº ' + name, 'success');
+        showToast('+1 к ' + name, 'success');
     } else {
-        directorScanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°', year: 'ÐÐµÐ· Ð³Ð¾Ð´Ð°', qty: 1 });
-        showToast('ÐÐ¾Ð±Ð°Ð²Ð»ÐµÐ½: ' + name, 'success');
+        directorScanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        showToast('Добавлен: ' + name, 'success');
     }
     try { localStorage.setItem('director_scan_list_draft', JSON.stringify(directorScanList)); } catch(_) {}
     renderDirectorScanList();
@@ -1762,7 +1762,7 @@ function startQrScanner() {
             initHtml5QrCode();
         };
         script.onerror = function() {
-            showToast('ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ Ð±Ð¸Ð±Ð»Ð¸Ð¾ÑÐµÐºÑ ÑÐºÐ°Ð½ÐµÑÐ°', 'error');
+            showToast('Не удалось загрузить библиотеку сканера', 'error');
             closeCameraScanner();
         };
         document.head.appendChild(script);
@@ -1800,9 +1800,9 @@ function initHtml5QrCode() {
         function(errorMessage) {}
     ).then(function() {
         cameraIsRunning = true;
-        console.log('â Camera scanner started');
+        console.log('✅ Camera scanner started');
     }).catch(function(err) {
-        console.error('â Camera start error:', err);
+        console.error('❌ Camera start error:', err);
         cameraIsRunning = false;
         tryAlternativeCamera();
     });
@@ -1811,7 +1811,7 @@ function initHtml5QrCode() {
 function tryAlternativeCamera() {
     if (!html5QrCode) return;
     if (typeof Html5Qrcode.getCameras !== 'function') {
-        showToast('ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð¿ÑÑÑÐ¸ÑÑ ÐºÐ°Ð¼ÐµÑÑ', 'error');
+        showToast('Не удалось запустить камеру', 'error');
         closeCameraScanner();
         return;
     }
@@ -1825,19 +1825,19 @@ function tryAlternativeCamera() {
                 function() {}
             ).then(function() {
                 cameraIsRunning = true;
-                console.log('â Camera scanner started (fallback)');
+                console.log('✅ Camera scanner started (fallback)');
             }).catch(function(err2) {
-                console.error('â Fallback camera error:', err2);
-                showToast('ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð¿ÑÑÑÐ¸ÑÑ ÐºÐ°Ð¼ÐµÑÑ', 'error');
+                console.error('❌ Fallback camera error:', err2);
+                showToast('Не удалось запустить камеру', 'error');
                 closeCameraScanner();
             });
         } else {
-            showToast('ÐÐ°Ð¼ÐµÑÑ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ñ', 'error');
+            showToast('Камеры не найдены', 'error');
             closeCameraScanner();
         }
     }).catch(function(err) {
         console.error('getCameras error:', err);
-        showToast('ÐÑÐ¸Ð±ÐºÐ° Ð´Ð¾ÑÑÑÐ¿Ð° Ðº ÐºÐ°Ð¼ÐµÑÐµ', 'error');
+        showToast('Ошибка доступа к камере', 'error');
         closeCameraScanner();
     });
 }
@@ -1874,10 +1874,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /* ============================================================
-   ÐÐÐ ÐÐÐ¢ÐÐ  â Ð¾ÑÑÐ°Ð»ÑÐ½Ð¾Ðµ
+   ДИРЕКТОР — остальное
    ============================================================ */
 
-/* ---- ÐÐ¡ÐÐ ÐÐÐÐÐÐ: window.loadDirectorOrders ---- */
+/* ---- ИСПРАВЛЕНО: window.loadDirectorOrders ---- */
 window.loadDirectorOrders = async function() {
     if (!window.fbDB) return;
     try {
@@ -1885,11 +1885,11 @@ window.loadDirectorOrders = async function() {
         var orders = [];
         snapshot.forEach(function(d) { orders.push(Object.assign({id: d.id}, d.data())); });
         var el = document.getElementById('director-orders-list');
-        if (el) el.innerHTML = orders.length ? orders.map(function(o) { return renderOrderCard(o, true); }).join('') : 'ÐÐµÑ Ð·Ð°ÐºÐ°Ð·Ð¾Ð²';
+        if (el) el.innerHTML = orders.length ? orders.map(function(o) { return renderOrderCard(o, true); }).join('') : 'Нет заказов';
     } catch(e) { console.log(e); }
 };
 
-/* ---- ÐÐ¡ÐÐ ÐÐÐÐÐÐ: window.loadRevisions ---- */
+/* ---- ИСПРАВЛЕНО: window.loadRevisions ---- */
 window.loadRevisions = async function() {
     if (!window.fbDB) return;
     try {
@@ -1898,28 +1898,28 @@ window.loadRevisions = async function() {
         snapshot.forEach(function(d) { revs.push(Object.assign({id: d.id}, d.data())); });
         var el = document.getElementById('revisions-list');
         if (el) el.innerHTML = revs.map(function(r) {
-            return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;"><b>' + r.shop + '</b> - ' + new Date(r.date).toLocaleDateString() + '<br><span style="font-size:12px; color:var(--text-muted);">' + r.items.length + ' Ð¿Ð¾Ð·Ð¸ÑÐ¸Ð¹</span></div>';
+            return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;"><b>' + r.shop + '</b> - ' + new Date(r.date).toLocaleDateString() + '<br><span style="font-size:12px; color:var(--text-muted);">' + r.items.length + ' позиций</span></div>';
         }).join('');
     } catch(e) { console.log(e); }
 };
 
 window.directorDeleteOrder = async function(orderId) {
     if (!window.fbDB) return;
-    showCustomConfirm('Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð·Ð°ÐºÐ°Ð·?', 'Ð­ÑÐ¾ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ Ð½ÐµÐ»ÑÐ·Ñ Ð±ÑÐ´ÐµÑ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ.', async function() {
+    showCustomConfirm('Удалить заказ?', 'Это действие нельзя будет отменить.', async function() {
         try {
             await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
-            showToast('ÐÐ°ÐºÐ°Ð· ÑÐ´Ð°Ð»ÑÐ½', 'success');
+            showToast('Заказ удалён', 'success');
             window.loadDirectorOrders();
-        } catch(e) { showToast('ÐÑÐ¸Ð±ÐºÐ° ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ñ', 'error'); }
+        } catch(e) { showToast('Ошибка удаления', 'error'); }
     });
 };
 
-/* ---- ÐÐ¡ÐÐ ÐÐÐÐÐÐ: Ð¸ÑÐ¿Ð¾Ð»ÑÐ·ÑÐµÐ¼ getDoc Ð²Ð¼ÐµÑÑÐ¾ Ð·Ð°Ð³ÑÑÐ·ÐºÐ¸ Ð²ÑÐµÐ¹ ÐºÐ¾Ð»Ð»ÐµÐºÑÐ¸Ð¸ ---- */
+/* ---- ИСПРАВЛЕНО: используем getDoc вместо загрузки всей коллекции ---- */
 window.directorEditOrder = async function(orderId) {
     if (!window.fbDB) return;
     try {
         var docSnap = await window.fbFns.getDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
-        if (!docSnap.exists()) return showToast('ÐÐ°ÐºÐ°Ð· Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½', 'error');
+        if (!docSnap.exists()) return showToast('Заказ не найден', 'error');
         var order = Object.assign({id: docSnap.id}, docSnap.data());
         document.getElementById('edit-item-id').value = orderId;
         document.getElementById('edit-item-type').value = 'order';
@@ -1931,28 +1931,28 @@ window.directorEditOrder = async function(orderId) {
         document.getElementById('edit-modal').classList.add('open');
     } catch(e) {
         console.error(e);
-        showToast('ÐÑÐ¸Ð±ÐºÐ° Ð·Ð°Ð³ÑÑÐ·ÐºÐ¸ Ð·Ð°ÐºÐ°Ð·Ð°', 'error');
+        showToast('Ошибка загрузки заказа', 'error');
     }
 };
 
 window.directorDeleteCatalog = async function(itemId) {
     if (!window.fbDB) return;
-    showCustomConfirm('Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð²Ð°Ñ?', 'Ð¢Ð¾Ð²Ð°Ñ Ð±ÑÐ´ÐµÑ ÑÐ´Ð°Ð»ÐµÐ½ Ñ Ð²Ð¸ÑÑÐ¸Ð½Ñ Ð±ÐµÐ·Ð²Ð¾Ð·Ð²ÑÐ°ÑÐ½Ð¾.', async function() {
+    showCustomConfirm('Удалить товар?', 'Товар будет удален с витрины безвозвратно.', async function() {
         try {
             await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", itemId));
-            showToast('Ð¢Ð¾Ð²Ð°Ñ ÑÐ´Ð°Ð»ÑÐ½', 'success');
+            showToast('Товар удалён', 'success');
             catalogCache = null;
             window.loadCatalog(true, true);
-        } catch(e) { showToast('ÐÑÐ¸Ð±ÐºÐ° ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ñ', 'error'); }
+        } catch(e) { showToast('Ошибка удаления', 'error'); }
     });
 };
 
-/* ---- ÐÐ¡ÐÐ ÐÐÐÐÐÐ: Ð¸ÑÐ¿Ð¾Ð»ÑÐ·ÑÐµÐ¼ getDoc ---- */
+/* ---- ИСПРАВЛЕНО: используем getDoc ---- */
 window.directorEditCatalog = async function(itemId) {
     if (!window.fbDB) return;
     try {
         var docSnap = await window.fbFns.getDoc(window.fbFns.doc(window.fbDB, "catalog", itemId));
-        if (!docSnap.exists()) return showToast('Ð¢Ð¾Ð²Ð°Ñ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½', 'error');
+        if (!docSnap.exists()) return showToast('Товар не найден', 'error');
         var item = Object.assign({id: docSnap.id}, docSnap.data());
         document.getElementById('edit-item-id').value = itemId;
         document.getElementById('edit-item-type').value = 'catalog';
@@ -1964,7 +1964,7 @@ window.directorEditCatalog = async function(itemId) {
         document.getElementById('edit-modal').classList.add('open');
     } catch(e) {
         console.error(e);
-        showToast('ÐÑÐ¸Ð±ÐºÐ° Ð·Ð°Ð³ÑÑÐ·ÐºÐ¸ ÑÐ¾Ð²Ð°ÑÐ°', 'error');
+        showToast('Ошибка загрузки товара', 'error');
     }
 };
 
@@ -1975,7 +1975,7 @@ window.closeEditModal = function() {
 };
 
 window.saveEditItem = async function() {
-    if (!window.fbDB) return showToast('ÐÐµÑ ÑÐ²ÑÐ·Ð¸', 'error');
+    if (!window.fbDB) return showToast('Нет связи', 'error');
     var id = document.getElementById('edit-item-id').value;
     var type = document.getElementById('edit-item-type').value;
     var size = document.getElementById('edit-size').value.trim();
@@ -1984,26 +1984,26 @@ window.saveEditItem = async function() {
 
     try {
         if (type === 'catalog') {
-            var updateData = { size: size || 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°', qty: qty };
+            var updateData = { size: size || 'Без размера', qty: qty };
             if (yearRaw) updateData.year = yearRaw;
             await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "catalog", id), updateData);
-            showToast('Ð¢Ð¾Ð²Ð°Ñ Ð¾Ð±Ð½Ð¾Ð²Ð»ÑÐ½', 'success');
+            showToast('Товар обновлён', 'success');
             catalogCache = null;
             window.loadCatalog(true, true);
         } else {
-            await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", id), { size: size || 'ÐÐµÐ· ÑÐ°Ð·Ð¼ÐµÑÐ°' });
-            showToast('ÐÐ°ÐºÐ°Ð· Ð¾Ð±Ð½Ð¾Ð²Ð»ÑÐ½', 'success');
+            await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", id), { size: size || 'Без размера' });
+            showToast('Заказ обновлён', 'success');
             window.loadDirectorOrders();
         }
         closeEditModal();
     } catch(e) {
         console.error(e);
-        showToast('ÐÑÐ¸Ð±ÐºÐ° ÑÐ¾ÑÑÐ°Ð½ÐµÐ½Ð¸Ñ', 'error');
+        showToast('Ошибка сохранения', 'error');
     }
 };
 
 /* ============================================================
-   ÐÐÐÐ¦ÐÐÐÐÐÐÐ¦ÐÐ¯ ÐÐÐ¡ÐÐ DOM
+   ИНИЦИАЛИЗАЦИЯ ПОСЛЕ DOM
    ============================================================ */
 function initApp() {
     try {
@@ -2011,7 +2011,7 @@ function initApp() {
         if (sellerInput) sellerInput.value = seller;
 
         var currentYear = new Date().getFullYear();
-        var yearOptions = '<option value="ÐÐµÐ· Ð³Ð¾Ð´Ð°">ÐÐµÐ· Ð³Ð¾Ð´Ð°</option>';
+        var yearOptions = '<option value="Без года">Без года</option>';
         for (var y = currentYear; y >= currentYear - 5; y--) {
             yearOptions += '<option value="' + y + '">' + y + '</option>';
         }
@@ -2020,7 +2020,7 @@ function initApp() {
 
         if (shop && seller && !directorMode) {
             var titleEl = document.getElementById('shop-title');
-            if (titleEl) titleEl.innerText = 'ÐÐ°Ð³Ð°Ð·Ð¸Ð½ Â· ' + shop;
+            if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
             showScreen('screen-seller');
             renderScanList();
         } else {
@@ -2070,13 +2070,13 @@ function initApp() {
         validateOrderForm();
         validateCatalogForm();
         renderDirectorScanList();
-        console.log('â Init complete, shop=' + shop + ', seller=' + seller);
+        console.log('✅ Init complete, shop=' + shop + ', seller=' + seller);
     } catch(e) {
         console.error('Init error:', e);
         var banner = document.getElementById('js-error-banner');
         if (banner) {
             banner.style.display = 'block';
-            banner.textContent = 'â ï¸ Init error: ' + e.message;
+            banner.textContent = '⚠️ Init error: ' + e.message;
         }
     }
 }
@@ -2088,7 +2088,7 @@ if (document.readyState === 'loading') {
 }
 </script>
 
-<!-- ÐÐ¾Ð´ÐºÐ»ÑÑÐ°ÐµÐ¼ html5-qrcode (CDN) -->
+<!-- Подключаем html5-qrcode (CDN) -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </body>
