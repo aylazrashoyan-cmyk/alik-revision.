@@ -531,16 +531,18 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         window.fbFns = { collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction };
         console.log('✅ Firebase ready');
 
-        // После инициализации Firebase подгружаем данные для текущего пользователя
-        if (typeof shop !== 'undefined' && shop && seller) {
-            if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
-            if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
-        }
-        // Если директор уже открыт — грузим его данные
-        if (typeof directorMode !== 'undefined' && directorMode) {
-            if (typeof window.loadDirectorOrders === 'function') window.loadDirectorOrders();
-            if (typeof window.loadRevisions === 'function') window.loadRevisions();
-        }
+        // 🔧 FIX: после инициализации Firebase подгружаем данные для текущего пользователя
+        // (на случай, если initApp выполнился раньше, чем Firebase успел подняться)
+        try {
+            if (typeof shop !== 'undefined' && shop && seller) {
+                if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
+                if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
+            }
+            if (typeof directorMode !== 'undefined' && directorMode) {
+                if (typeof window.loadDirectorOrders === 'function') window.loadDirectorOrders();
+                if (typeof window.loadRevisions === 'function') window.loadRevisions();
+            }
+        } catch(e) { console.error('Post-firebase load error:', e); }
 
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
@@ -551,6 +553,13 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         console.error('❌ Firebase init failed:', err);
         window.fbDB = null;
         window.fbFns = null;
+        // 🔧 FIX: показываем пользователю, что база недоступна, вместо вечных скелетонов
+        try {
+            var inEl = document.getElementById('orders-incoming-list');
+            if (inEl) inEl.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Нет связи с базой</div>';
+            var outEl = document.getElementById('orders-outgoing-list');
+            if (outEl) outEl.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Нет связи с базой</div>';
+        } catch(_) {}
       }
   }, 100);
 </script>
@@ -665,11 +674,19 @@ window.showCustomConfirm = function(title, text, onConfirm) {
     };
 };
 
+// 🔧 FIX: добавлена загрузка данных продавца при показе экрана screen-seller
 window.showScreen = function(id) {
     var screens = document.querySelectorAll('.screen');
     for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
     var el = document.getElementById(id);
     if (el) el.classList.add('active');
+
+    // 🔧 FIX: грузим данные продавца при показе экрана
+    if (id === 'screen-seller' && window.fbDB) {
+        try { if (window.loadMyOrders) window.loadMyOrders(); } catch(e) {}
+        try { if (window.loadCatalog) window.loadCatalog(false, true); } catch(e) {}
+    }
+
     if (id === 'screen-director' && window.fbDB) {
         try { if (window.loadDirectorOrders) window.loadDirectorOrders(); } catch(e) {}
         try { if (window.loadCatalog) window.loadCatalog(true, true); } catch(e) {}
@@ -1046,9 +1063,15 @@ function renderOrderCard(o, isDirector) {
         commentHtml + actionsHtml + '</div>';
 }
 
-/* ---- ИСПРАВЛЕНО: window.loadMyOrders ---- */
+// 🔧 FIX: убраны "вечные скелетоны" при отсутствии связи с базой
 window.loadMyOrders = async function() {
-    if (!window.fbDB) return;
+    if (!window.fbDB) {
+        var inEl0 = document.getElementById('orders-incoming-list');
+        if (inEl0) inEl0.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Нет связи с базой</div>';
+        var outEl0 = document.getElementById('orders-outgoing-list');
+        if (outEl0) outEl0.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Нет связи с базой</div>';
+        return;
+    }
     try {
         var qIn = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop));
         var snapIn = await window.fbFns.getDocs(qIn);
@@ -1058,7 +1081,11 @@ window.loadMyOrders = async function() {
         if (inEl) inEl.innerHTML = allIncomingOrders.length
             ? allIncomingOrders.map(function(o) { return renderOrderCard(o); }).join('')
             : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет входящих</div>';
-    } catch(e) { console.log(e); }
+    } catch(e) {
+        console.log(e);
+        var inEl2 = document.getElementById('orders-incoming-list');
+        if (inEl2) inEl2.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Ошибка загрузки</div>';
+    }
 
     try {
         var qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
@@ -1069,7 +1096,11 @@ window.loadMyOrders = async function() {
         if (outEl) outEl.innerHTML = ordersOut.length
             ? ordersOut.map(function(o) { return renderOrderCard(o); }).join('')
             : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет исходящих</div>';
-    } catch(e) { console.log(e); }
+    } catch(e) {
+        console.log(e);
+        var outEl2 = document.getElementById('orders-outgoing-list');
+        if (outEl2) outEl2.innerHTML = '<div style="color:var(--danger); text-align:center; padding:10px;">Ошибка загрузки</div>';
+    }
 };
 
 window.updateOrderStatus = async function(orderId, status, catalogId) {
