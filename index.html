@@ -106,18 +106,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 24px; animation: slideUp 0.3s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-#hidden-scanner { 
-    position: fixed; 
-    top: -100px; 
-    left: 0; 
-    width: 1px; 
-    height: 1px; 
-    opacity: 0; 
-    z-index: -1;
-    border: none;
-    outline: none;
-}
-
 .skeleton-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; height: 150px; animation: pulse 1.5s infinite ease-in-out; }
 .skeleton-line { background: #E5E5EA; height: 16px; border-radius: 8px; margin-bottom: 8px; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -136,7 +124,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     to { opacity: 1; transform: scale(1); }
 }
 
-/* СТИЛИ ДЛЯ КАМЕРЫ-СКАНЕРА */
+/* СТИЛИ ДЛЯ КАМЕРЫ-СКАНЕРА (используется только Директором) */
 #camera-scanner-modal { align-items: center; z-index: 10002; }
 #camera-scanner-modal .modal-content { border-radius: var(--radius-card); max-width: 500px; width: 94%; padding: 20px; }
 #qr-reader {
@@ -176,7 +164,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО КАМЕРЫ-СКАНЕРА -->
+<!-- МОДАЛЬНОЕ ОКНО КАМЕРЫ-СКАНЕРА (используется только Директором) -->
 <div id="camera-scanner-modal" class="modal-overlay">
     <div class="modal-content">
         <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 12px;">📷 Сканирование камерой</h3>
@@ -188,7 +176,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 </div>
 
 <div id="toast" class="toast"></div>
-<input type="text" id="hidden-scanner" onkeypress="if(event.key==='Enter') processScan(this.value);" autocomplete="off">
+<!-- ❌ Скрытый input удалён — ТСД теперь слушает глобальный keydown -->
 
 <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
 <div id="edit-modal" class="modal-overlay">
@@ -410,16 +398,13 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         </div>
     </div>
 
-    <!-- ВКЛАДКА ИНВЕНТАРИЗАЦИЯ (ИСПРАВЛЕНО) -->
+    <!-- ВКЛАДКА ИНВЕНТАРИЗАЦИЯ (ТОЛЬКО ТСД) -->
     <div id="section-scanner" style="display: none;">
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Инвентаризация</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">Наведите ТСД или используйте камеру для сканирования.</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">Наведите ТСД и отсканируйте штрих-код. Список обновится автоматически.</p>
             
-            <!-- НОВАЯ КНОПКА ДЛЯ КАМЕРЫ -->
-            <button class="btn-main" onclick="openCameraScanner('seller')" style="margin-bottom: 16px; background: var(--dark-pill); color: var(--primary);">
-                📷 Сканировать камерой
-            </button>
+            <!-- ❌ Кнопка "Сканировать камерой" убрана у продавца -->
 
             <div id="scan-list-container"></div>
             
@@ -620,7 +605,7 @@ try {
 }
 
 var html5QrCode = null;
-var currentScannerTarget = 'seller';
+var currentScannerTarget = 'director';
 var cameraIsRunning = false;
 var lastScannedCode = '';
 var lastScanTime = 0;
@@ -719,6 +704,8 @@ window.loginSeller = function() {
         if (window.fbDB) {
             try { if (window.loadMyOrders) window.loadMyOrders(); } catch(e) {}
             try { if (window.loadCatalog) window.loadCatalog(false, true); } catch(e) {}
+        } else {
+            showToast('База ещё загружается...', 'error');
         }
     } catch(e) { console.error('loginSeller:', e); }
 };
@@ -779,14 +766,7 @@ window.switchMainTab = function(tab) {
         if (btn) btn.classList.toggle('active', t === tab);
         if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
     }
-    
-    // АВТОФОКУС ДЛЯ ТСД при открытии вкладки сканера
-    if (tab === 'scanner') {
-        setTimeout(function() {
-            var scanner = document.getElementById('hidden-scanner');
-            if (scanner) scanner.focus();
-        }, 300);
-    }
+    // ❌ Автофокус на скрытый input убран — ТСД слушает document глобально
 };
 
 window.switchDirTab = function(tab) {
@@ -1436,6 +1416,9 @@ window.orderSingleItem = function(itemId) {
             deptPills[j].classList.remove('active');
         }
     }
+    if (!document.querySelector('#order-dept-pills .size-pill.active')) {
+        selectedOrderDept = '';
+    }
 
     var catSelect = document.getElementById('order-category');
     if (catSelect) {
@@ -1479,45 +1462,42 @@ window.orderSingleItem = function(itemId) {
 };
 
 /* ============================================================
-   ИНВЕНТАРИЗАЦИЯ (продавец) - ИСПРАВЛЕНО
+   ИНВЕНТАРИЗАЦИЯ (продавец) — ТОЛЬКО ТСД
    ============================================================ */
+var __lastTsdCode = '';
+var __lastTsdTime = 0;
+
 window.processScan = function(code) {
-    var scanner = document.getElementById('hidden-scanner');
-    if (scanner) scanner.value = '';
-    
     if (!code || !code.trim()) return;
-    
-    // Очищаем от пробелов и невидимых символов, которые может добавлять ТСД
-    var scannedCode = code.trim(); 
+    var scannedCode = code.trim();
+
+    // Защита от двойного срабатывания ТСД (некоторые модели шлют дубли)
+    var now = Date.now();
+    if (scannedCode === __lastTsdCode && (now - __lastTsdTime) < 300) return;
+    __lastTsdCode = scannedCode;
+    __lastTsdTime = now;
+
     var name = 'Товар ' + scannedCode;
     var existing = null;
-    
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === scannedCode) { existing = scanList[i]; break; }
     }
-    
     if (existing) {
         existing.qty += 1;
         showToast('+1 к ' + name, 'success');
     } else {
-        scanList.unshift({ 
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Уникальный ID
-            code: scannedCode, 
-            name: name, 
-            size: 'Без размера', 
-            year: 'Без года', 
-            qty: 1 
+        scanList.unshift({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+            code: scannedCode,
+            name: name,
+            size: 'Без размера',
+            year: 'Без года',
+            qty: 1
         });
         showToast('Добавлен: ' + name, 'success');
     }
-    
     try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
-    
-    // Обязательно возвращаем фокус на скрытое поле для следующего сканирования
-    setTimeout(function() {
-        if (scanner) scanner.focus();
-    }, 100);
 };
 
 window.renderScanList = function() {
@@ -1557,8 +1537,8 @@ window.renderScanList = function() {
             '</div></div>';
     }).join('');
 
-    var summary = document.getElementById('scan-summary');
-    if (summary) summary.style.display = 'flex';
+    var summary2 = document.getElementById('scan-summary');
+    if (summary2) summary2.style.display = 'flex';
     var tp = document.getElementById('total-positions');
     if (tp) tp.innerText = scanList.length;
     var tq = document.getElementById('total-qty');
@@ -1619,7 +1599,68 @@ window.downloadCurrentRevisionExcel = function() {
 };
 
 /* ============================================================
-   ИНВЕНТАРИЗАЦИЯ (директор)
+   ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ТСД (keydown на document)
+   Работает для Продавца и Директора. Не зависит от фокуса.
+   ============================================================ */
+(function initGlobalScannerListener() {
+    var scanBuffer = '';
+    var lastKeyTime = 0;
+    var SCAN_TIMEOUT = 300;      // мс: пауза больше — сброс буфера
+    var MIN_CODE_LENGTH = 3;     // минимальная длина кода
+
+    document.addEventListener('keydown', function(e) {
+        // 1. Если открыта модалка камеры / редактирования / confirm — не мешаем
+        var camModal = document.getElementById('camera-scanner-modal');
+        var editModal = document.getElementById('edit-modal');
+        var confirmModal = document.getElementById('custom-confirm-modal');
+        if ((camModal && camModal.classList.contains('open')) ||
+            (editModal && editModal.classList.contains('open')) ||
+            (confirmModal && confirmModal.classList.contains('open'))) {
+            return;
+        }
+
+        // 2. Если фокус в реальном поле ввода (кроме select) — не перехватываем
+        var tag = (e.target.tagName || '').toUpperCase();
+        var inputType = (e.target.type || '').toLowerCase();
+        var isRealInput = (tag === 'INPUT' || tag === 'TEXTAREA') &&
+                          !['checkbox','radio','file','submit','button'].includes(inputType);
+
+        // Enter внутри реального поля — не наша забота
+        if (isRealInput && e.key === 'Enter') return;
+
+        // 3. Собираем буфер с таймаутом
+        var now = Date.now();
+        if (now - lastKeyTime > SCAN_TIMEOUT) scanBuffer = '';
+        lastKeyTime = now;
+
+        if (e.key === 'Enter') {
+            var code = scanBuffer.trim();
+            scanBuffer = '';
+            if (code.length >= MIN_CODE_LENGTH) {
+                // Выбираем, в какой список добавить — продавец или директор
+                var onDirector = document.getElementById('screen-director') &&
+                                 document.getElementById('screen-director').classList.contains('active');
+                if (onDirector) {
+                    addScannedCodeToDirectorList(code);
+                } else {
+                    window.processScan(code);
+                }
+            }
+            return;
+        }
+
+        // Однократный печатный символ
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (isRealInput) return; // в реальное поле пишем как обычно
+            scanBuffer += e.key;
+        }
+    }, true); // capture: true — ловим раньше всех
+
+    console.log('✅ Global TSD scanner listener ready');
+})();
+
+/* ============================================================
+   ИНВЕНТАРИЗАЦИЯ (директор) — оставляем как было (ТСД + камера)
    ============================================================ */
 window.renderDirectorScanList = function() {
     var container = document.getElementById('director-scan-list-container');
@@ -1659,8 +1700,8 @@ window.renderDirectorScanList = function() {
             '</div></div>';
     }).join('');
 
-    var summary = document.getElementById('director-scan-summary');
-    if (summary) summary.style.display = 'flex';
+    var summary2 = document.getElementById('director-scan-summary');
+    if (summary2) summary2.style.display = 'flex';
     var tp = document.getElementById('director-total-positions');
     if (tp) tp.innerText = directorScanList.length;
     var tq = document.getElementById('director-total-qty');
@@ -1725,7 +1766,7 @@ window.downloadDirectorRevisionExcel = function() {
 };
 
 /* ============================================================
-   КАМЕРА-СКАНЕР (html5-qrcode)
+   КАМЕРА-СКАНЕР (только для Директора)
    ============================================================ */
 function onScanSuccess(decodedText) {
     var now = Date.now();
@@ -1752,36 +1793,23 @@ function onScanSuccess(decodedText) {
 }
 
 function addScannedCodeToSellerList(code) {
-    // Защита от двойного считывания камерой
-    var now = Date.now();
-    if (code === lastScannedCode && (now - lastScanTime) < SCAN_COOLDOWN) {
-        return;
-    }
-    lastScannedCode = code;
-    lastScanTime = now;
-
+    // На случай, если кто-то вызовет (камера у продавца отключена, но функция оставлена)
     var name = 'Товар ' + code;
     var existing = null;
     for (var i = 0; i < scanList.length; i++) {
         if (scanList[i].code === code) { existing = scanList[i]; break; }
     }
-    
     if (existing) {
         existing.qty += 1;
-        showToast('+1 к ' + name, 'success');
     } else {
-        scanList.unshift({ 
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), 
-            code: code, 
-            name: name, 
-            size: 'Без размера', 
-            year: 'Без года', 
-            qty: 1 
+        scanList.unshift({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+            code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1
         });
-        showToast('Добавлен: ' + name, 'success');
     }
     try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
+    showToast('Добавлен: ' + name, 'success');
 }
 
 function addScannedCodeToDirectorList(code) {
@@ -1794,7 +1822,7 @@ function addScannedCodeToDirectorList(code) {
         existing.qty += 1;
         showToast('+1 к ' + name, 'success');
     } else {
-        directorScanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        directorScanList.unshift({ id: Date.now().toString() + Math.random().toString(36).substr(2, 5), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
         showToast('Добавлен: ' + name, 'success');
     }
     try { localStorage.setItem('director_scan_list_draft', JSON.stringify(directorScanList)); } catch(_) {}
@@ -1811,11 +1839,10 @@ window.openCameraScanner = function(target) {
     lastScannedCode = '';
     lastScanTime = 0;
 
-    modal.classList.add('open');
+    if (html5QrCode) { try { html5QrCode.stop(); } catch(_) {} html5QrCode = null; }
 
-    setTimeout(function() {
-        startQrScanner();
-    }, 300);
+    modal.classList.add('open');
+    setTimeout(function() { startQrScanner(); }, 300);
 };
 
 function startQrScanner() {
@@ -1827,9 +1854,7 @@ function startQrScanner() {
     if (typeof Html5Qrcode === 'undefined') {
         var script = document.createElement('script');
         script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-        script.onload = function() {
-            initHtml5QrCode();
-        };
+        script.onload = function() { initHtml5QrCode(); };
         script.onerror = function() {
             showToast('Не удалось загрузить библиотеку сканера', 'error');
             closeCameraScanner();
@@ -1843,9 +1868,7 @@ function startQrScanner() {
 function initHtml5QrCode() {
     var readerEl = document.getElementById('qr-reader');
     if (!readerEl) return;
-
     readerEl.innerHTML = '';
-
     html5QrCode = new Html5Qrcode("qr-reader");
 
     var config = {
@@ -1857,16 +1880,14 @@ function initHtml5QrCode() {
         },
         aspectRatio: 1.0,
         disableFlip: false,
-        videoConstraints: {
-            facingMode: "environment"
-        }
+        videoConstraints: { facingMode: "environment" }
     };
 
     html5QrCode.start(
         { facingMode: "environment" },
         config,
         onScanSuccess,
-        function(errorMessage) {}
+        function() {}
     ).then(function() {
         cameraIsRunning = true;
         console.log('✅ Camera scanner started');
@@ -1894,7 +1915,6 @@ function tryAlternativeCamera() {
                 function() {}
             ).then(function() {
                 cameraIsRunning = true;
-                console.log('✅ Camera scanner started (fallback)');
             }).catch(function(err2) {
                 console.error('❌ Fallback camera error:', err2);
                 showToast('Не удалось запустить камеру', 'error');
@@ -1943,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /* ============================================================
-   ДИРЕКТОР — остальное
+   ДИРЕКТОР — заказы, витрина, ревизии, редактирование
    ============================================================ */
 
 window.loadDirectorOrders = async function() {
@@ -2153,7 +2173,7 @@ if (document.readyState === 'loading') {
 }
 </script>
 
-<!-- Подключаем html5-qrcode (CDN) -->
+<!-- Подключаем html5-qrcode (CDN) — используется только Директором -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </body>
