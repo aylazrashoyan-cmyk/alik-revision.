@@ -51,7 +51,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(-
 .size-pill:active { transform: scale(0.95); }
 .size-pill.active { background: var(--primary); color: var(--text-main); box-shadow: var(--shadow-primary); }
 
-.toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--dark-pill); color: #FFF; padding: 16px 24px; border-radius: var(--radius-pill); font-size: 15px; font-weight: 600; z-index: 10000; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--dark-pill); color: #FFF; padding: 16px 24px; border-radius: var(--radius-input); font-size: 15px; font-weight: 600; z-index: 10000; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; gap: 8px; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.error { background: var(--danger); }
 .toast.success { background: var(--success); }
@@ -106,7 +106,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 24px; animation: slideUp 0.3s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* КРИТИЧНО: сканер убран за пределы экрана без использования absolute */
 #hidden-scanner { 
     position: fixed; 
     top: -100px; 
@@ -123,7 +122,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .skeleton-line { background: #E5E5EA; height: 16px; border-radius: 8px; margin-bottom: 8px; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-/* Отладочная плашка ошибок */
 #js-error-banner {
     position: fixed; top: 0; left: 0; right: 0;
     background: #FF453A; color: #FFF;
@@ -132,12 +130,62 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     white-space: pre-wrap; word-break: break-word;
 }
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* СТИЛИ ДЛЯ КАМЕРЫ-СКАНЕРА */
+#camera-scanner-modal { align-items: center; z-index: 10002; }
+#camera-scanner-modal .modal-content { border-radius: var(--radius-card); max-width: 500px; width: 94%; padding: 20px; }
+#qr-reader {
+    width: 100%;
+    border-radius: var(--radius-input);
+    overflow: hidden;
+    background: #000;
+    margin-bottom: 12px;
+    min-height: 240px;
+}
+#qr-reader video { border-radius: var(--radius-input); }
+#qr-reader__scan_region { border-radius: var(--radius-input); }
+#qr-reader__dashboard_section_csr button { background: var(--primary) !important; color: var(--text-main) !important; border: none !important; border-radius: var(--radius-pill) !important; font-weight: 800 !important; padding: 10px 16px !important; margin-top: 8px !important; }
+#qr-reader__dashboard_section_csr { padding: 8px 0 !important; }
+#qr-reader__dashboard_section_csr span { color: #FFF !important; font-size: 12px !important; }
+#qr-reader__header_message { color: var(--text-main) !important; background: var(--bg-app) !important; padding: 8px !important; border-radius: 8px !important; font-weight: 700 !important; }
+.scan-result-badge {
+    display: inline-block; background: var(--success); color: #fff;
+    padding: 6px 14px; border-radius: var(--radius-pill);
+    font-size: 13px; font-weight: 800; margin-top: 8px;
+}
 </style>
 </head>
 <body>
 
-<!-- Плашка для отладки: покажет JS-ошибки на экране телефона -->
 <div id="js-error-banner"></div>
+
+<!-- Кастомное confirm -->
+<div id="custom-confirm-modal" class="modal-overlay" style="align-items: center; z-index: 10001;">
+    <div class="modal-content" style="border-radius: var(--radius-card); max-width: 320px; width: 90%; padding: 24px; text-align: center; animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        <h3 id="custom-confirm-title" style="margin: 0 0 8px 0; font-weight: 900; font-size: 18px; color: var(--text-main);">Подтвердите действие</h3>
+        <p id="custom-confirm-text" style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted); font-weight: 500; line-height: 1.4;"></p>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn-edit" id="custom-confirm-cancel" style="flex: 1; padding: 14px; font-size: 14px;">Отмена</button>
+            <button class="btn-main" id="custom-confirm-ok" style="flex: 1; padding: 14px; font-size: 14px; margin: 0; text-transform: none; letter-spacing: 0;">Да</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО КАМЕРЫ-СКАНЕРА -->
+<div id="camera-scanner-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 12px;">📷 Сканирование камерой</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0; font-weight: 500;">Наведите камеру на штрих-код. Распознанные коды появятся в списке.</p>
+        <div id="qr-reader"></div>
+        <div id="scan-last-result" style="text-align:center; margin-bottom: 12px;"></div>
+        <button class="btn-edit" style="width:100%; padding: 16px; font-size: 15px;" onclick="closeCameraScanner()">Закрыть</button>
+    </div>
+</div>
 
 <div id="toast" class="toast"></div>
 <input type="text" id="hidden-scanner" onkeypress="if(event.key==='Enter') processScan(this.value);" autocomplete="off">
@@ -200,7 +248,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
                 <h3 style="margin:0; font-weight:900; font-size: 18px;">Создать запрос</h3>
-                <button class="btn-edit" style="padding:8px 12px; font-size:12px;" onclick="resetOrderForm()">Очистить</button>
             </div>
             
             <div class="input-group">
@@ -257,7 +304,11 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             </div>
 
             <div class="input-group"><input type="text" id="order-comment" class="input-field" placeholder="Комментарий"></div>
-            <button class="btn-main" id="btn-submit-order" onclick="createOrder()">Отправить запрос</button>
+            
+            <div style="display:flex; gap:12px; margin-top:8px;">
+                <button class="btn-edit" id="btn-reset-order" style="flex:1; padding:18px; text-transform:uppercase; letter-spacing:0.5px; font-weight:900; font-size:14px;" onclick="resetOrderForm()">Сбросить</button>
+                <button class="btn-main" id="btn-submit-order" style="flex:2; margin:0;" onclick="createOrder()">Отправить запрос</button>
+            </div>
         </div>
 
         <div class="card">
@@ -274,7 +325,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     <div id="section-catalog" style="display: none;">
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px; margin-bottom: 16px;">Подбор товара</h3>
-            
+
             <div class="input-label">Отдел</div>
             <div class="size-pills" style="margin-bottom:12px;" id="cat-dept-pills">
                 <div class="size-pill" onclick="selectCatDept(this, 'Муж')">Муж</div>
@@ -333,20 +384,28 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
                     </div>
                 </div>
             </div>
-            <button class="btn-main" id="btn-submit-catalog" onclick="addToCatalog()">Опубликовать</button>
+
+            <div style="display:flex; gap:12px;">
+                <button class="btn-edit" id="btn-reset-catalog" style="flex:1; padding:18px; text-transform:uppercase; letter-spacing:0.5px; font-weight:900; font-size:14px;" onclick="resetCatalogForm()">Сбросить</button>
+                <button class="btn-main" id="btn-submit-catalog" style="flex:2; margin:0;" onclick="addToCatalog()">Опубликовать</button>
+            </div>
         </div>
 
         <div class="card" style="background: transparent; box-shadow: none; padding: 0; border: none;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
                 <h3 style="margin:0; font-weight:900; font-size: 20px;">Витрина</h3>
-                <div class="size-pills" style="margin:0; background: var(--bg-card); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
-                    <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
-                    <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">Мои</div>
-                    <div class="size-pill" id="btn-filter-alik" onclick="toggleCatalogFilter('Алик')" style="padding:6px 12px; font-size: 12px;">Алик</div>
-                    <div class="size-pill" id="btn-filter-moda" onclick="toggleCatalogFilter('Мода')" style="padding:6px 12px; font-size: 12px;">Мода</div>
-                    <div class="size-pill" id="btn-filter-style" onclick="toggleCatalogFilter('Твой стиль')" style="padding:6px 12px; font-size: 12px;">Стиль</div>
-                </div>
             </div>
+
+            <div class="size-pills" style="margin:0 0 8px 0; background: var(--bg-card); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
+                <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
+                <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">Мои</div>
+                <div class="size-pill" id="btn-filter-alik" onclick="toggleCatalogFilter('Алик')" style="padding:6px 12px; font-size: 12px;">Алик</div>
+                <div class="size-pill" id="btn-filter-moda" onclick="toggleCatalogFilter('Мода')" style="padding:6px 12px; font-size: 12px;">Мода</div>
+                <div class="size-pill" id="btn-filter-style" onclick="toggleCatalogFilter('Твой стиль')" style="padding:6px 12px; font-size: 12px;">Стиль</div>
+            </div>
+
+            <div id="catalog-category-pills" class="size-pills" style="margin:0 0 12px 0; flex-wrap:wrap; display:none;"></div>
+
             <div id="catalog-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 100%; height: 100px;"></div></div></div>
         </div>
     </div>
@@ -385,9 +444,53 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     </div>
     
     <div class="card" id="dir-section-orders" style="padding: 16px;"><div id="director-orders-list"></div></div>
-    <div class="card" id="dir-section-catalog" style="display:none; padding: 16px;"><div id="director-catalog-list"></div></div>
+    
+    <div class="card" id="dir-section-catalog" style="display:none; padding: 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+            <h3 style="margin:0; font-weight:900; font-size: 18px;">Витрина</h3>
+        </div>
+
+        <div class="size-pills" style="margin:0 0 8px 0; background: var(--bg-app); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
+            <div class="size-pill active" id="dir-filter-all" onclick="toggleDirectorCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
+            <div class="size-pill" id="dir-filter-alik" onclick="toggleDirectorCatalogFilter('Алик')" style="padding:6px 12px; font-size: 12px;">Алик</div>
+            <div class="size-pill" id="dir-filter-moda" onclick="toggleDirectorCatalogFilter('Мода')" style="padding:6px 12px; font-size: 12px;">Мода</div>
+            <div class="size-pill" id="dir-filter-style" onclick="toggleDirectorCatalogFilter('Твой стиль')" style="padding:6px 12px; font-size: 12px;">Стиль</div>
+        </div>
+
+        <div id="director-category-pills" class="size-pills" style="margin:0 0 12px 0; flex-wrap:wrap; display:none;"></div>
+
+        <div id="director-catalog-list"></div>
+    </div>
     
     <div id="dir-section-scanner" style="display:none;">
+        <div class="card">
+            <h3 style="margin-top:0; font-weight:900; font-size: 18px;">Инвентаризация (А.А.)</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; font-weight: 500;">
+                Используйте ТСД или камеру телефона для сканирования.
+            </p>
+
+            <!-- Кнопка запуска камеры -->
+            <button class="btn-main" onclick="openCameraScanner('director')" style="margin-bottom: 16px; background: var(--dark-pill); color: var(--primary);">
+                📷 Сканировать камерой
+            </button>
+
+            <div id="director-scan-list-container"></div>
+
+            <div id="director-scan-summary" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 2px dashed #D1D5DB; justify-content: space-between;">
+                <span style="color: var(--text-muted); font-weight: 600;">Позиций:</span>
+                <strong id="director-total-positions" style="color: var(--text-main); font-size: 16px;">0</strong>
+                <span style="color: var(--text-muted); font-weight: 600; margin-left: 12px;">Штук:</span>
+                <strong id="director-total-qty" style="color: var(--success); font-size: 16px;">0</strong>
+            </div>
+
+            <button class="btn-main" onclick="saveDirectorInventory()" style="margin-top: 20px; background: var(--success); color: #fff;">
+                ✅ Сохранить ревизию А.А.
+            </button>
+            <button class="btn-main" onclick="downloadDirectorRevisionExcel()" style="margin-top: 10px; background: var(--dark-pill); color: var(--primary);">
+                📥 Скачать в Excel
+            </button>
+        </div>
+
         <div class="card">
             <h3 style="margin-top:0; font-weight:900; font-size: 18px;">История ревизий</h3>
             <div id="revisions-list"></div>
@@ -396,7 +499,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 </div>
 
 <!-- ===================================================== -->
-<!-- FIREBASE: Загружается в фоне, чтобы не блокировать кнопки -->
+<!-- FIREBASE -->
 <!-- ===================================================== -->
 <script type="module">
   window.addEventListener('error', (e) => {
@@ -407,11 +510,10 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     }
   });
 
-  // Оборачиваем в setTimeout, чтобы дать основному скрипту загрузиться первым
   setTimeout(async () => {
       try {
         const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
-        const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const { getFirestore, collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
 
         const firebaseConfig = {
           apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -426,13 +528,18 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         const db = getFirestore(app);
 
         window.fbDB = db;
-        window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
+        window.fbFns = { collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction };
         console.log('✅ Firebase ready');
 
-        // Перезагружаем данные, если мы уже на экране магазина
-        if (shop && seller) {
-            if (typeof loadMyOrders === 'function') loadMyOrders();
-            if (typeof loadCatalog === 'function') loadCatalog();
+        // После инициализации Firebase подгружаем данные для текущего пользователя
+        if (typeof shop !== 'undefined' && shop && seller) {
+            if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
+            if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
+        }
+        // Если директор уже открыт — грузим его данные
+        if (typeof directorMode !== 'undefined' && directorMode) {
+            if (typeof window.loadDirectorOrders === 'function') window.loadDirectorOrders();
+            if (typeof window.loadRevisions === 'function') window.loadRevisions();
         }
 
         if ('serviceWorker' in navigator) {
@@ -449,196 +556,190 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 </script>
 
 <!-- ===================================================== -->
-<!-- ОСНОВНОЙ КОД (выполняется моментально, кнопки работают) -->
+<!-- ОСНОВНОЙ КОД -->
 <!-- ===================================================== -->
 <script>
-let shop = localStorage.getItem('ord_shop') || '';
-let seller = localStorage.getItem('ord_seller') || '';
-let directorMode = false;
-let currentPin = '';
+/* ============================================================
+   БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ДАННЫХ
+   ============================================================ */
+var shop = '';
+var seller = '';
+try { shop = localStorage.getItem('ord_shop') || ''; } catch(e) {}
+try { seller = localStorage.getItem('ord_seller') || ''; } catch(e) {}
+
+var directorMode = false;
+var currentPin = '';
 
 window.currentOrderPhotoBase64 = '';
 window.currentCatPhotoBase64 = '';
 window.currentOrderCatalogId = null;
 
-let allIncomingOrders = [];
-let selectedOrderDept = '';
+var allIncomingOrders = [];
+var selectedOrderDept = '';
 
-let allCatalogItems = [];
-let selectedCatDept = '';
-let currentCatalogFilter = 'all'; 
+var allCatalogItems = [];
+var selectedCatDept = '';
+var currentCatalogFilter = 'all';
+var currentDirectorCatalogFilter = 'all';
+var currentCatalogCategory = '';
+var currentDirectorCatalogCategory = '';
 
-let scanList = JSON.parse(localStorage.getItem('scan_list_draft') || '[]');
+var catalogCache = null;
+var catalogCacheTime = 0;
+var catalogLoading = false;
+var CATALOG_CACHE_TTL = 60 * 1000;
 
-function showToast(msg, type = 'default') {
-    const t = document.getElementById('toast');
+var scanList = [];
+try {
+    var raw = localStorage.getItem('scan_list_draft');
+    var parsed = raw ? JSON.parse(raw) : [];
+    scanList = Array.isArray(parsed) ? parsed : [];
+} catch(e) {
+    try { localStorage.removeItem('scan_list_draft'); } catch(_) {}
+    scanList = [];
+}
+
+/* Список сканирования для директора */
+var directorScanList = [];
+try {
+    var rawDir = localStorage.getItem('director_scan_list_draft');
+    var parsedDir = rawDir ? JSON.parse(rawDir) : [];
+    directorScanList = Array.isArray(parsedDir) ? parsedDir : [];
+} catch(e) {
+    try { localStorage.removeItem('director_scan_list_draft'); } catch(_) {}
+    directorScanList = [];
+}
+
+/* Переменные для камеры-сканера */
+var html5QrCode = null;
+var currentScannerTarget = 'seller';
+var cameraIsRunning = false;
+var lastScannedCode = '';
+var lastScanTime = 0;
+var SCAN_COOLDOWN = 1500;
+
+/* ============================================================
+   ГЛОБАЛЬНЫЕ ФУНКЦИИ
+   ============================================================ */
+
+window.showToast = function(msg, type) {
+    type = type || 'default';
+    var t = document.getElementById('toast');
     if (!t) return;
-    t.innerText = msg;
+    t.innerHTML = msg;
     t.className = 'toast show ' + type;
-    setTimeout(() => { t.className = 'toast'; }, 3000);
-}
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(function() { t.className = 'toast'; }, 3000);
+};
 
-function validateOrderForm() {
-    const btn = document.getElementById('btn-submit-order');
-    if (!btn) return;
-    const toShop = document.getElementById('order-to-shop').value;
-    let category = document.getElementById('order-category').value;
-    if (category === 'custom_add') category = document.getElementById('new-category-input').value.trim();
+window.showCustomConfirm = function(title, text, onConfirm) {
+    var modal = document.getElementById('custom-confirm-modal');
+    var titleEl = document.getElementById('custom-confirm-title');
+    var textEl = document.getElementById('custom-confirm-text');
+    var btnOk = document.getElementById('custom-confirm-ok');
+    var btnCancel = document.getElementById('custom-confirm-cancel');
 
-    if (toShop && toShop !== shop && selectedOrderDept && category && window.currentOrderPhotoBase64) {
-        btn.disabled = false;
-    } else {
-        btn.disabled = true;
-    }
-}
+    if (!modal) return;
 
-function validateCatalogForm() {
-    const btn = document.getElementById('btn-submit-catalog');
-    if (!btn) return;
-    let category = document.getElementById('cat-category').value;
-    if (category === 'custom_add') category = document.getElementById('new-cat-category-input').value.trim();
+    titleEl.innerText = title || 'Подтвердите действие';
+    textEl.innerText = text || '';
+    
+    var newBtnOk = btnOk.cloneNode(true);
+    var newBtnCancel = btnCancel.cloneNode(true);
+    btnOk.parentNode.replaceChild(newBtnOk, btnOk);
+    btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
 
-    if (selectedCatDept && category && window.currentCatPhotoBase64) {
-        btn.disabled = false;
-    } else {
-        btn.disabled = true;
-    }
-}
+    modal.classList.add('open');
 
-// --- ИНИЦИАЛИЗАЦИЯ ---
-(function init() {
-    try {
-        const sellerInput = document.getElementById('seller-name');
-        if (sellerInput) sellerInput.value = seller;
+    newBtnOk.onclick = function() {
+        modal.classList.remove('open');
+        if (onConfirm) onConfirm();
+    };
 
-        const currentYear = new Date().getFullYear();
-        let yearOptions = `<option value="Без года">Без года</option>`;
-        for (let y = currentYear; y >= currentYear - 5; y--) {
-            yearOptions += `<option value="${y}">${y}</option>`;
-        }
-        const yearSelect = document.getElementById('cat-year');
-        if (yearSelect) yearSelect.innerHTML = yearOptions;
+    newBtnCancel.onclick = function() {
+        modal.classList.remove('open');
+    };
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+    };
+};
 
-        if (shop && seller && !directorMode) {
-            const titleEl = document.getElementById('shop-title');
-            if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
-            showScreen('screen-seller');
-            renderScanList();
-        } else {
-            showScreen('screen-auth');
-        }
-
-        const orderCat = document.getElementById('order-category');
-        if (orderCat) orderCat.addEventListener('change', function() {
-            const customInp = document.getElementById('new-category-input');
-            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
-            else { customInp.style.display = 'none'; customInp.value = ''; }
-            validateOrderForm();
-        });
-
-        const newCatInp = document.getElementById('new-category-input');
-        if (newCatInp) newCatInp.addEventListener('input', validateOrderForm);
-
-        const catCat = document.getElementById('cat-category');
-        if (catCat) catCat.addEventListener('change', function() {
-            const customInp = document.getElementById('new-cat-category-input');
-            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
-            else { customInp.style.display = 'none'; customInp.value = ''; }
-            validateCatalogForm();
-        });
-
-        const newCatCatInp = document.getElementById('new-cat-category-input');
-        if (newCatCatInp) newCatCatInp.addEventListener('input', validateCatalogForm);
-
-        const orderSize = document.getElementById('order-size');
-        if (orderSize) orderSize.addEventListener('change', function() {
-            const customInp = document.getElementById('custom-size-input');
-            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
-            else { customInp.style.display = 'none'; customInp.value = ''; }
-        });
-
-        const catSize = document.getElementById('cat-size');
-        if (catSize) catSize.addEventListener('change', function() {
-            const customInp = document.getElementById('custom-cat-size-input');
-            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
-            else { customInp.style.display = 'none'; customInp.value = ''; }
-        });
-        
-        validateOrderForm();
-        validateCatalogForm();
-        console.log('✅ Init complete, shop=' + shop + ', seller=' + seller);
-    } catch(e) {
-        console.error('Init error:', e);
-    }
-})();
-
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const el = document.getElementById(id);
+window.showScreen = function(id) {
+    var screens = document.querySelectorAll('.screen');
+    for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+    var el = document.getElementById(id);
     if (el) el.classList.add('active');
     if (id === 'screen-director' && window.fbDB) {
-        if (typeof loadDirectorOrders === 'function') loadDirectorOrders();
-        if (typeof loadCatalog === 'function') loadCatalog(true);
-        if (typeof loadRevisions === 'function') loadRevisions();
+        try { if (window.loadDirectorOrders) window.loadDirectorOrders(); } catch(e) {}
+        try { if (window.loadCatalog) window.loadCatalog(true, true); } catch(e) {}
+        try { if (window.loadRevisions) window.loadRevisions(); } catch(e) {}
+        renderDirectorScanList();
     }
-}
+};
 
-function selectShop(el, name) {
+window.selectShop = function(el, name) {
     try {
-        document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
-        el.classList.add('active');
+        var pills = document.querySelectorAll('#shop-pills .size-pill');
+        for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
+        if (el) el.classList.add('active');
         shop = name;
-        console.log('Shop selected:', name);
     } catch(e) { console.error('selectShop:', e); }
-}
+};
 
-function loginSeller() {
+window.loginSeller = function() {
     try {
-        const name = document.getElementById('seller-name').value.trim();
+        var nameInput = document.getElementById('seller-name');
+        var name = nameInput ? nameInput.value.trim() : '';
         if (!shop) return showToast('Выберите магазин!', 'error');
         if (!name) return showToast('Введите имя!', 'error');
         seller = name;
-        localStorage.setItem('ord_shop', shop);
-        localStorage.setItem('ord_seller', seller);
-        document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
+        try {
+            localStorage.setItem('ord_shop', shop);
+            localStorage.setItem('ord_seller', seller);
+        } catch(_) {}
+        var titleEl = document.getElementById('shop-title');
+        if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
         showScreen('screen-seller');
         renderScanList();
-        
-        // Если база уже загрузилась, подгружаем данные
-        if (window.fbDB) { 
-            if (typeof loadMyOrders === 'function') loadMyOrders(); 
-            if (typeof loadCatalog === 'function') loadCatalog(); 
+        if (window.fbDB) {
+            try { if (window.loadMyOrders) window.loadMyOrders(); } catch(e) {}
+            try { if (window.loadCatalog) window.loadCatalog(false, true); } catch(e) {}
         }
     } catch(e) { console.error('loginSeller:', e); }
-}
+};
 
-function logout() {
-    localStorage.removeItem('ord_shop');
-    localStorage.removeItem('ord_seller');
+window.logout = function() {
+    try {
+        localStorage.removeItem('ord_shop');
+        localStorage.removeItem('ord_seller');
+    } catch(_) {}
     shop = ''; seller = ''; directorMode = false;
-    document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
-    document.getElementById('seller-name').value = '';
+    var pills = document.querySelectorAll('.size-pill');
+    for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
+    var nameInput = document.getElementById('seller-name');
+    if (nameInput) nameInput.value = '';
     showScreen('screen-auth');
-}
+};
 
-// --- ПИН-ПАД ---
-function updatePinDisplay() {
-    const dashes = document.querySelectorAll('#pin-display .pin-dash');
-    dashes.forEach((dash, index) => {
-        if (index < currentPin.length) dash.classList.add('active');
-        else dash.classList.remove('active');
-    });
-}
+/* --- ПИН-ПАД --- */
+window.updatePinDisplay = function() {
+    var dashes = document.querySelectorAll('#pin-display .pin-dash');
+    for (var i = 0; i < dashes.length; i++) {
+        if (i < currentPin.length) dashes[i].classList.add('active');
+        else dashes[i].classList.remove('active');
+    }
+};
 
-function pressPin(num) {
+window.pressPin = function(num) {
     try {
         if (num === 'C') currentPin = '';
         else if (currentPin.length < 4) currentPin += num;
         updatePinDisplay();
     } catch(e) { console.error('pressPin:', e); }
-}
+};
 
-function checkPin() {
+window.checkPin = function() {
     try {
         if (currentPin === '1988') {
             directorMode = true;
@@ -652,124 +753,239 @@ function checkPin() {
             updatePinDisplay();
         }
     } catch(e) { console.error('checkPin:', e); }
-}
+};
 
-// --- ВКЛАДКИ ---
-function switchMainTab(tab) {
-    document.getElementById('tab-btn-orders').classList.toggle('active', tab === 'orders');
-    document.getElementById('tab-btn-catalog').classList.toggle('active', tab === 'catalog');
-    document.getElementById('tab-btn-scanner').classList.toggle('active', tab === 'scanner');
-    document.getElementById('section-orders').style.display = tab === 'orders' ? 'block' : 'none';
-    document.getElementById('section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
-    document.getElementById('section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
-}
-function switchDirTab(tab) {
-    document.getElementById('dir-tab-btn-orders').classList.toggle('active', tab === 'orders');
-    document.getElementById('dir-tab-btn-catalog').classList.toggle('active', tab === 'catalog');
-    document.getElementById('dir-tab-btn-scanner').classList.toggle('active', tab === 'scanner');
-    document.getElementById('dir-section-orders').style.display = tab === 'orders' ? 'block' : 'none';
-    document.getElementById('dir-section-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
-    document.getElementById('dir-section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
-}
+/* --- ВКЛАДКИ --- */
+window.switchMainTab = function(tab) {
+    var tabs = ['orders','catalog','scanner'];
+    for (var i = 0; i < tabs.length; i++) {
+        var t = tabs[i];
+        var btn = document.getElementById('tab-btn-' + t);
+        var sec = document.getElementById('section-' + t);
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
+    }
+};
 
-// --- ВЫБОР ОТДЕЛОВ ---
-function selectDept(el, dept) {
-    const parent = el.parentElement;
+window.switchDirTab = function(tab) {
+    var tabs = ['orders','catalog','scanner'];
+    for (var i = 0; i < tabs.length; i++) {
+        var t = tabs[i];
+        var btn = document.getElementById('dir-tab-btn-' + t);
+        var sec = document.getElementById('dir-section-' + t);
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
+    }
+};
+
+/* --- ОТДЕЛЫ --- */
+window.selectDept = function(el, dept) {
+    var parent = el.parentElement;
     if (el.classList.contains('active')) {
         el.classList.remove('active');
         selectedOrderDept = '';
     } else {
-        parent.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+        var pills = parent.querySelectorAll('.size-pill');
+        for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
         el.classList.add('active');
         selectedOrderDept = dept;
     }
     validateOrderForm();
-}
+};
 
-function selectCatDept(el, dept) {
-    const parent = el.parentElement;
+window.selectCatDept = function(el, dept) {
+    var parent = el.parentElement;
     if (el.classList.contains('active')) {
         el.classList.remove('active');
         selectedCatDept = '';
     } else {
-        parent.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
+        var pills = parent.querySelectorAll('.size-pill');
+        for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
         el.classList.add('active');
         selectedCatDept = dept;
     }
     validateCatalogForm();
-}
+};
 
-function changeCatQty(delta) {
-    const input = document.getElementById('cat-qty');
-    let val = parseInt(input.value) || 1;
+window.changeCatQty = function(delta) {
+    var input = document.getElementById('cat-qty');
+    if (!input) return;
+    var val = parseInt(input.value) || 1;
     if (val + delta >= 1) input.value = val + delta;
+};
+
+/* --- ВАЛИДАЦИЯ --- */
+function validateOrderForm() {
+    var btn = document.getElementById('btn-submit-order');
+    if (!btn) return;
+    var toShopEl = document.getElementById('order-to-shop');
+    var catEl = document.getElementById('order-category');
+    if (!toShopEl || !catEl) return;
+    var toShop = toShopEl.value;
+    var category = catEl.value;
+    if (category === 'custom_add') {
+        var inp = document.getElementById('new-category-input');
+        category = inp ? inp.value.trim() : '';
+    }
+    var ok = !!(toShop && toShop !== shop && selectedOrderDept && category && window.currentOrderPhotoBase64);
+    btn.disabled = !ok;
 }
 
-// --- ФОТО ---
-function handlePhoto(input, previewId, setter) {
-    const file = input.files[0];
+function validateCatalogForm() {
+    var btn = document.getElementById('btn-submit-catalog');
+    if (!btn) return;
+    var catEl = document.getElementById('cat-category');
+    if (!catEl) return;
+    var category = catEl.value;
+    if (category === 'custom_add') {
+        var inp = document.getElementById('new-cat-category-input');
+        category = inp ? inp.value.trim() : '';
+    }
+    var ok = !!(selectedCatDept && category && window.currentCatPhotoBase64);
+    btn.disabled = !ok;
+}
+
+/* --- ФОТО --- */
+window.handlePhoto = function(input, previewId, setter) {
+    var file = input.files && input.files[0];
     if (!file) return;
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function(e) {
-        const img = new Image();
+        var img = new Image();
         img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800;
-            const scaleSize = MAX_WIDTH / img.width;
+            var canvas = document.createElement('canvas');
+            var MAX_WIDTH = 800;
+            var scaleSize = MAX_WIDTH / img.width;
             canvas.width = MAX_WIDTH;
             canvas.height = img.height * scaleSize;
-            const ctx = canvas.getContext('2d');
+            var ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const base64 = canvas.toDataURL('image/jpeg', 0.7);
-            setter(base64);
-            const preview = document.getElementById(previewId);
-            preview.src = base64;
-            preview.style.display = 'block';
+            var base64 = canvas.toDataURL('image/jpeg', 0.7);
+            try { setter(base64); } catch(_) {}
+            var preview = document.getElementById(previewId);
+            if (preview) {
+                preview.src = base64;
+                preview.style.display = 'block';
+            }
             if (previewId === 'order-photo-preview') validateOrderForm();
             if (previewId === 'cat-photo-preview') validateCatalogForm();
-        }
+        };
+        img.onerror = function() { showToast('Не удалось прочитать фото', 'error'); };
         img.src = e.target.result;
-    }
+    };
     reader.readAsDataURL(file);
-}
+};
 
-function resetOrderForm() {
-    document.getElementById('order-photo-file').value = '';
-    document.getElementById('order-photo-preview').style.display = 'none';
-    window.currentOrderPhotoBase64 = '';
-    window.currentOrderCatalogId = null;
-    document.getElementById('order-comment').value = '';
-    document.getElementById('order-category').value = '';
-    document.getElementById('order-size').value = '';
-    document.getElementById('new-category-input').style.display = 'none';
-    document.getElementById('new-category-input').value = '';
-    document.getElementById('custom-size-input').style.display = 'none';
-    document.getElementById('custom-size-input').value = '';
-    document.querySelectorAll('#order-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
-    selectedOrderDept = '';
-    const toSelect = document.getElementById('order-to-shop');
-    for (let opt of toSelect.options) {
-        if (opt.value !== shop) { toSelect.value = opt.value; break; }
+/* --- ОЧИСТКА ФОРМ --- */
+window.resetOrderForm = function() {
+    var fields = ['order-photo-file','order-comment','order-category','order-size','new-category-input','custom-size-input'];
+    var hasData = false;
+    for (var i = 0; i < fields.length; i++) {
+        var el = document.getElementById(fields[i]);
+        if (el && el.value) { hasData = true; break; }
     }
-    validateOrderForm();
-}
-
-// --- ЗАКАЗЫ ---
-async function createOrder() {
-    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
-    const toShop = document.getElementById('order-to-shop').value;
-    let category = document.getElementById('order-category').value;
-    if (category === 'custom_add') category = document.getElementById('new-category-input').value.trim();
-    let size = document.getElementById('order-size').value;
-    if (size === 'custom_add') size = document.getElementById('custom-size-input').value.trim();
-    const comment = document.getElementById('order-comment').value.trim();
+    if (window.currentOrderPhotoBase64) hasData = true;
+    if (selectedOrderDept) hasData = true;
     
+    var doReset = function() {
+        for (var i = 0; i < fields.length; i++) {
+            var el = document.getElementById(fields[i]);
+            if (el) el.value = '';
+        }
+        var preview = document.getElementById('order-photo-preview');
+        if (preview) { preview.style.display = 'none'; preview.src = ''; }
+        var nci = document.getElementById('new-category-input');
+        if (nci) nci.style.display = 'none';
+        var csi = document.getElementById('custom-size-input');
+        if (csi) csi.style.display = 'none';
+        window.currentOrderPhotoBase64 = '';
+        window.currentOrderCatalogId = null;
+        var deptPills = document.querySelectorAll('#order-dept-pills .size-pill');
+        for (var j = 0; j < deptPills.length; j++) deptPills[j].classList.remove('active');
+        selectedOrderDept = '';
+        var toSelect = document.getElementById('order-to-shop');
+        if (toSelect) {
+            for (var k = 0; k < toSelect.options.length; k++) {
+                if (toSelect.options[k].value !== shop) { toSelect.value = toSelect.options[k].value; break; }
+            }
+        }
+        validateOrderForm();
+        showToast('Форма очищена', 'success');
+    };
+
+    if (hasData) {
+        showCustomConfirm('Очистить форму?', 'Все введенные данные и фото будут удалены.', doReset);
+    } else {
+        doReset();
+    }
+};
+
+window.resetCatalogForm = function() {
+    var fields = ['cat-category','cat-size','cat-photo-file','new-cat-category-input','custom-cat-size-input'];
+    var hasData = false;
+    for (var i = 0; i < fields.length; i++) {
+        var el = document.getElementById(fields[i]);
+        if (el && el.value) { hasData = true; break; }
+    }
+    if (window.currentCatPhotoBase64) hasData = true;
+    if (selectedCatDept) hasData = true;
+
+    var doReset = function() {
+        for (var i = 0; i < fields.length; i++) {
+            var el = document.getElementById(fields[i]);
+            if (el) el.value = '';
+        }
+        var preview = document.getElementById('cat-photo-preview');
+        if (preview) { preview.style.display = 'none'; preview.src = ''; }
+        var nci = document.getElementById('new-cat-category-input');
+        if (nci) nci.style.display = 'none';
+        var csi = document.getElementById('custom-cat-size-input');
+        if (csi) csi.style.display = 'none';
+        var qtyEl = document.getElementById('cat-qty');
+        if (qtyEl) qtyEl.value = '1';
+        window.currentCatPhotoBase64 = '';
+        var deptPills = document.querySelectorAll('#cat-dept-pills .size-pill');
+        for (var j = 0; j < deptPills.length; j++) deptPills[j].classList.remove('active');
+        selectedCatDept = '';
+        validateCatalogForm();
+        showToast('Форма очищена', 'success');
+    };
+
+    if (hasData) {
+        showCustomConfirm('Очистить витрину?', 'Все введенные данные и фото будут удалены.', doReset);
+    } else {
+        doReset();
+    }
+};
+
+/* --- ЗАКАЗЫ --- */
+window.createOrder = async function() {
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
+    var toShopEl = document.getElementById('order-to-shop');
+    var catEl = document.getElementById('order-category');
+    var sizeEl = document.getElementById('order-size');
+    var commentEl = document.getElementById('order-comment');
+    if (!toShopEl || !catEl) return;
+
+    var toShop = toShopEl.value;
+    var category = catEl.value;
+    if (category === 'custom_add') {
+        var inp = document.getElementById('new-category-input');
+        category = inp ? inp.value.trim() : '';
+    }
+    var size = sizeEl ? sizeEl.value : '';
+    if (size === 'custom_add') {
+        var inp2 = document.getElementById('custom-size-input');
+        size = inp2 ? inp2.value.trim() : '';
+    }
+    var comment = commentEl ? commentEl.value.trim() : '';
+
     if (toShop === shop) return showToast('Нельзя заказать у себя', 'error');
     if (!selectedOrderDept) return showToast('Выберите отдел!', 'error');
     if (!category) return showToast('Выберите категорию!', 'error');
     if (!window.currentOrderPhotoBase64) return showToast('Сделайте фото!', 'error');
 
-    const orderData = {
+    var orderData = {
         fromShop: shop, toShop: toShop, seller: seller,
         dept: selectedOrderDept, category: category,
         photo: window.currentOrderPhotoBase64, size: size || 'Без размера',
@@ -782,98 +998,133 @@ async function createOrder() {
         showToast('✅ Запрос отправлен!', 'success');
         resetOrderForm();
         window.currentOrderCatalogId = null;
-        loadMyOrders();
+        if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
     } catch (e) {
         console.error(e);
         showToast('⚠️ Ошибка сети', 'error');
     }
-}
+};
 
-function renderOrderCard(o, isDirector = false) {
-    const photoHtml = o.photo ? `<img src="${o.photo}" class="order-photo">` : '';
-    const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
-    let actionsHtml = '';
-    
+function renderOrderCard(o, isDirector) {
+    isDirector = !!isDirector;
+    var photoHtml = o.photo ? '<img src="' + o.photo + '" class="order-photo" loading="lazy">' : '';
+    var header;
     if (isDirector) {
-        actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;">
-            <button class="btn-edit" style="flex:1;" onclick="directorEditOrder('${o.id}')">✏️ Изменить</button>
-            <button class="btn-del" style="flex:1;" onclick="directorDeleteOrder('${o.id}')">🗑 Удалить</button>
-        </div>`;
+        header = '<span><b>' + o.fromShop + '</b> → <b>' + o.toShop + '</b></span>';
+    } else if (o.toShop === shop) {
+        header = '<span>От: <b>' + o.fromShop + '</b> (' + o.seller + ')</span>';
+    } else {
+        header = '<span>Кому: <b>' + o.toShop + '</b></span>';
+    }
+    var actionsHtml = '';
+
+    if (isDirector) {
+        actionsHtml = '<div style="display:flex; gap:8px; margin-top:8px;">' +
+            '<button class="btn-edit" style="flex:1;" onclick="directorEditOrder(\'' + o.id + '\')">✏️ Изменить</button>' +
+            '<button class="btn-del" style="flex:1;" onclick="directorDeleteOrder(\'' + o.id + '\')">🗑 Удалить</button>' +
+            '</div>';
         if (o.status !== 'pending') {
-            actionsHtml = `<div style="font-size:12px; margin-top:8px; font-weight:700; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонён'}</div>` + actionsHtml;
+            actionsHtml = '<div style="font-size:12px; margin-top:8px; font-weight:700; color:var(--text-muted);">Статус: ' + (o.status === 'accepted' ? '✅ Принят' : '❌ Отклонён') + '</div>' + actionsHtml;
         }
     } else if (o.status === 'pending') {
         if (o.toShop === shop) {
-            actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;">
-                <button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus('${o.id}', 'accepted', '${o.sourceCatalogId || ''}')">Принять</button>
-                <button class="btn-del" style="flex:1;" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
-            </div>`;
+            actionsHtml = '<div style="display:flex; gap:8px; margin-top:8px;">' +
+                '<button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus(\'' + o.id + '\', \'accepted\', \'' + (o.sourceCatalogId || '') + '\')">Принять</button>' +
+                '<button class="btn-del" style="flex:1;" onclick="updateOrderStatus(\'' + o.id + '\', \'rejected\')">Отклонить</button>' +
+                '</div>';
         }
     } else {
-        actionsHtml = `<div style="font-size:12px; margin-top:8px; font-weight:700;">Статус: ${o.status === 'accepted' ? '✅ Принят (Товар списан)' : '❌ Отклонен'}</div>`;
+        actionsHtml = '<div style="font-size:12px; margin-top:8px; font-weight:700;">Статус: ' + (o.status === 'accepted' ? '✅ Принят (Товар списан)' : '❌ Отклонен') + '</div>';
     }
-    
-    return `<div class="order-card ${o.status}">${photoHtml}<div class="order-header">${header}</div><div class="order-title">${o.category} <span style="font-size:13px; color:var(--text-muted);">| ${o.size}</span></div><div class="order-details">Отдел: ${o.dept}</div>${o.comment ? `<div style="font-size:13px; color:var(--text-muted); background:var(--bg-app); padding:8px; border-radius:8px;">💬 ${o.comment}</div>` : ''}${actionsHtml}</div>`;
+
+    var commentHtml = o.comment ? '<div style="font-size:13px; color:var(--text-muted); background:var(--bg-app); padding:8px; border-radius:8px;">💬 ' + o.comment + '</div>' : '';
+
+    return '<div class="order-card ' + o.status + '">' + photoHtml +
+        '<div class="order-header">' + header + '</div>' +
+        '<div class="order-title">' + o.category + ' <span style="font-size:13px; color:var(--text-muted);">| ' + o.size + '</span></div>' +
+        '<div class="order-details">Отдел: ' + o.dept + '</div>' +
+        commentHtml + actionsHtml + '</div>';
 }
 
-async function loadMyOrders() {
+/* ---- ИСПРАВЛЕНО: window.loadMyOrders ---- */
+window.loadMyOrders = async function() {
     if (!window.fbDB) return;
     try {
-        const qIn = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop));
-        const snapIn = await window.fbFns.getDocs(qIn);
+        var qIn = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("toShop", "==", shop));
+        var snapIn = await window.fbFns.getDocs(qIn);
         allIncomingOrders = [];
-        snapIn.forEach(d => allIncomingOrders.push({id: d.id, ...d.data()}));
-        document.getElementById('orders-incoming-list').innerHTML = allIncomingOrders.length ? allIncomingOrders.map(o => renderOrderCard(o)).join('') : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет входящих</div>';
+        snapIn.forEach(function(d) { allIncomingOrders.push(Object.assign({id: d.id}, d.data())); });
+        var inEl = document.getElementById('orders-incoming-list');
+        if (inEl) inEl.innerHTML = allIncomingOrders.length
+            ? allIncomingOrders.map(function(o) { return renderOrderCard(o); }).join('')
+            : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет входящих</div>';
     } catch(e) { console.log(e); }
 
     try {
-        const qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
-        const snapOut = await window.fbFns.getDocs(qOut);
-        let ordersOut = [];
-        snapOut.forEach(d => ordersOut.push({id: d.id, ...d.data()}));
-        document.getElementById('orders-outgoing-list').innerHTML = ordersOut.length ? ordersOut.map(o => renderOrderCard(o)).join('') : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет исходящих</div>';
+        var qOut = window.fbFns.query(window.fbFns.collection(window.fbDB, "orders"), window.fbFns.where("fromShop", "==", shop));
+        var snapOut = await window.fbFns.getDocs(qOut);
+        var ordersOut = [];
+        snapOut.forEach(function(d) { ordersOut.push(Object.assign({id: d.id}, d.data())); });
+        var outEl = document.getElementById('orders-outgoing-list');
+        if (outEl) outEl.innerHTML = ordersOut.length
+            ? ordersOut.map(function(o) { return renderOrderCard(o); }).join('')
+            : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет исходящих</div>';
     } catch(e) { console.log(e); }
-}
+};
 
-async function updateOrderStatus(orderId, status, catalogId = '') {
+window.updateOrderStatus = async function(orderId, status, catalogId) {
+    catalogId = catalogId || '';
     if (!window.fbDB) return showToast('Нет связи', 'error');
     try {
         await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
         if (status === 'accepted' && catalogId && catalogId !== 'null') {
             try {
-                const itemRef = window.fbFns.doc(window.fbDB, "catalog", catalogId);
-                await window.fbFns.runTransaction(window.fbDB, async (transaction) => {
-                    const docSnap = await transaction.get(itemRef);
+                var itemRef = window.fbFns.doc(window.fbDB, "catalog", catalogId);
+                await window.fbFns.runTransaction(window.fbDB, async function(transaction) {
+                    var docSnap = await transaction.get(itemRef);
                     if (docSnap.exists()) {
-                        const currentQty = docSnap.data().qty || 0;
+                        var currentQty = docSnap.data().qty || 0;
                         if (currentQty > 0) transaction.update(itemRef, { qty: currentQty - 1 });
                     }
                 });
+                catalogCache = null;
                 showToast('Товар списан с витрины', 'success');
             } catch (err) {
                 console.error("Ошибка списания:", err);
                 showToast('Заказ принят, но не удалось списать товар', 'error');
             }
         }
-        loadMyOrders();
+        if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
     } catch(e) { console.error(e); showToast('Ошибка обновления статуса', 'error'); }
-}
+};
 
-// --- ВИТРИНА ---
-async function addToCatalog() {
+/* --- ВИТРИНА --- */
+window.addToCatalog = async function() {
     if (!window.fbDB) return showToast('Нет связи с базой', 'error');
-    let category = document.getElementById('cat-category').value;
-    if (category === 'custom_add') category = document.getElementById('new-cat-category-input').value.trim();
-    let size = document.getElementById('cat-size').value;
-    if (size === 'custom_add') size = document.getElementById('custom-cat-size-input').value.trim();
-    const year = document.getElementById('cat-year').value;
-    const qty = parseInt(document.getElementById('cat-qty').value) || 1;
+    var catEl = document.getElementById('cat-category');
+    var sizeEl = document.getElementById('cat-size');
+    var yearEl = document.getElementById('cat-year');
+    var qtyEl = document.getElementById('cat-qty');
+    if (!catEl) return;
+
+    var category = catEl.value;
+    if (category === 'custom_add') {
+        var inp = document.getElementById('new-cat-category-input');
+        category = inp ? inp.value.trim() : '';
+    }
+    var size = sizeEl ? sizeEl.value : '';
+    if (size === 'custom_add') {
+        var inp2 = document.getElementById('custom-cat-size-input');
+        size = inp2 ? inp2.value.trim() : '';
+    }
+    var year = yearEl ? yearEl.value : 'Без года';
+    var qty = qtyEl ? (parseInt(qtyEl.value) || 1) : 1;
 
     if (!selectedCatDept) return showToast('Выберите отдел!', 'error');
     if (!category) return showToast('Выберите категорию!', 'error');
     if (!window.currentCatPhotoBase64) return showToast('Сделайте фото!', 'error');
 
-    const itemData = {
+    var itemData = {
         shop: shop, seller: seller, dept: selectedCatDept, category: category,
         photo: window.currentCatPhotoBase64, size: size || 'Без размера', year: year, qty: qty,
         date: new Date().toISOString()
@@ -882,215 +1133,414 @@ async function addToCatalog() {
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
         showToast('✅ Опубликовано!', 'success');
-        
-        document.getElementById('cat-photo-file').value = '';
-        document.getElementById('cat-photo-preview').style.display = 'none';
+
+        var photoFile = document.getElementById('cat-photo-file');
+        if (photoFile) photoFile.value = '';
+        var preview = document.getElementById('cat-photo-preview');
+        if (preview) preview.style.display = 'none';
         window.currentCatPhotoBase64 = '';
-        document.getElementById('cat-category').value = '';
-        document.getElementById('cat-size').value = '';
-        document.getElementById('cat-qty').value = '1';
-        document.getElementById('new-cat-category-input').style.display = 'none';
-        document.getElementById('custom-cat-size-input').style.display = 'none';
-        document.querySelectorAll('#cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
+        if (catEl) catEl.value = '';
+        if (sizeEl) sizeEl.value = '';
+        if (qtyEl) qtyEl.value = '1';
+        var nci = document.getElementById('new-cat-category-input');
+        if (nci) nci.style.display = 'none';
+        var csi = document.getElementById('custom-cat-size-input');
+        if (csi) csi.style.display = 'none';
+        var deptPills = document.querySelectorAll('#cat-dept-pills .size-pill');
+        for (var i = 0; i < deptPills.length; i++) deptPills[i].classList.remove('active');
         selectedCatDept = '';
         validateCatalogForm();
-        loadCatalog();
+        catalogCache = null;
+        if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
     } catch (e) { console.error(e); showToast('Ошибка', 'error'); }
-}
+};
 
-async function loadCatalog(isDirector = false) {
-    if (!window.fbDB) return;
-    try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
-        allCatalogItems = [];
-        snapshot.forEach(d => allCatalogItems.push({id: d.id, ...d.data()}));
-        
-        if (isDirector) {
-            document.getElementById('director-catalog-list').innerHTML = allCatalogItems.map(item => `
-                <div class="order-card" style="padding:12px;">
-                    <img src="${item.photo}" class="order-photo">
-                    <div class="order-title">${item.category}</div>
-                    <div class="order-details">${item.shop} | ${item.size} | ${item.year} | ${item.qty} шт.</div>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn-edit" style="flex:1;" onclick="directorEditCatalog('${item.id}')">✏️ Изменить</button>
-                        <button class="btn-del" style="flex:1;" onclick="directorDeleteCatalog('${item.id}')">🗑 Удалить</button>
-                    </div>
-                </div>
-            `).join('') || '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет товаров</div>';
-        } else {
-            const list = document.getElementById('catalog-list');
-            let filtered = allCatalogItems;
-            if (currentCatalogFilter === 'mine') {
-                filtered = filtered.filter(o => o.shop === shop);
-            } else if (currentCatalogFilter !== 'all') {
-                filtered = filtered.filter(o => o.shop === currentCatalogFilter);
-            }
-            
-            list.innerHTML = filtered.length ? filtered.map(item => {
-                if (item.qty <= 0) return ''; 
-                return `
-                <div class="order-card" style="padding: 12px;">
-                    <img src="${item.photo}" class="order-photo" style="height: 180px;">
-                    <div class="order-header"><span>${item.shop}</span></div>
-                    <div class="order-title">${item.category}</div>
-                    <div class="order-details" style="display:flex; justify-content:space-between;">
-                        <span>${item.size} | ${item.year}</span>
-                        <span style="color:var(--success); font-weight:800;">${item.qty} шт.</span>
-                    </div>
-                    <button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem('${item.id}')">⚡ Заказать сейчас</button>
-                </div>
-            `}).join('') || '<div style="text-align:center; color:var(--text-muted); padding:10px;">Пусто</div>';
-        }
-    } catch(e) { console.log(e); }
-}
+/* ============================================================
+   ФИЛЬТРЫ + ОПТИМИЗИРОВАННЫЙ РЕНДЕР
+   ============================================================ */
+window.selectCatalogCategory = function(cat) {
+    if (cat === '' || currentCatalogCategory === cat) currentCatalogCategory = '';
+    else currentCatalogCategory = cat;
+    renderSellerCatalog();
+};
 
-function toggleCatalogFilter(type) {
+window.selectDirectorCatalogCategory = function(cat) {
+    if (cat === '' || currentDirectorCatalogCategory === cat) currentDirectorCatalogCategory = '';
+    else currentDirectorCatalogCategory = cat;
+    renderDirectorCatalog();
+};
+
+window.toggleCatalogFilter = function(type) {
     currentCatalogFilter = type;
-    document.querySelectorAll('[id^="btn-filter-"]').forEach(el => el.classList.remove('active'));
-    const idMap = {
+    currentCatalogCategory = '';
+
+    var btns = document.querySelectorAll('[id^="btn-filter-"]');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    var idMap = {
         'all': 'btn-filter-all',
         'mine': 'btn-filter-mine',
         'Алик': 'btn-filter-alik',
         'Мода': 'btn-filter-moda',
         'Твой стиль': 'btn-filter-style'
     };
-    const target = document.getElementById(idMap[type]);
+    var target = document.getElementById(idMap[type]);
     if (target) target.classList.add('active');
-    loadCatalog();
+    renderSellerCatalog();
+};
+
+window.toggleDirectorCatalogFilter = function(type) {
+    currentDirectorCatalogFilter = type;
+    currentDirectorCatalogCategory = '';
+
+    var btns = document.querySelectorAll('[id^="dir-filter-"]');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    var idMap = {
+        'all': 'dir-filter-all',
+        'Алик': 'dir-filter-alik',
+        'Мода': 'dir-filter-moda',
+        'Твой стиль': 'dir-filter-style'
+    };
+    var target = document.getElementById(idMap[type]);
+    if (target) target.classList.add('active');
+    renderDirectorCatalog();
+};
+
+function renderCategoryPills(containerId, items, currentCat, onClickName) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    var filterShop = null;
+    if (onClickName === 'selectCatalogCategory') {
+        if (currentCatalogFilter === 'mine') filterShop = shop;
+        else if (currentCatalogFilter !== 'all') filterShop = currentCatalogFilter;
+    } else {
+        filterShop = (currentDirectorCatalogFilter === 'all') ? null : currentDirectorCatalogFilter;
+    }
+
+    if (!filterShop) {
+        if (container.dataset.sig !== 'hidden') {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            container.dataset.sig = 'hidden';
+        }
+        return;
+    }
+
+    var cats = {};
+    items.forEach(function(i) {
+        if (i.shop === filterShop) cats[i.category] = (cats[i.category] || 0) + 1;
+    });
+    var catList = Object.keys(cats);
+    if (catList.length === 0) {
+        if (container.dataset.sig !== 'empty') {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            container.dataset.sig = 'empty';
+        }
+        return;
+    }
+
+    var sig = filterShop + '|' + currentCat + '|' + catList.map(function(c) { return c + ':' + cats[c]; }).join(',');
+    if (container.dataset.sig === sig) return;
+    container.dataset.sig = sig;
+
+    container.style.display = 'flex';
+    var html = '<div class="size-pill ' + (currentCat === '' ? 'active' : '') +
+        '" style="padding:6px 12px; font-size:12px;" onclick="' + onClickName + '(\'\')">Все категории</div>';
+    catList.forEach(function(c) {
+        html += '<div class="size-pill ' + (currentCat === c ? 'active' : '') +
+            '" style="padding:6px 12px; font-size:12px;" onclick="' + onClickName + '(\'' +
+            c.replace(/'/g, "\\'") + '\')">' + c + ' (' + cats[c] + ')</div>';
+    });
+    container.innerHTML = html;
 }
 
-function orderSingleItem(itemId) {
-    const item = allCatalogItems.find(i => i.id === itemId);
+function renderSellerCatalog() {
+    var list = document.getElementById('catalog-list');
+    if (!list) return;
+
+    renderCategoryPills('catalog-category-pills', allCatalogItems,
+        currentCatalogCategory, 'selectCatalogCategory');
+
+    var filtered = allCatalogItems;
+    if (currentCatalogFilter === 'mine') {
+        filtered = filtered.filter(function(o) { return o.shop === shop; });
+    } else if (currentCatalogFilter !== 'all') {
+        filtered = filtered.filter(function(o) { return o.shop === currentCatalogFilter; });
+    }
+    if (currentCatalogCategory) {
+        filtered = filtered.filter(function(o) { return o.category === currentCatalogCategory; });
+    }
+    var visible = filtered.filter(function(i) { return i.qty > 0; });
+
+    if (visible.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px;">Пусто</div>';
+        return;
+    }
+    list.innerHTML = visible.map(function(item) {
+        return '<div class="order-card" style="padding: 12px;">' +
+            '<img src="' + item.photo + '" class="order-photo" style="height: 180px;" loading="lazy">' +
+            '<div class="order-header"><span>' + item.shop + '</span></div>' +
+            '<div class="order-title">' + item.category + '</div>' +
+            '<div class="order-details" style="display:flex; justify-content:space-between;">' +
+            '<span>' + item.size + ' | ' + item.year + '</span>' +
+            '<span style="color:var(--success); font-weight:800;">' + item.qty + ' шт.</span>' +
+            '</div>' +
+            '<button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem(\'' + item.id + '\')">⚡ Заказать сейчас</button>' +
+            '</div>';
+    }).join('');
+}
+
+function renderDirectorCatalog() {
+    var el = document.getElementById('director-catalog-list');
+    if (!el) return;
+
+    var counts = { all: allCatalogItems.length, 'Алик': 0, 'Мода': 0, 'Твой стиль': 0 };
+    allCatalogItems.forEach(function(i) {
+        if (counts[i.shop] !== undefined) counts[i.shop]++;
+    });
+    var labels = {
+        'dir-filter-all': 'Все',
+        'dir-filter-alik': 'Алик',
+        'dir-filter-moda': 'Мода',
+        'dir-filter-style': 'Стиль'
+    };
+    var keyMap = {
+        'dir-filter-all': 'all',
+        'dir-filter-alik': 'Алик',
+        'dir-filter-moda': 'Мода',
+        'dir-filter-style': 'Твой стиль'
+    };
+    Object.keys(labels).forEach(function(id) {
+        var tabEl = document.getElementById(id);
+        if (tabEl) tabEl.innerText = labels[id] + ' (' + (counts[keyMap[id]] || 0) + ')';
+    });
+
+    renderCategoryPills('director-category-pills', allCatalogItems,
+        currentDirectorCatalogCategory, 'selectDirectorCatalogCategory');
+
+    var filteredDir = allCatalogItems;
+    if (currentDirectorCatalogFilter !== 'all') {
+        filteredDir = filteredDir.filter(function(i) {
+            return i.shop === currentDirectorCatalogFilter;
+        });
+    }
+    if (currentDirectorCatalogCategory) {
+        filteredDir = filteredDir.filter(function(i) {
+            return i.category === currentDirectorCatalogCategory;
+        });
+    }
+
+    if (filteredDir.length === 0) {
+        el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет товаров</div>';
+        return;
+    }
+    el.innerHTML = filteredDir.map(function(item) {
+        return '<div class="order-card" style="padding:12px;">' +
+            '<img src="' + item.photo + '" class="order-photo" loading="lazy">' +
+            '<div class="order-header"><span>🏪 <b>' + item.shop + '</b></span><span>' + (item.seller || '') + '</span></div>' +
+            '<div class="order-title">' + item.category + '</div>' +
+            '<div class="order-details">' + item.size + ' | ' + item.year +
+            ' | <span style="color:var(--success); font-weight:800;">' + item.qty + ' шт.</span></div>' +
+            '<div style="display:flex; gap:8px; margin-top:8px;">' +
+            '<button class="btn-edit" style="flex:1;" onclick="directorEditCatalog(\'' + item.id + '\')">✏️ Изменить</button>' +
+            '<button class="btn-del" style="flex:1;" onclick="directorDeleteCatalog(\'' + item.id + '\')">🗑 Удалить</button>' +
+            '</div></div>';
+    }).join('');
+}
+
+window.loadCatalog = async function(isDirector, forceReload) {
+    isDirector = !!isDirector;
+    forceReload = !!forceReload;
+    if (!window.fbDB) return;
+
+    var now = Date.now();
+    var needFetch = forceReload || !catalogCache || (now - catalogCacheTime > CATALOG_CACHE_TTL);
+
+    if (needFetch) {
+        if (catalogLoading) return;
+        catalogLoading = true;
+        try {
+            var snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
+            catalogCache = [];
+            snapshot.forEach(function(d) { catalogCache.push(Object.assign({id: d.id}, d.data())); });
+            catalogCacheTime = Date.now();
+        } catch(e) {
+            console.log('loadCatalog fetch error', e);
+            catalogLoading = false;
+            return;
+        }
+        catalogLoading = false;
+    }
+
+    allCatalogItems = catalogCache;
+
+    if (isDirector) renderDirectorCatalog();
+    else renderSellerCatalog();
+};
+
+window.orderSingleItem = function(itemId) {
+    var item = null;
+    for (var i = 0; i < allCatalogItems.length; i++) {
+        if (allCatalogItems[i].id === itemId) { item = allCatalogItems[i]; break; }
+    }
     if (!item) return;
     if (item.shop === shop) return showToast('Это ваш товар', 'error');
     if (item.qty <= 0) return showToast('Товар закончился', 'error');
 
     switchMainTab('orders');
-    document.getElementById('order-to-shop').value = item.shop;
-    
-    document.querySelectorAll('#order-dept-pills .size-pill').forEach(p => {
-        if (p.innerText === item.dept) { 
-            p.classList.add('active'); 
-            selectedOrderDept = item.dept; 
+    var toEl = document.getElementById('order-to-shop');
+    if (toEl) toEl.value = item.shop;
+
+    var deptPills = document.querySelectorAll('#order-dept-pills .size-pill');
+    for (var j = 0; j < deptPills.length; j++) {
+        if (deptPills[j].innerText === item.dept) {
+            deptPills[j].classList.add('active');
+            selectedOrderDept = item.dept;
         } else {
-            p.classList.remove('active');
+            deptPills[j].classList.remove('active');
         }
-    });
-    
-    const catSelect = document.getElementById('order-category');
-    let found = false;
-    for (let opt of catSelect.options) { if (opt.value === item.category) { found = true; break; } }
-    if (!found) catSelect.innerHTML += `<option value="${item.category}">${item.category}</option>`;
-    catSelect.value = item.category;
-    
-    const sizeSelect = document.getElementById('order-size');
-    let sizeFound = false;
-    for (let opt of sizeSelect.options) { if (opt.value === item.size) { sizeFound = true; break; } }
-    if (sizeFound) {
-        sizeSelect.value = item.size;
-        document.getElementById('custom-size-input').style.display = 'none';
-    } else {
-        sizeSelect.value = 'custom_add';
-        document.getElementById('custom-size-input').style.display = 'block';
-        document.getElementById('custom-size-input').value = item.size;
     }
-    
+
+    var catSelect = document.getElementById('order-category');
+    if (catSelect) {
+        var found = false;
+        for (var k = 0; k < catSelect.options.length; k++) {
+            if (catSelect.options[k].value === item.category) { found = true; break; }
+        }
+        if (!found) catSelect.innerHTML += '<option value="' + item.category + '">' + item.category + '</option>';
+        catSelect.value = item.category;
+    }
+
+    var sizeSelect = document.getElementById('order-size');
+    if (sizeSelect) {
+        var sizeFound = false;
+        for (var m = 0; m < sizeSelect.options.length; m++) {
+            if (sizeSelect.options[m].value === item.size) { sizeFound = true; break; }
+        }
+        if (sizeFound) {
+            sizeSelect.value = item.size;
+            var csi = document.getElementById('custom-size-input');
+            if (csi) csi.style.display = 'none';
+        } else {
+            sizeSelect.value = 'custom_add';
+            var csi2 = document.getElementById('custom-size-input');
+            if (csi2) { csi2.style.display = 'block'; csi2.value = item.size; }
+        }
+    }
+
     if (item.photo) {
         window.currentOrderPhotoBase64 = item.photo;
-        const preview = document.getElementById('order-photo-preview');
-        preview.src = item.photo;
-        preview.style.display = 'block';
+        var preview = document.getElementById('order-photo-preview');
+        if (preview) { preview.src = item.photo; preview.style.display = 'block'; }
     }
-    
-    document.getElementById('order-comment').value = `Заказ товара с витрины. Год: ${item.year}`;
+
+    var commentEl = document.getElementById('order-comment');
+    if (commentEl) commentEl.value = 'Заказ товара с витрины. Год: ' + item.year;
     window.currentOrderCatalogId = item.id;
     showToast('Товар подставлен в форму заказа', 'success');
     validateOrderForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+};
 
-// --- ИНВЕНТАРИЗАЦИЯ ---
-function processScan(code) {
-    document.getElementById('hidden-scanner').value = '';
+/* ============================================================
+   ИНВЕНТАРИЗАЦИЯ (продавец)
+   ============================================================ */
+window.processScan = function(code) {
+    var scanner = document.getElementById('hidden-scanner');
+    if (scanner) scanner.value = '';
     if (!code || !code.trim()) return;
-    const scannedCode = code.trim();
-    const name = `Товар ${scannedCode}`;
-    const existing = scanList.find(i => i.code === scannedCode);
+    var scannedCode = code.trim();
+    var name = 'Товар ' + scannedCode;
+    var existing = null;
+    for (var i = 0; i < scanList.length; i++) {
+        if (scanList[i].code === scannedCode) { existing = scanList[i]; break; }
+    }
     if (existing) {
         existing.qty += 1;
-        showToast(`+1 к ${name}`, 'success');
+        showToast('+1 к ' + name, 'success');
     } else {
         scanList.unshift({ id: Date.now().toString(), code: scannedCode, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
-        showToast(`Добавлен: ${name}`, 'success');
+        showToast('Добавлен: ' + name, 'success');
     }
-    localStorage.setItem('scan_list_draft', JSON.stringify(scanList));
+    try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
-}
+};
 
-function renderScanList() {
-    const container = document.getElementById('scan-list-container');
+window.renderScanList = function() {
+    var container = document.getElementById('scan-list-container');
     if (!container) return;
     if (scanList.length === 0) {
         container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Список пуст</div>';
-        const summary = document.getElementById('scan-summary');
+        var summary = document.getElementById('scan-summary');
         if (summary) summary.style.display = 'none';
         return;
     }
 
-    container.innerHTML = scanList.map(item => `
-        <div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px; margin-bottom:8px;">
-                <span>${item.name}</span>
-                <button onclick="removeScanItem('${item.id}')" style="background:none; border:none; color:var(--danger); font-size:18px;">&times;</button>
-            </div>
-            <div style="display:flex; gap:12px;">
-                <select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem('${item.id}', 'size', this.value)">
-                    <option ${item.size === 'Без размера' ? 'selected' : ''}>Без размера</option>
-                    <option ${item.size === 'M' ? 'selected' : ''}>M</option>
-                    <option ${item.size === 'L' ? 'selected' : ''}>L</option>
-                    <option ${item.size === 'XL' ? 'selected' : ''}>XL</option>
-                </select>
-                <select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem('${item.id}', 'year', this.value)">
-                    <option ${item.year === 'Без года' ? 'selected' : ''}>Без года</option>
-                    <option ${item.year === '2023' ? 'selected' : ''}>2023</option>
-                    <option ${item.year === '2024' ? 'selected' : ''}>2024</option>
-                    <option ${item.year === '2025' ? 'selected' : ''}>2025</option>
-                </select>
-            </div>
-            <div class="qty-control" style="margin-top:8px; width:100%;">
-                <button class="qty-btn" onclick="changeScanQty('${item.id}', -1)">-</button>
-                <input type="number" class="qty-input" value="${item.qty}" readonly>
-                <button class="qty-btn" onclick="changeScanQty('${item.id}', 1)">+</button>
-            </div>
-        </div>
-    `).join('');
+    container.innerHTML = scanList.map(function(item) {
+        return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;">' +
+            '<div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px; margin-bottom:8px;">' +
+            '<span>' + item.name + '</span>' +
+            '<button onclick="removeScanItem(\'' + item.id + '\')" style="background:none; border:none; color:var(--danger); font-size:18px;">&times;</button>' +
+            '</div>' +
+            '<div style="display:flex; gap:12px;">' +
+            '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem(\'' + item.id + '\', \'size\', this.value)">' +
+            '<option ' + (item.size === 'Без размера' ? 'selected' : '') + '>Без размера</option>' +
+            '<option ' + (item.size === 'M' ? 'selected' : '') + '>M</option>' +
+            '<option ' + (item.size === 'L' ? 'selected' : '') + '>L</option>' +
+            '<option ' + (item.size === 'XL' ? 'selected' : '') + '>XL</option>' +
+            '</select>' +
+            '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateScanItem(\'' + item.id + '\', \'year\', this.value)">' +
+            '<option ' + (item.year === 'Без года' ? 'selected' : '') + '>Без года</option>' +
+            '<option ' + (item.year === '2023' ? 'selected' : '') + '>2023</option>' +
+            '<option ' + (item.year === '2024' ? 'selected' : '') + '>2024</option>' +
+            '<option ' + (item.year === '2025' ? 'selected' : '') + '>2025</option>' +
+            '</select>' +
+            '</div>' +
+            '<div class="qty-control" style="margin-top:8px; width:100%;">' +
+            '<button class="qty-btn" onclick="changeScanQty(\'' + item.id + '\', -1)">-</button>' +
+            '<input type="number" class="qty-input" value="' + item.qty + '" readonly>' +
+            '<button class="qty-btn" onclick="changeScanQty(\'' + item.id + '\', 1)">+</button>' +
+            '</div></div>';
+    }).join('');
 
-    document.getElementById('scan-summary').style.display = 'flex';
-    document.getElementById('total-positions').innerText = scanList.length;
-    document.getElementById('total-qty').innerText = scanList.reduce((s, i) => s + i.qty, 0);
-}
+    var summary = document.getElementById('scan-summary');
+    if (summary) summary.style.display = 'flex';
+    var tp = document.getElementById('total-positions');
+    if (tp) tp.innerText = scanList.length;
+    var tq = document.getElementById('total-qty');
+    if (tq) tq.innerText = scanList.reduce(function(s, i) { return s + i.qty; }, 0);
+};
 
-function changeScanQty(id, delta) {
-    const item = scanList.find(i => i.id === id);
-    if (item) { item.qty = Math.max(1, item.qty + delta); localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); renderScanList(); }
-}
-
-function updateScanItem(id, field, value) {
-    const item = scanList.find(i => i.id === id);
-    if (item) {
-        item[field] = value;
-        localStorage.setItem('scan_list_draft', JSON.stringify(scanList));
-        renderScanList();
+window.changeScanQty = function(id, delta) {
+    for (var i = 0; i < scanList.length; i++) {
+        if (scanList[i].id === id) {
+            scanList[i].qty = Math.max(1, scanList[i].qty + delta);
+            break;
+        }
     }
-}
-
-function removeScanItem(id) {
-    scanList = scanList.filter(i => i.id !== id);
-    localStorage.setItem('scan_list_draft', JSON.stringify(scanList));
+    try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
-}
+};
 
-async function saveInventory() {
+window.updateScanItem = function(id, field, value) {
+    for (var i = 0; i < scanList.length; i++) {
+        if (scanList[i].id === id) {
+            scanList[i][field] = value;
+            break;
+        }
+    }
+    try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
+    renderScanList();
+};
+
+window.removeScanItem = function(id) {
+    scanList = scanList.filter(function(i) { return i.id !== id; });
+    try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
+    renderScanList();
+};
+
+window.saveInventory = async function() {
     if (!window.fbDB) return showToast('Нет связи с базой', 'error');
     if (scanList.length === 0) return showToast('Пусто', 'error');
     try {
@@ -1100,58 +1550,377 @@ async function saveInventory() {
         showToast('✅ Сохранено!', 'success');
     } catch(e) { console.error(e); showToast('Ошибка', 'error'); }
     scanList = [];
-    localStorage.removeItem('scan_list_draft');
+    try { localStorage.removeItem('scan_list_draft'); } catch(_) {}
+    renderScanList();
+};
+
+window.downloadCurrentRevisionExcel = function() {
+    if (scanList.length === 0) return showToast('Пусто', 'error');
+    var csv = "\uFEFFНаименование;Штрих-код;Размер;Год;Количество\n";
+    scanList.forEach(function(i) { csv += i.name + ';' + i.code + ';' + i.size + ';' + i.year + ';' + i.qty + '\n'; });
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Ревизия_' + new Date().toLocaleDateString() + '.csv';
+    link.click();
+};
+
+/* ============================================================
+   ИНВЕНТАРИЗАЦИЯ (директор)
+   ============================================================ */
+window.renderDirectorScanList = function() {
+    var container = document.getElementById('director-scan-list-container');
+    if (!container) return;
+
+    if (directorScanList.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Список пуст. Отсканируйте товар.</div>';
+        var summary = document.getElementById('director-scan-summary');
+        if (summary) summary.style.display = 'none';
+        return;
+    }
+
+    container.innerHTML = directorScanList.map(function(item) {
+        return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;">' +
+            '<div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px; margin-bottom:8px;">' +
+            '<span>' + item.name + '</span>' +
+            '<button onclick="removeDirectorScanItem(\'' + item.id + '\')" style="background:none; border:none; color:var(--danger); font-size:18px;">&times;</button>' +
+            '</div>' +
+            '<div style="display:flex; gap:12px;">' +
+            '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateDirectorScanItem(\'' + item.id + '\', \'size\', this.value)">' +
+            '<option ' + (item.size === 'Без размера' ? 'selected' : '') + '>Без размера</option>' +
+            '<option ' + (item.size === 'M' ? 'selected' : '') + '>M</option>' +
+            '<option ' + (item.size === 'L' ? 'selected' : '') + '>L</option>' +
+            '<option ' + (item.size === 'XL' ? 'selected' : '') + '>XL</option>' +
+            '</select>' +
+            '<select class="input-field" style="padding:8px; font-size:13px;" onchange="updateDirectorScanItem(\'' + item.id + '\', \'year\', this.value)">' +
+            '<option ' + (item.year === 'Без года' ? 'selected' : '') + '>Без года</option>' +
+            '<option ' + (item.year === '2023' ? 'selected' : '') + '>2023</option>' +
+            '<option ' + (item.year === '2024' ? 'selected' : '') + '>2024</option>' +
+            '<option ' + (item.year === '2025' ? 'selected' : '') + '>2025</option>' +
+            '</select>' +
+            '</div>' +
+            '<div class="qty-control" style="margin-top:8px; width:100%;">' +
+            '<button class="qty-btn" onclick="changeDirectorScanQty(\'' + item.id + '\', -1)">-</button>' +
+            '<input type="number" class="qty-input" value="' + item.qty + '" readonly>' +
+            '<button class="qty-btn" onclick="changeDirectorScanQty(\'' + item.id + '\', 1)">+</button>' +
+            '</div></div>';
+    }).join('');
+
+    var summary = document.getElementById('director-scan-summary');
+    if (summary) summary.style.display = 'flex';
+    var tp = document.getElementById('director-total-positions');
+    if (tp) tp.innerText = directorScanList.length;
+    var tq = document.getElementById('director-total-qty');
+    if (tq) tq.innerText = directorScanList.reduce(function(s, i) { return s + i.qty; }, 0);
+};
+
+window.changeDirectorScanQty = function(id, delta) {
+    for (var i = 0; i < directorScanList.length; i++) {
+        if (directorScanList[i].id === id) {
+            directorScanList[i].qty = Math.max(1, directorScanList[i].qty + delta);
+            break;
+        }
+    }
+    try { localStorage.setItem('director_scan_list_draft', JSON.stringify(directorScanList)); } catch(_) {}
+    renderDirectorScanList();
+};
+
+window.updateDirectorScanItem = function(id, field, value) {
+    for (var i = 0; i < directorScanList.length; i++) {
+        if (directorScanList[i].id === id) {
+            directorScanList[i][field] = value;
+            break;
+        }
+    }
+    try { localStorage.setItem('director_scan_list_draft', JSON.stringify(directorScanList)); } catch(_) {}
+    renderDirectorScanList();
+};
+
+window.removeDirectorScanItem = function(id) {
+    directorScanList = directorScanList.filter(function(i) { return i.id !== id; });
+    try { localStorage.setItem('director_scan_list_draft', JSON.stringify(directorScanList)); } catch(_) {}
+    renderDirectorScanList();
+};
+
+window.saveDirectorInventory = async function() {
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
+    if (directorScanList.length === 0) return showToast('Список пуст', 'error');
+    try {
+        await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), {
+            shop: 'А.А.',
+            seller: 'А.А.',
+            date: new Date().toISOString(),
+            items: directorScanList
+        });
+        showToast('✅ Ревизия А.А. сохранена!', 'success');
+    } catch(e) { console.error(e); showToast('Ошибка сохранения', 'error'); }
+    directorScanList = [];
+    try { localStorage.removeItem('director_scan_list_draft'); } catch(_) {}
+    renderDirectorScanList();
+    if (typeof window.loadRevisions === 'function') window.loadRevisions();
+};
+
+window.downloadDirectorRevisionExcel = function() {
+    if (directorScanList.length === 0) return showToast('Список пуст', 'error');
+    var csv = "\uFEFFНаименование;Штрих-код;Размер;Год;Количество\n";
+    directorScanList.forEach(function(i) { csv += i.name + ';' + i.code + ';' + i.size + ';' + i.year + ';' + i.qty + '\n'; });
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Ревизия_АА_' + new Date().toLocaleDateString() + '.csv';
+    link.click();
+};
+
+/* ============================================================
+   КАМЕРА-СКАНЕР (html5-qrcode)
+   ============================================================ */
+function onScanSuccess(decodedText) {
+    var now = Date.now();
+    if (decodedText === lastScannedCode && (now - lastScanTime) < SCAN_COOLDOWN) {
+        return;
+    }
+    lastScannedCode = decodedText;
+    lastScanTime = now;
+
+    var badge = document.getElementById('scan-last-result');
+    if (badge) {
+        badge.innerHTML = '<span class="scan-result-badge">✅ ' + decodedText + '</span>';
+    }
+
+    if (currentScannerTarget === 'director') {
+        addScannedCodeToDirectorList(decodedText);
+    } else {
+        addScannedCodeToSellerList(decodedText);
+    }
+
+    if (navigator.vibrate) {
+        try { navigator.vibrate(100); } catch(_) {}
+    }
+}
+
+function addScannedCodeToSellerList(code) {
+    var name = 'Товар ' + code;
+    var existing = null;
+    for (var i = 0; i < scanList.length; i++) {
+        if (scanList[i].code === code) { existing = scanList[i]; break; }
+    }
+    if (existing) {
+        existing.qty += 1;
+        showToast('+1 к ' + name, 'success');
+    } else {
+        scanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        showToast('Добавлен: ' + name, 'success');
+    }
+    try { localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); } catch(_) {}
     renderScanList();
 }
 
-function downloadCurrentRevisionExcel() {
-    if (scanList.length === 0) return showToast('Пусто', 'error');
-    let csv = "\uFEFFНаименование;Штрих-код;Размер;Год;Количество\n";
-    scanList.forEach(i => { csv += `${i.name};${i.code};${i.size};${i.year};${i.qty}\n`; });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Ревизия_${new Date().toLocaleDateString()}.csv`;
-    link.click();
+function addScannedCodeToDirectorList(code) {
+    var name = 'Товар ' + code;
+    var existing = null;
+    for (var i = 0; i < directorScanList.length; i++) {
+        if (directorScanList[i].code === code) { existing = directorScanList[i]; break; }
+    }
+    if (existing) {
+        existing.qty += 1;
+        showToast('+1 к ' + name, 'success');
+    } else {
+        directorScanList.unshift({ id: Date.now().toString(), code: code, name: name, size: 'Без размера', year: 'Без года', qty: 1 });
+        showToast('Добавлен: ' + name, 'success');
+    }
+    try { localStorage.setItem('director_scan_list_draft', JSON.stringify(directorScanList)); } catch(_) {}
+    renderDirectorScanList();
 }
 
-// --- ДИРЕКТОР ---
-async function loadDirectorOrders() {
+window.openCameraScanner = function(target) {
+    currentScannerTarget = target || 'director';
+    var modal = document.getElementById('camera-scanner-modal');
+    if (!modal) return;
+
+    var badge = document.getElementById('scan-last-result');
+    if (badge) badge.innerHTML = '';
+    lastScannedCode = '';
+    lastScanTime = 0;
+
+    modal.classList.add('open');
+
+    setTimeout(function() {
+        startQrScanner();
+    }, 300);
+};
+
+function startQrScanner() {
+    if (html5QrCode) {
+        try { html5QrCode.stop(); } catch(_) {}
+        html5QrCode = null;
+    }
+
+    if (typeof Html5Qrcode === 'undefined') {
+        var script = document.createElement('script');
+        script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+        script.onload = function() {
+            initHtml5QrCode();
+        };
+        script.onerror = function() {
+            showToast('Не удалось загрузить библиотеку сканера', 'error');
+            closeCameraScanner();
+        };
+        document.head.appendChild(script);
+    } else {
+        initHtml5QrCode();
+    }
+}
+
+function initHtml5QrCode() {
+    var readerEl = document.getElementById('qr-reader');
+    if (!readerEl) return;
+
+    readerEl.innerHTML = '';
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+
+    var config = {
+        fps: 10,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            var minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            var qrboxSize = Math.floor(minEdge * 0.7);
+            return { width: qrboxSize, height: qrboxSize };
+        },
+        aspectRatio: 1.0,
+        disableFlip: false,
+        videoConstraints: {
+            facingMode: "environment"
+        }
+    };
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess,
+        function(errorMessage) {}
+    ).then(function() {
+        cameraIsRunning = true;
+        console.log('✅ Camera scanner started');
+    }).catch(function(err) {
+        console.error('❌ Camera start error:', err);
+        cameraIsRunning = false;
+        tryAlternativeCamera();
+    });
+}
+
+function tryAlternativeCamera() {
+    if (!html5QrCode) return;
+    if (typeof Html5Qrcode.getCameras !== 'function') {
+        showToast('Не удалось запустить камеру', 'error');
+        closeCameraScanner();
+        return;
+    }
+    Html5Qrcode.getCameras().then(function(devices) {
+        if (devices && devices.length > 0) {
+            var cameraId = devices[0].id;
+            html5QrCode.start(
+                cameraId,
+                { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+                onScanSuccess,
+                function() {}
+            ).then(function() {
+                cameraIsRunning = true;
+                console.log('✅ Camera scanner started (fallback)');
+            }).catch(function(err2) {
+                console.error('❌ Fallback camera error:', err2);
+                showToast('Не удалось запустить камеру', 'error');
+                closeCameraScanner();
+            });
+        } else {
+            showToast('Камеры не найдены', 'error');
+            closeCameraScanner();
+        }
+    }).catch(function(err) {
+        console.error('getCameras error:', err);
+        showToast('Ошибка доступа к камере', 'error');
+        closeCameraScanner();
+    });
+}
+
+window.closeCameraScanner = function() {
+    var modal = document.getElementById('camera-scanner-modal');
+    if (modal) modal.classList.remove('open');
+
+    if (html5QrCode && cameraIsRunning) {
+        html5QrCode.stop().then(function() {
+            cameraIsRunning = false;
+            html5QrCode = null;
+            var readerEl = document.getElementById('qr-reader');
+            if (readerEl) readerEl.innerHTML = '';
+        }).catch(function(err) {
+            console.error('Stop error:', err);
+            cameraIsRunning = false;
+            html5QrCode = null;
+        });
+    } else {
+        html5QrCode = null;
+        var readerEl = document.getElementById('qr-reader');
+        if (readerEl) readerEl.innerHTML = '';
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById('camera-scanner-modal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeCameraScanner();
+        });
+    }
+});
+
+/* ============================================================
+   ДИРЕКТОР — остальное
+   ============================================================ */
+
+/* ---- ИСПРАВЛЕНО: window.loadDirectorOrders ---- */
+window.loadDirectorOrders = async function() {
     if (!window.fbDB) return;
     try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
-        let orders = [];
-        snapshot.forEach(d => orders.push({id: d.id, ...d.data()}));
-        document.getElementById('director-orders-list').innerHTML = orders.length ? orders.map(o => renderOrderCard(o, true)).join('') : 'Нет заказов';
+        var snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
+        var orders = [];
+        snapshot.forEach(function(d) { orders.push(Object.assign({id: d.id}, d.data())); });
+        var el = document.getElementById('director-orders-list');
+        if (el) el.innerHTML = orders.length ? orders.map(function(o) { return renderOrderCard(o, true); }).join('') : 'Нет заказов';
     } catch(e) { console.log(e); }
-}
+};
 
-async function loadRevisions() {
+/* ---- ИСПРАВЛЕНО: window.loadRevisions ---- */
+window.loadRevisions = async function() {
     if (!window.fbDB) return;
     try {
-        const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
-        let revs = [];
-        snapshot.forEach(d => revs.push({id: d.id, ...d.data()}));
-        document.getElementById('revisions-list').innerHTML = revs.map(r => `<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;"><b>${r.shop}</b> - ${new Date(r.date).toLocaleDateString()}<br><span style="font-size:12px; color:var(--text-muted);">${r.items.length} позиций</span></div>`).join('');
+        var snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
+        var revs = [];
+        snapshot.forEach(function(d) { revs.push(Object.assign({id: d.id}, d.data())); });
+        var el = document.getElementById('revisions-list');
+        if (el) el.innerHTML = revs.map(function(r) {
+            return '<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;"><b>' + r.shop + '</b> - ' + new Date(r.date).toLocaleDateString() + '<br><span style="font-size:12px; color:var(--text-muted);">' + r.items.length + ' позиций</span></div>';
+        }).join('');
     } catch(e) { console.log(e); }
-}
+};
 
-async function directorDeleteOrder(orderId) {
-    if (!confirm('Удалить заказ безвозвратно?')) return;
-    try {
-        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
-        showToast('Заказ удалён', 'success');
-        loadDirectorOrders();
-    } catch(e) { showToast('Ошибка удаления', 'error'); }
-}
+window.directorDeleteOrder = async function(orderId) {
+    if (!window.fbDB) return;
+    showCustomConfirm('Удалить заказ?', 'Это действие нельзя будет отменить.', async function() {
+        try {
+            await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
+            showToast('Заказ удалён', 'success');
+            window.loadDirectorOrders();
+        } catch(e) { showToast('Ошибка удаления', 'error'); }
+    });
+};
 
-async function directorEditOrder(orderId) {
+/* ---- ИСПРАВЛЕНО: используем getDoc вместо загрузки всей коллекции ---- */
+window.directorEditOrder = async function(orderId) {
     if (!window.fbDB) return;
     try {
-        const snap = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
-        let order = null;
-        snap.forEach(d => { if (d.id === orderId) order = {id: d.id, ...d.data()}; });
-        if (!order) return showToast('Не найден', 'error');
+        var docSnap = await window.fbFns.getDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
+        if (!docSnap.exists()) return showToast('Заказ не найден', 'error');
+        var order = Object.assign({id: docSnap.id}, docSnap.data());
         document.getElementById('edit-item-id').value = orderId;
         document.getElementById('edit-item-type').value = 'order';
         document.getElementById('edit-size').value = order.size || '';
@@ -1160,25 +1929,31 @@ async function directorEditOrder(orderId) {
         document.getElementById('edit-year').disabled = true;
         document.getElementById('edit-qty').disabled = true;
         document.getElementById('edit-modal').classList.add('open');
-    } catch(e) { showToast('Ошибка', 'error'); }
-}
+    } catch(e) {
+        console.error(e);
+        showToast('Ошибка загрузки заказа', 'error');
+    }
+};
 
-async function directorDeleteCatalog(itemId) {
-    if (!confirm('Удалить товар с витрины?')) return;
-    try {
-        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", itemId));
-        showToast('Товар удалён', 'success');
-        loadCatalog(true);
-    } catch(e) { showToast('Ошибка удаления', 'error'); }
-}
+window.directorDeleteCatalog = async function(itemId) {
+    if (!window.fbDB) return;
+    showCustomConfirm('Удалить товар?', 'Товар будет удален с витрины безвозвратно.', async function() {
+        try {
+            await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", itemId));
+            showToast('Товар удалён', 'success');
+            catalogCache = null;
+            window.loadCatalog(true, true);
+        } catch(e) { showToast('Ошибка удаления', 'error'); }
+    });
+};
 
-async function directorEditCatalog(itemId) {
+/* ---- ИСПРАВЛЕНО: используем getDoc ---- */
+window.directorEditCatalog = async function(itemId) {
     if (!window.fbDB) return;
     try {
-        const snap = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
-        let item = null;
-        snap.forEach(d => { if (d.id === itemId) item = {id: d.id, ...d.data()}; });
-        if (!item) return showToast('Не найден', 'error');
+        var docSnap = await window.fbFns.getDoc(window.fbFns.doc(window.fbDB, "catalog", itemId));
+        if (!docSnap.exists()) return showToast('Товар не найден', 'error');
+        var item = Object.assign({id: docSnap.id}, docSnap.data());
         document.getElementById('edit-item-id').value = itemId;
         document.getElementById('edit-item-type').value = 'catalog';
         document.getElementById('edit-size').value = item.size || '';
@@ -1187,42 +1962,134 @@ async function directorEditCatalog(itemId) {
         document.getElementById('edit-year').disabled = false;
         document.getElementById('edit-qty').disabled = false;
         document.getElementById('edit-modal').classList.add('open');
-    } catch(e) { showToast('Ошибка', 'error'); }
-}
+    } catch(e) {
+        console.error(e);
+        showToast('Ошибка загрузки товара', 'error');
+    }
+};
 
-function closeEditModal() {
+window.closeEditModal = function() {
     document.getElementById('edit-modal').classList.remove('open');
     document.getElementById('edit-year').disabled = false;
     document.getElementById('edit-qty').disabled = false;
-}
+};
 
-async function saveEditItem() {
+window.saveEditItem = async function() {
     if (!window.fbDB) return showToast('Нет связи', 'error');
-    const id = document.getElementById('edit-item-id').value;
-    const type = document.getElementById('edit-item-type').value;
-    const size = document.getElementById('edit-size').value.trim();
-    const yearRaw = document.getElementById('edit-year').value.trim();
-    const qty = parseInt(document.getElementById('edit-qty').value) || 1;
+    var id = document.getElementById('edit-item-id').value;
+    var type = document.getElementById('edit-item-type').value;
+    var size = document.getElementById('edit-size').value.trim();
+    var yearRaw = document.getElementById('edit-year').value.trim();
+    var qty = parseInt(document.getElementById('edit-qty').value) || 1;
 
     try {
         if (type === 'catalog') {
-            const updateData = { size: size || 'Без размера', qty: qty };
+            var updateData = { size: size || 'Без размера', qty: qty };
             if (yearRaw) updateData.year = yearRaw;
             await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "catalog", id), updateData);
             showToast('Товар обновлён', 'success');
-            loadCatalog(true);
+            catalogCache = null;
+            window.loadCatalog(true, true);
         } else {
-            const updateData = { size: size || 'Без размера' };
-            await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", id), updateData);
+            await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", id), { size: size || 'Без размера' });
             showToast('Заказ обновлён', 'success');
-            loadDirectorOrders();
+            window.loadDirectorOrders();
         }
         closeEditModal();
     } catch(e) {
         console.error(e);
         showToast('Ошибка сохранения', 'error');
     }
+};
+
+/* ============================================================
+   ИНИЦИАЛИЗАЦИЯ ПОСЛЕ DOM
+   ============================================================ */
+function initApp() {
+    try {
+        var sellerInput = document.getElementById('seller-name');
+        if (sellerInput) sellerInput.value = seller;
+
+        var currentYear = new Date().getFullYear();
+        var yearOptions = '<option value="Без года">Без года</option>';
+        for (var y = currentYear; y >= currentYear - 5; y--) {
+            yearOptions += '<option value="' + y + '">' + y + '</option>';
+        }
+        var yearSelect = document.getElementById('cat-year');
+        if (yearSelect) yearSelect.innerHTML = yearOptions;
+
+        if (shop && seller && !directorMode) {
+            var titleEl = document.getElementById('shop-title');
+            if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
+            showScreen('screen-seller');
+            renderScanList();
+        } else {
+            showScreen('screen-auth');
+        }
+
+        var orderCat = document.getElementById('order-category');
+        if (orderCat) orderCat.addEventListener('change', function() {
+            var customInp = document.getElementById('new-category-input');
+            if (!customInp) return;
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+            validateOrderForm();
+        });
+
+        var newCatInp = document.getElementById('new-category-input');
+        if (newCatInp) newCatInp.addEventListener('input', validateOrderForm);
+
+        var catCat = document.getElementById('cat-category');
+        if (catCat) catCat.addEventListener('change', function() {
+            var customInp = document.getElementById('new-cat-category-input');
+            if (!customInp) return;
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+            validateCatalogForm();
+        });
+
+        var newCatCatInp = document.getElementById('new-cat-category-input');
+        if (newCatCatInp) newCatCatInp.addEventListener('input', validateCatalogForm);
+
+        var orderSize = document.getElementById('order-size');
+        if (orderSize) orderSize.addEventListener('change', function() {
+            var customInp = document.getElementById('custom-size-input');
+            if (!customInp) return;
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+        });
+
+        var catSize = document.getElementById('cat-size');
+        if (catSize) catSize.addEventListener('change', function() {
+            var customInp = document.getElementById('custom-cat-size-input');
+            if (!customInp) return;
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+        });
+
+        validateOrderForm();
+        validateCatalogForm();
+        renderDirectorScanList();
+        console.log('✅ Init complete, shop=' + shop + ', seller=' + seller);
+    } catch(e) {
+        console.error('Init error:', e);
+        var banner = document.getElementById('js-error-banner');
+        if (banner) {
+            banner.style.display = 'block';
+            banner.textContent = '⚠️ Init error: ' + e.message;
+        }
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
 }
 </script>
+
+<!-- Подключаем html5-qrcode (CDN) -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 </body>
 </html>
