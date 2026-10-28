@@ -27,8 +27,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  
-  // Внедрение оффлайн-режима (Пункт 7)
+
   enableIndexedDbPersistence(db).catch((err) => {
       if (err.code == 'failed-precondition') {
           console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
@@ -36,7 +35,7 @@
           console.warn("The current browser does not support all of the features required to enable persistence");
       }
   });
-  
+
   window.fbDB = db;
   window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
 
@@ -70,7 +69,6 @@
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); margin: 0; padding: 16px; padding-bottom: 100px; font-size: 15px; }
 
-/* Шапка */
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
 .header h1 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .header button { background: none; border: none; color: var(--danger); font-weight: 800; font-size: 13px; text-transform: uppercase; white-space: nowrap; padding: 0; }
@@ -82,7 +80,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(-
 .main-tab { flex: 1; text-align: center; padding: 12px 8px; font-weight: 700; font-size: 13px; border-radius: var(--radius-pill); cursor: pointer; color: var(--text-muted); background: transparent; transition: 0.3s; white-space: nowrap; }
 .main-tab.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
 
-/* Кнопки-пилюли */
 .size-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .size-pill { padding: 12px 22px; border: none; border-radius: var(--radius-pill); font-size: 15px; font-weight: 700; color: var(--text-main); background: var(--bg-app); cursor: pointer; transition: 0.2s; text-align: center;}
 .size-pill:active { transform: scale(0.95); }
@@ -105,7 +102,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .btn-del { background: rgba(255, 69, 58, 0.1); color: var(--danger); border: none; padding: 12px 16px; border-radius: var(--radius-pill); font-size: 14px; cursor: pointer; font-weight: 800; }
 .btn-edit { background: var(--bg-app); color: var(--text-main); border: none; padding: 12px 16px; border-radius: var(--radius-pill); font-size: 14px; cursor: pointer; font-weight: 800; }
 
-/* Кнопки + и - */
 .qty-control { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border-radius: var(--radius-pill); padding: 4px; border: 1px solid var(--bg-app); width: 140px;}
 .qty-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--bg-app); font-weight: 800; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main);}
 .qty-input { width: 100%; text-align: center; border: none; background: transparent; font-weight: 800; font-size: 16px; outline: none; }
@@ -114,11 +110,9 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .screen.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- ЭКРАН АВТОРИЗАЦИИ --- */
 #screen-auth .card { padding: 32px 24px; }
 #screen-auth h2 { text-align: center; font-weight: 900; font-size: 32px; margin: 0 0 24px 0; letter-spacing: -1px; }
 
-/* PIN-код */
 .pin-zone { background: radial-gradient(circle at center, #FFFFFF 0%, var(--bg-app) 100%); border-radius: var(--radius-card); padding: 32px 20px; margin-top: 24px; }
 .pin-title { text-align: center; font-size: 15px; font-weight: 800; color: var(--text-muted); margin-bottom: 24px; letter-spacing: 1px; text-transform: uppercase;}
 .pin-display { display: flex; justify-content: center; gap: 12px; height: 24px; margin-bottom: 32px; padding: 12px 24px; border-radius: var(--radius-pill); box-shadow: var(--shadow-btn-in); background: var(--bg-pin-zone); width: max-content; margin-left: auto; margin-right: auto; }
@@ -132,7 +126,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .pin-btn.ok { background: var(--dark-pill); color: var(--primary); font-size: 20px; font-weight: 800; box-shadow: 6px 6px 12px #d1d5db, -6px -6px 12px #ffffff, 0 0 20px var(--primary-glow); border: 1px solid rgba(212, 255, 0, 0.2); }
 .pin-btn.ok:active { box-shadow: inset 4px 4px 10px #000, inset -4px -4px 10px #333, 0 0 25px var(--primary-glow); }
 
-/* --- КАРТОЧКИ --- */
 .order-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; display:flex; flex-direction: column; gap:8px; position: relative; box-shadow: var(--shadow-card); }
 .order-card.pending { border-left: 5px solid var(--primary); }
 .order-card.accepted { border-left: 5px solid var(--success); }
@@ -142,16 +135,13 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .order-details { font-size: 14px; color: var(--text-main); margin-bottom: 4px; font-weight: 500;}
 .order-photo { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-input); margin-bottom: 8px; background: var(--bg-app); }
 
-/* Модалка */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: none; justify-content: center; align-items: flex-end; backdrop-filter: blur(4px); }
 .modal-overlay.open { display: flex; }
 .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 24px; animation: slideUp 0.3s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* Скрытое поле для сканера */
 #hidden-scanner { position: absolute; opacity: 0; pointer-events: none; height: 0; width: 0; }
 
-/* Скелетоны (Пункт 5) */
 .skeleton-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; height: 150px; animation: pulse 1.5s infinite ease-in-out; }
 .skeleton-line { background: #E5E5EA; height: 16px; border-radius: 8px; margin-bottom: 8px; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -168,6 +158,8 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     <div class="modal-content">
         <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 16px;">Редактировать</h3>
         <input type="hidden" id="edit-item-id">
+        <!-- [FIX-4] скрытое поле типа (order | catalog) -->
+        <input type="hidden" id="edit-item-type">
         <div class="input-group"><label class="input-label">Размер</label><input type="text" id="edit-size" class="input-field"></div>
         <div class="input-group"><label class="input-label">Год</label><input type="number" id="edit-year" class="input-field"></div>
         <div class="input-group"><label class="input-label">Количество</label><input type="number" id="edit-qty" class="input-field"></div>
@@ -359,11 +351,15 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         </div>
 
         <div class="card" style="background: transparent; box-shadow: none; padding: 0; border: none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
                 <h3 style="margin:0; font-weight:900; font-size: 20px;">Витрина</h3>
-                <div class="size-pills" style="margin:0; background: var(--bg-card); padding:4px; border-radius:var(--radius-pill);">
+                <!-- [FIX-5] Фильтры по магазинам -->
+                <div class="size-pills" style="margin:0; background: var(--bg-card); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
                     <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
                     <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">Мои</div>
+                    <div class="size-pill" id="btn-filter-alik" onclick="toggleCatalogFilter('Алик')" style="padding:6px 12px; font-size: 12px;">Алик</div>
+                    <div class="size-pill" id="btn-filter-moda" onclick="toggleCatalogFilter('Мода')" style="padding:6px 12px; font-size: 12px;">Мода</div>
+                    <div class="size-pill" id="btn-filter-style" onclick="toggleCatalogFilter('Твой стиль')" style="padding:6px 12px; font-size: 12px;">Стиль</div>
                 </div>
             </div>
             <div id="catalog-list"><div class="skeleton-card"><div class="skeleton-line" style="width: 100%; height: 100px;"></div></div></div>
@@ -423,6 +419,8 @@ let currentPin = '';
 
 window.currentOrderPhotoBase64 = '';
 window.currentCatPhotoBase64 = '';
+// [FIX-1] Явная инициализация привязки к товару витрины
+window.currentOrderCatalogId = null;
 
 let allIncomingOrders = [];
 let selectedOrderDept = '';
@@ -441,7 +439,6 @@ function showToast(msg, type = 'default') {
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
-// Функция для проверки валидности формы заказа (Пункт 5)
 function validateOrderForm() {
     const btn = document.getElementById('btn-submit-order');
     const toShop = document.getElementById('order-to-shop').value;
@@ -449,7 +446,6 @@ function validateOrderForm() {
     let category = document.getElementById('order-category').value;
     if (category === 'custom_add') category = document.getElementById('new-category-input').value.trim();
 
-    // Проверка: выбран другой магазин, отдел, категория и есть фото
     if (toShop && toShop !== shop && selectedOrderDept && category && window.currentOrderPhotoBase64) {
         btn.disabled = false;
     } else {
@@ -490,14 +486,13 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('screen-auth');
     }
 
-    // Слушатели для выпадающих списков (с очисткой кастомных полей)
     document.getElementById('order-category').addEventListener('change', function() {
         const customInp = document.getElementById('new-category-input');
         if (this.value === 'custom_add') {
             customInp.style.display = 'block';
         } else {
             customInp.style.display = 'none';
-            customInp.value = ''; // Очищаем
+            customInp.value = '';
         }
         validateOrderForm();
     });
@@ -537,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Инициальная проверка кнопок
     validateOrderForm();
     validateCatalogForm();
 });
@@ -626,7 +620,7 @@ function switchDirTab(tab) {
     document.getElementById('dir-section-scanner').style.display = tab === 'scanner' ? 'block' : 'none';
 }
 
-// --- ВЫБОР ОТДЕЛОВ (с синхронизацией) ---
+// --- ВЫБОР ОТДЕЛОВ ---
 function selectDept(el, dept) {
     const parent = el.parentElement;
     if (el.classList.contains('active')) {
@@ -680,7 +674,6 @@ function handlePhoto(input, previewId, setter) {
             preview.src = base64;
             preview.style.display = 'block';
             
-            // Обновляем состояние кнопки
             if (previewId === 'order-photo-preview') validateOrderForm();
             if (previewId === 'cat-photo-preview') validateCatalogForm();
         }
@@ -689,11 +682,12 @@ function handlePhoto(input, previewId, setter) {
     reader.readAsDataURL(file);
 }
 
-// --- ОЧИСТКА ФОРМЫ ---
+// [FIX-1] Полный сброс формы заказа
 function resetOrderForm() {
     document.getElementById('order-photo-file').value = '';
     document.getElementById('order-photo-preview').style.display = 'none';
     window.currentOrderPhotoBase64 = '';
+    window.currentOrderCatalogId = null; // ← ВАЖНО: сброс привязки к товару витрины
     document.getElementById('order-comment').value = '';
     document.getElementById('order-category').value = '';
     document.getElementById('order-size').value = '';
@@ -703,6 +697,11 @@ function resetOrderForm() {
     document.getElementById('custom-size-input').value = '';
     document.querySelectorAll('#order-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
     selectedOrderDept = '';
+    // Сброс "Кому" на первый != свой магазин
+    const toSelect = document.getElementById('order-to-shop');
+    for (let opt of toSelect.options) {
+        if (opt.value !== shop) { toSelect.value = opt.value; break; }
+    }
     validateOrderForm();
 }
 
@@ -728,13 +727,14 @@ async function createOrder() {
         dept: selectedOrderDept, category: category,
         photo: window.currentOrderPhotoBase64, size: size || 'Без размера',
         comment: comment, status: 'pending', date: new Date().toISOString(),
-        sourceCatalogId: window.currentOrderCatalogId || null // Привязка к товару витрины
+        sourceCatalogId: window.currentOrderCatalogId || null
     };
 
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
         showToast('✅ Запрос отправлен!', 'success');
         resetOrderForm();
+        window.currentOrderCatalogId = null; // [FIX-1] дополнительная страховка
         loadMyOrders();
     } catch (e) {
         showToast('⚠️ Ошибка сети', 'error');
@@ -746,9 +746,17 @@ function renderOrderCard(o, isDirector = false) {
     const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
     let actionsHtml = '';
     
-    // Пункт 2: Кнопки "Принять/Отклонить" только для входящих и в статусе pending
-    if (o.status === 'pending') {
-        if (o.toShop === shop && !isDirector) {
+    // [FIX-2] Директор: кнопки редактировать/удалить
+    if (isDirector) {
+        actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn-edit" style="flex:1;" onclick="directorEditOrder('${o.id}')">✏️ Изменить</button>
+            <button class="btn-del" style="flex:1;" onclick="directorDeleteOrder('${o.id}')">🗑 Удалить</button>
+        </div>`;
+        if (o.status !== 'pending') {
+            actionsHtml = `<div style="font-size:12px; margin-top:8px; font-weight:700; color:var(--text-muted);">Статус: ${o.status === 'accepted' ? '✅ Принят' : '❌ Отклонён'}</div>` + actionsHtml;
+        }
+    } else if (o.status === 'pending') {
+        if (o.toShop === shop) {
             actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;">
                 <button class="btn-main" style="background:var(--success); color:#fff; padding:10px; font-size:13px;" onclick="updateOrderStatus('${o.id}', 'accepted', '${o.sourceCatalogId || ''}')">Принять</button>
                 <button class="btn-del" style="flex:1;" onclick="updateOrderStatus('${o.id}', 'rejected')">Отклонить</button>
@@ -780,12 +788,10 @@ async function loadMyOrders() {
     } catch(e) { console.log(e); }
 }
 
-// Пункт 7: Списание товара при принятии заказа
 async function updateOrderStatus(orderId, status, catalogId = '') {
     try {
         await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
         
-        // Если заказ принят и есть привязка к витрине -> списываем товар
         if (status === 'accepted' && catalogId && catalogId !== 'null') {
             try {
                 const itemRef = window.fbFns.doc(window.fbDB, "catalog", catalogId);
@@ -794,7 +800,6 @@ async function updateOrderStatus(orderId, status, catalogId = '') {
                     if (docSnap.exists()) {
                         const currentQty = docSnap.data().qty || 0;
                         if (currentQty > 0) {
-                            // Уменьшаем на 1 (или можно передавать кол-во заказа, если оно есть)
                             transaction.update(itemRef, { qty: currentQty - 1 });
                         }
                     }
@@ -834,7 +839,6 @@ async function addToCatalog() {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "catalog"), itemData);
         showToast('✅ Опубликовано!', 'success');
         
-        // Сброс формы
         document.getElementById('cat-photo-file').value = '';
         document.getElementById('cat-photo-preview').style.display = 'none';
         window.currentCatPhotoBase64 = '';
@@ -851,6 +855,7 @@ async function addToCatalog() {
     } catch (e) { showToast('Ошибка', 'error'); }
 }
 
+// [FIX-5] Фильтрация по магазинам
 async function loadCatalog(isDirector = false) {
     if (!window.fbDB) return;
     try {
@@ -859,14 +864,28 @@ async function loadCatalog(isDirector = false) {
         snapshot.forEach(d => allCatalogItems.push({id: d.id, ...d.data()}));
         
         if (isDirector) {
-            document.getElementById('director-catalog-list').innerHTML = allCatalogItems.map(item => `<div class="order-card"><img src="${item.photo}" class="order-photo"><div class="order-title">${item.category}</div><div class="order-details">${item.shop} | ${item.size} | ${item.year} | ${item.qty} шт.</div></div>`).join('');
+            // [FIX-3] Кнопки редактирования/удаления для директора
+            document.getElementById('director-catalog-list').innerHTML = allCatalogItems.map(item => `
+                <div class="order-card" style="padding:12px;">
+                    <img src="${item.photo}" class="order-photo">
+                    <div class="order-title">${item.category}</div>
+                    <div class="order-details">${item.shop} | ${item.size} | ${item.year} | ${item.qty} шт.</div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn-edit" style="flex:1;" onclick="directorEditCatalog('${item.id}')">✏️ Изменить</button>
+                        <button class="btn-del" style="flex:1;" onclick="directorDeleteCatalog('${item.id}')">🗑 Удалить</button>
+                    </div>
+                </div>
+            `).join('') || '<div style="text-align:center; color:var(--text-muted); padding:10px;">Нет товаров</div>';
         } else {
             const list = document.getElementById('catalog-list');
             let filtered = allCatalogItems;
-            if (currentCatalogFilter === 'mine') filtered = filtered.filter(o => o.shop === shop);
+            if (currentCatalogFilter === 'mine') {
+                filtered = filtered.filter(o => o.shop === shop);
+            } else if (currentCatalogFilter !== 'all') {
+                filtered = filtered.filter(o => o.shop === currentCatalogFilter);
+            }
             
             list.innerHTML = filtered.length ? filtered.map(item => {
-                // Скрываем товары с нулевым остатком
                 if (item.qty <= 0) return ''; 
                 
                 return `
@@ -880,15 +899,24 @@ async function loadCatalog(isDirector = false) {
                     </div>
                     <button class="btn-main" style="padding:10px; font-size:13px; margin-top:8px;" onclick="orderSingleItem('${item.id}')">⚡ Заказать сейчас</button>
                 </div>
-            `}).join('') : '<div style="text-align:center; color:var(--text-muted); padding:10px;">Пусто</div>';
+            `}).join('') || '<div style="text-align:center; color:var(--text-muted); padding:10px;">Пусто</div>';
         }
     } catch(e) { console.log(e); }
 }
 
+// [FIX-5] Новые фильтры
 function toggleCatalogFilter(type) {
     currentCatalogFilter = type;
-    document.getElementById('btn-filter-all').classList.toggle('active', type === 'all');
-    document.getElementById('btn-filter-mine').classList.toggle('active', type === 'mine');
+    document.querySelectorAll('[id^="btn-filter-"]').forEach(el => el.classList.remove('active'));
+    const idMap = {
+        'all': 'btn-filter-all',
+        'mine': 'btn-filter-mine',
+        'Алик': 'btn-filter-alik',
+        'Мода': 'btn-filter-moda',
+        'Твой стиль': 'btn-filter-style'
+    };
+    const target = document.getElementById(idMap[type]);
+    if (target) target.classList.add('active');
     loadCatalog();
 }
 
@@ -937,7 +965,6 @@ function orderSingleItem(itemId) {
     
     document.getElementById('order-comment').value = `Заказ товара с витрины. Год: ${item.year}`;
     
-    // Привязка к ID товара для списания
     window.currentOrderCatalogId = item.id;
 
     showToast('Товар подставлен в форму заказа', 'success');
@@ -1010,6 +1037,16 @@ function changeScanQty(id, delta) {
     if (item) { item.qty = Math.max(1, item.qty + delta); localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); renderScanList(); }
 }
 
+// [FIX-доп] Функция updateScanItem — её не было в исходнике, но она вызывается в renderScanList
+function updateScanItem(id, field, value) {
+    const item = scanList.find(i => i.id === id);
+    if (item) {
+        item[field] = value;
+        localStorage.setItem('scan_list_draft', JSON.stringify(scanList));
+        renderScanList();
+    }
+}
+
 function removeScanItem(id) {
     scanList = scanList.filter(i => i.id !== id);
     localStorage.setItem('scan_list_draft', JSON.stringify(scanList));
@@ -1057,6 +1094,101 @@ async function loadRevisions() {
         snapshot.forEach(d => revs.push({id: d.id, ...d.data()}));
         document.getElementById('revisions-list').innerHTML = revs.map(r => `<div style="background:var(--bg-app); padding:12px; border-radius:12px; margin-bottom:8px;"><b>${r.shop}</b> - ${new Date(r.date).toLocaleDateString()}<br><span style="font-size:12px; color:var(--text-muted);">${r.items.length} позиций</span></div>`).join('');
     } catch(e) { console.log(e); }
+}
+
+// ============================================================
+// [FIX-2, FIX-3, FIX-4] ДИРЕКТОР: редактирование/удаление
+// ============================================================
+
+// --- Удаление заказа ---
+async function directorDeleteOrder(orderId) {
+    if (!confirm('Удалить заказ безвозвратно?')) return;
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "orders", orderId));
+        showToast('Заказ удалён', 'success');
+        loadDirectorOrders();
+    } catch(e) { showToast('Ошибка удаления', 'error'); }
+}
+
+// --- Редактирование заказа ---
+async function directorEditOrder(orderId) {
+    try {
+        const snap = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
+        let order = null;
+        snap.forEach(d => { if (d.id === orderId) order = {id: d.id, ...d.data()}; });
+        if (!order) return showToast('Не найден', 'error');
+        document.getElementById('edit-item-id').value = orderId;
+        document.getElementById('edit-item-type').value = 'order';
+        document.getElementById('edit-size').value = order.size || '';
+        document.getElementById('edit-year').value = '';
+        document.getElementById('edit-qty').value = 1;
+        // Блокируем неиспользуемые поля визуально
+        document.getElementById('edit-year').disabled = true;
+        document.getElementById('edit-qty').disabled = true;
+        document.getElementById('edit-modal').classList.add('open');
+    } catch(e) { showToast('Ошибка', 'error'); }
+}
+
+// --- Удаление товара витрины ---
+async function directorDeleteCatalog(itemId) {
+    if (!confirm('Удалить товар с витрины?')) return;
+    try {
+        await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, "catalog", itemId));
+        showToast('Товар удалён', 'success');
+        loadCatalog(true);
+    } catch(e) { showToast('Ошибка удаления', 'error'); }
+}
+
+// --- Редактирование товара витрины ---
+async function directorEditCatalog(itemId) {
+    try {
+        const snap = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
+        let item = null;
+        snap.forEach(d => { if (d.id === itemId) item = {id: d.id, ...d.data()}; });
+        if (!item) return showToast('Не найден', 'error');
+        document.getElementById('edit-item-id').value = itemId;
+        document.getElementById('edit-item-type').value = 'catalog';
+        document.getElementById('edit-size').value = item.size || '';
+        document.getElementById('edit-year').value = item.year || '';
+        document.getElementById('edit-qty').value = item.qty || 1;
+        document.getElementById('edit-year').disabled = false;
+        document.getElementById('edit-qty').disabled = false;
+        document.getElementById('edit-modal').classList.add('open');
+    } catch(e) { showToast('Ошибка', 'error'); }
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+    // Сброс disabled-состояний
+    document.getElementById('edit-year').disabled = false;
+    document.getElementById('edit-qty').disabled = false;
+}
+
+async function saveEditItem() {
+    const id = document.getElementById('edit-item-id').value;
+    const type = document.getElementById('edit-item-type').value;
+    const size = document.getElementById('edit-size').value.trim();
+    const yearRaw = document.getElementById('edit-year').value.trim();
+    const qty = parseInt(document.getElementById('edit-qty').value) || 1;
+
+    try {
+        if (type === 'catalog') {
+            const updateData = { size: size || 'Без размера', qty: qty };
+            if (yearRaw) updateData.year = yearRaw;
+            await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "catalog", id), updateData);
+            showToast('Товар обновлён', 'success');
+            loadCatalog(true);
+        } else {
+            const updateData = { size: size || 'Без размера' };
+            await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", id), updateData);
+            showToast('Заказ обновлён', 'success');
+            loadDirectorOrders();
+        }
+        closeEditModal();
+    } catch(e) {
+        console.error(e);
+        showToast('Ошибка сохранения', 'error');
+    }
 }
 
 </script>
