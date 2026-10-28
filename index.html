@@ -5,44 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Pilo Premium App</title>
 
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#F4F5F7">
-<link rel="apple-touch-icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, enableIndexedDbPersistence, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
-    authDomain: "revisionset.firebaseapp.com",
-    projectId: "revisionset",
-    storageBucket: "revisionset.firebasestorage.app",
-    messagingSenderId: "904187992853",
-    appId: "1:904187992853:web:c009614e1cf718d950271c"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code == 'failed-precondition') {
-          console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
-      } else if (err.code == 'unimplemented') {
-          console.warn("The current browser does not support all of the features required to enable persistence");
-      }
-  });
-
-  window.fbDB = db;
-  window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err));
-  }
-</script>
 
 <style>
 :root { 
@@ -140,15 +106,36 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
 .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 24px; animation: slideUp 0.3s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-#hidden-scanner { position: absolute; opacity: 0; pointer-events: none; height: 0; width: 0; }
+/* КРИТИЧНО: полностью убираем hidden-scanner с экрана — он перекрывал тапы */
+#hidden-scanner { 
+    position: absolute; 
+    top: -9999px; 
+    left: -9999px; 
+    opacity: 0; 
+    pointer-events: none; 
+    height: 1px; 
+    width: 1px; 
+}
 
 .skeleton-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; height: 150px; animation: pulse 1.5s infinite ease-in-out; }
 .skeleton-line { background: #E5E5EA; height: 16px; border-radius: 8px; margin-bottom: 8px; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
+/* Отладочная плашка ошибок */
+#js-error-banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: #FF453A; color: #FFF;
+    padding: 14px 16px; font-size: 13px; font-weight: 600;
+    z-index: 99999; display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    white-space: pre-wrap; word-break: break-word;
+}
 </style>
 </head>
 <body>
+
+<!-- Плашка для отладки: покажет JS-ошибки на экране телефона -->
+<div id="js-error-banner"></div>
 
 <div id="toast" class="toast"></div>
 <input type="text" id="hidden-scanner" onkeypress="if(event.key==='Enter') processScan(this.value);" autocomplete="off">
@@ -158,7 +145,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     <div class="modal-content">
         <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 16px;">Редактировать</h3>
         <input type="hidden" id="edit-item-id">
-        <!-- [FIX-4] скрытое поле типа (order | catalog) -->
         <input type="hidden" id="edit-item-type">
         <div class="input-group"><label class="input-label">Размер</label><input type="text" id="edit-size" class="input-field"></div>
         <div class="input-group"><label class="input-label">Год</label><input type="number" id="edit-year" class="input-field"></div>
@@ -334,9 +320,7 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
             <div style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px;">
                 <div class="input-group" style="flex: 1; margin-bottom: 0;">
                     <label class="input-label">Год</label>
-                    <select id="cat-year" class="input-field">
-                        <!-- JS заполнит -->
-                    </select>
+                    <select id="cat-year" class="input-field"></select>
                 </div>
                 <div class="input-group" style="flex: 1; margin-bottom: 0;">
                     <label class="input-label">Кол-во</label>
@@ -353,7 +337,6 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
         <div class="card" style="background: transparent; box-shadow: none; padding: 0; border: none;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
                 <h3 style="margin:0; font-weight:900; font-size: 20px;">Витрина</h3>
-                <!-- [FIX-5] Фильтры по магазинам -->
                 <div class="size-pills" style="margin:0; background: var(--bg-card); padding:4px; border-radius:var(--radius-pill); flex-wrap:wrap;">
                     <div class="size-pill active" id="btn-filter-all" onclick="toggleCatalogFilter('all')" style="padding:6px 12px; font-size: 12px;">Все</div>
                     <div class="size-pill" id="btn-filter-mine" onclick="toggleCatalogFilter('mine')" style="padding:6px 12px; font-size: 12px;">Мои</div>
@@ -410,6 +393,58 @@ select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer
     </div>
 </div>
 
+<!-- ===================================================== -->
+<!-- FIREBASE: отдельный скрипт, обёрнут в try/catch       -->
+<!-- Если Firebase упадёт — кнопки продолжат работать      -->
+<!-- ===================================================== -->
+<script type="module">
+  // Показываем ошибку прямо на экране телефона
+  window.addEventListener('error', (e) => {
+    const banner = document.getElementById('js-error-banner');
+    if (banner) {
+      banner.style.display = 'block';
+      banner.textContent = '⚠️ Ошибка: ' + (e.message || 'unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
+    }
+  });
+
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+    const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
+      authDomain: "revisionset.firebaseapp.com",
+      projectId: "revisionset",
+      storageBucket: "revisionset.firebasestorage.app",
+      messagingSenderId: "904187992853",
+      appId: "1:904187992853:web:c009614e1cf718d950271c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.fbDB = db;
+    window.fbFns = { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, runTransaction };
+    console.log('✅ Firebase ready');
+
+    // Service Worker — регистрируем ПОСЛЕ Firebase, с updateViaCache: none
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(reg => console.log('SW registered'))
+        .catch(err => console.log('SW error', err));
+    }
+  } catch (err) {
+    console.error('❌ Firebase init failed:', err);
+    window.fbDB = null;
+    window.fbFns = null;
+    // Не роняем приложение — кнопки продолжают работать
+  }
+</script>
+
+<!-- ===================================================== -->
+<!-- ОСНОВНОЙ КОД — выполняется синхронно, БЕЗ DOMContentLoaded -->
+<!-- Скрипт в конце body → DOM уже готов                    -->
+<!-- ===================================================== -->
 <script>
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 let shop = localStorage.getItem('ord_shop') || '';
@@ -419,7 +454,6 @@ let currentPin = '';
 
 window.currentOrderPhotoBase64 = '';
 window.currentCatPhotoBase64 = '';
-// [FIX-1] Явная инициализация привязки к товару витрины
 window.currentOrderCatalogId = null;
 
 let allIncomingOrders = [];
@@ -434,13 +468,21 @@ let scanList = JSON.parse(localStorage.getItem('scan_list_draft') || '[]');
 // --- УТИЛИТЫ ---
 function showToast(msg, type = 'default') {
     const t = document.getElementById('toast');
+    if (!t) return;
     t.innerText = msg;
     t.className = 'toast show ' + type;
     setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
+function safeRun(fn, name) {
+    try { fn(); } catch(e) {
+        console.error('Ошибка в ' + name + ':', e);
+    }
+}
+
 function validateOrderForm() {
     const btn = document.getElementById('btn-submit-order');
+    if (!btn) return;
     const toShop = document.getElementById('order-to-shop').value;
     
     let category = document.getElementById('order-category').value;
@@ -455,6 +497,7 @@ function validateOrderForm() {
 
 function validateCatalogForm() {
     const btn = document.getElementById('btn-submit-catalog');
+    if (!btn) return;
     let category = document.getElementById('cat-category').value;
     if (category === 'custom_add') category = document.getElementById('new-cat-category-input').value.trim();
 
@@ -465,81 +508,80 @@ function validateCatalogForm() {
     }
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ ---
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('seller-name').value = seller;
-    
-    const currentYear = new Date().getFullYear();
-    let yearOptions = `<option value="Без года">Без года</option>`;
-    for (let y = currentYear; y >= currentYear - 5; y--) {
-        yearOptions += `<option value="${y}">${y}</option>`;
-    }
-    document.getElementById('cat-year').innerHTML = yearOptions;
-    
-    if (shop && seller && !directorMode) {
-        document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
-        showScreen('screen-seller');
-        loadMyOrders();
-        loadCatalog();
-        renderScanList();
-    } else {
-        showScreen('screen-auth');
-    }
+// --- ИНИЦИАЛИЗАЦИЯ (без DOMContentLoaded — скрипт уже в конце body) ---
+(function init() {
+    try {
+        const sellerInput = document.getElementById('seller-name');
+        if (sellerInput) sellerInput.value = seller;
 
-    document.getElementById('order-category').addEventListener('change', function() {
-        const customInp = document.getElementById('new-category-input');
-        if (this.value === 'custom_add') {
-            customInp.style.display = 'block';
-        } else {
-            customInp.style.display = 'none';
-            customInp.value = '';
+        const currentYear = new Date().getFullYear();
+        let yearOptions = `<option value="Без года">Без года</option>`;
+        for (let y = currentYear; y >= currentYear - 5; y--) {
+            yearOptions += `<option value="${y}">${y}</option>`;
         }
+        const yearSelect = document.getElementById('cat-year');
+        if (yearSelect) yearSelect.innerHTML = yearOptions;
+
+        if (shop && seller && !directorMode) {
+            const titleEl = document.getElementById('shop-title');
+            if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
+            showScreen('screen-seller');
+            if (window.fbDB) { loadMyOrders(); loadCatalog(); }
+            renderScanList();
+        } else {
+            showScreen('screen-auth');
+        }
+
+        // Обработчики категорий/размеров
+        const orderCat = document.getElementById('order-category');
+        if (orderCat) orderCat.addEventListener('change', function() {
+            const customInp = document.getElementById('new-category-input');
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+            validateOrderForm();
+        });
+
+        const newCatInp = document.getElementById('new-category-input');
+        if (newCatInp) newCatInp.addEventListener('input', validateOrderForm);
+
+        const catCat = document.getElementById('cat-category');
+        if (catCat) catCat.addEventListener('change', function() {
+            const customInp = document.getElementById('new-cat-category-input');
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+            validateCatalogForm();
+        });
+
+        const newCatCatInp = document.getElementById('new-cat-category-input');
+        if (newCatCatInp) newCatCatInp.addEventListener('input', validateCatalogForm);
+
+        const orderSize = document.getElementById('order-size');
+        if (orderSize) orderSize.addEventListener('change', function() {
+            const customInp = document.getElementById('custom-size-input');
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+        });
+
+        const catSize = document.getElementById('cat-size');
+        if (catSize) catSize.addEventListener('change', function() {
+            const customInp = document.getElementById('custom-cat-size-input');
+            if (this.value === 'custom_add') { customInp.style.display = 'block'; }
+            else { customInp.style.display = 'none'; customInp.value = ''; }
+        });
+        
         validateOrderForm();
-    });
-    
-    document.getElementById('new-category-input').addEventListener('input', validateOrderForm);
-
-    document.getElementById('cat-category').addEventListener('change', function() {
-        const customInp = document.getElementById('new-cat-category-input');
-        if (this.value === 'custom_add') {
-            customInp.style.display = 'block';
-        } else {
-            customInp.style.display = 'none';
-            customInp.value = '';
-        }
         validateCatalogForm();
-    });
-    
-    document.getElementById('new-cat-category-input').addEventListener('input', validateCatalogForm);
-
-    document.getElementById('order-size').addEventListener('change', function() {
-        const customInp = document.getElementById('custom-size-input');
-        if (this.value === 'custom_add') {
-            customInp.style.display = 'block';
-        } else {
-            customInp.style.display = 'none';
-            customInp.value = '';
-        }
-    });
-
-    document.getElementById('cat-size').addEventListener('change', function() {
-        const customInp = document.getElementById('custom-cat-size-input');
-        if (this.value === 'custom_add') {
-            customInp.style.display = 'block';
-        } else {
-            customInp.style.display = 'none';
-            customInp.value = '';
-        }
-    });
-    
-    validateOrderForm();
-    validateCatalogForm();
-});
+        console.log('✅ Init complete, shop=' + shop + ', seller=' + seller);
+    } catch(e) {
+        console.error('Init error:', e);
+    }
+})();
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(id === 'screen-director') {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+    if (id === 'screen-director' && window.fbDB) {
         loadDirectorOrders();
         loadCatalog(true);
         loadRevisions();
@@ -547,23 +589,27 @@ function showScreen(id) {
 }
 
 function selectShop(el, name) {
-    document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    shop = name;
+    try {
+        document.querySelectorAll('#shop-pills .size-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        shop = name;
+        console.log('Shop selected:', name);
+    } catch(e) { console.error('selectShop:', e); }
 }
 
 function loginSeller() {
-    const name = document.getElementById('seller-name').value.trim();
-    if (!shop) return showToast('Выберите магазин!', 'error');
-    if (!name) return showToast('Введите имя!', 'error');
-    seller = name;
-    localStorage.setItem('ord_shop', shop);
-    localStorage.setItem('ord_seller', seller);
-    document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
-    showScreen('screen-seller');
-    loadMyOrders();
-    loadCatalog();
-    renderScanList();
+    try {
+        const name = document.getElementById('seller-name').value.trim();
+        if (!shop) return showToast('Выберите магазин!', 'error');
+        if (!name) return showToast('Введите имя!', 'error');
+        seller = name;
+        localStorage.setItem('ord_shop', shop);
+        localStorage.setItem('ord_seller', seller);
+        document.getElementById('shop-title').innerText = 'Магазин · ' + shop;
+        showScreen('screen-seller');
+        if (window.fbDB) { loadMyOrders(); loadCatalog(); }
+        renderScanList();
+    } catch(e) { console.error('loginSeller:', e); }
 }
 
 function logout() {
@@ -583,23 +629,29 @@ function updatePinDisplay() {
         else dash.classList.remove('active');
     });
 }
+
 function pressPin(num) {
-    if (num === 'C') currentPin = '';
-    else if (currentPin.length < 4) currentPin += num;
-    updatePinDisplay();
+    try {
+        if (num === 'C') currentPin = '';
+        else if (currentPin.length < 4) currentPin += num;
+        updatePinDisplay();
+    } catch(e) { console.error('pressPin:', e); }
 }
+
 function checkPin() {
-    if (currentPin === '1988') {
-        directorMode = true;
-        currentPin = '';
-        updatePinDisplay();
-        showScreen('screen-director');
-        showToast('Добро пожаловать', 'success');
-    } else {
-        showToast('Неверный PIN', 'error');
-        currentPin = '';
-        updatePinDisplay();
-    }
+    try {
+        if (currentPin === '1988') {
+            directorMode = true;
+            currentPin = '';
+            updatePinDisplay();
+            showScreen('screen-director');
+            showToast('Добро пожаловать', 'success');
+        } else {
+            showToast('Неверный PIN', 'error');
+            currentPin = '';
+            updatePinDisplay();
+        }
+    } catch(e) { console.error('checkPin:', e); }
 }
 
 // --- ВКЛАДКИ ---
@@ -673,7 +725,6 @@ function handlePhoto(input, previewId, setter) {
             const preview = document.getElementById(previewId);
             preview.src = base64;
             preview.style.display = 'block';
-            
             if (previewId === 'order-photo-preview') validateOrderForm();
             if (previewId === 'cat-photo-preview') validateCatalogForm();
         }
@@ -682,12 +733,11 @@ function handlePhoto(input, previewId, setter) {
     reader.readAsDataURL(file);
 }
 
-// [FIX-1] Полный сброс формы заказа
 function resetOrderForm() {
     document.getElementById('order-photo-file').value = '';
     document.getElementById('order-photo-preview').style.display = 'none';
     window.currentOrderPhotoBase64 = '';
-    window.currentOrderCatalogId = null; // ← ВАЖНО: сброс привязки к товару витрины
+    window.currentOrderCatalogId = null;
     document.getElementById('order-comment').value = '';
     document.getElementById('order-category').value = '';
     document.getElementById('order-size').value = '';
@@ -697,7 +747,6 @@ function resetOrderForm() {
     document.getElementById('custom-size-input').value = '';
     document.querySelectorAll('#order-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
     selectedOrderDept = '';
-    // Сброс "Кому" на первый != свой магазин
     const toSelect = document.getElementById('order-to-shop');
     for (let opt of toSelect.options) {
         if (opt.value !== shop) { toSelect.value = opt.value; break; }
@@ -707,14 +756,12 @@ function resetOrderForm() {
 
 // --- ЗАКАЗЫ ---
 async function createOrder() {
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
     const toShop = document.getElementById('order-to-shop').value;
-    
     let category = document.getElementById('order-category').value;
     if (category === 'custom_add') category = document.getElementById('new-category-input').value.trim();
-    
     let size = document.getElementById('order-size').value;
     if (size === 'custom_add') size = document.getElementById('custom-size-input').value.trim();
-
     const comment = document.getElementById('order-comment').value.trim();
     
     if (toShop === shop) return showToast('Нельзя заказать у себя', 'error');
@@ -734,9 +781,10 @@ async function createOrder() {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "orders"), orderData);
         showToast('✅ Запрос отправлен!', 'success');
         resetOrderForm();
-        window.currentOrderCatalogId = null; // [FIX-1] дополнительная страховка
+        window.currentOrderCatalogId = null;
         loadMyOrders();
     } catch (e) {
+        console.error(e);
         showToast('⚠️ Ошибка сети', 'error');
     }
 }
@@ -746,7 +794,6 @@ function renderOrderCard(o, isDirector = false) {
     const header = isDirector ? `<span><b>${o.fromShop}</b> → <b>${o.toShop}</b></span>` : (o.toShop === shop ? `<span>От: <b>${o.fromShop}</b> (${o.seller})</span>` : `<span>Кому: <b>${o.toShop}</b></span>`);
     let actionsHtml = '';
     
-    // [FIX-2] Директор: кнопки редактировать/удалить
     if (isDirector) {
         actionsHtml = `<div style="display:flex; gap:8px; margin-top:8px;">
             <button class="btn-edit" style="flex:1;" onclick="directorEditOrder('${o.id}')">✏️ Изменить</button>
@@ -789,9 +836,9 @@ async function loadMyOrders() {
 }
 
 async function updateOrderStatus(orderId, status, catalogId = '') {
+    if (!window.fbDB) return showToast('Нет связи', 'error');
     try {
         await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, "orders", orderId), { status: status });
-        
         if (status === 'accepted' && catalogId && catalogId !== 'null') {
             try {
                 const itemRef = window.fbFns.doc(window.fbDB, "catalog", catalogId);
@@ -799,9 +846,7 @@ async function updateOrderStatus(orderId, status, catalogId = '') {
                     const docSnap = await transaction.get(itemRef);
                     if (docSnap.exists()) {
                         const currentQty = docSnap.data().qty || 0;
-                        if (currentQty > 0) {
-                            transaction.update(itemRef, { qty: currentQty - 1 });
-                        }
+                        if (currentQty > 0) transaction.update(itemRef, { qty: currentQty - 1 });
                     }
                 });
                 showToast('Товар списан с витрины', 'success');
@@ -811,17 +856,16 @@ async function updateOrderStatus(orderId, status, catalogId = '') {
             }
         }
         loadMyOrders();
-    } catch(e) { showToast('Ошибка обновления статуса', 'error'); }
+    } catch(e) { console.error(e); showToast('Ошибка обновления статуса', 'error'); }
 }
 
 // --- ВИТРИНА ---
 async function addToCatalog() {
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
     let category = document.getElementById('cat-category').value;
     if (category === 'custom_add') category = document.getElementById('new-cat-category-input').value.trim();
-    
     let size = document.getElementById('cat-size').value;
     if (size === 'custom_add') size = document.getElementById('custom-cat-size-input').value.trim();
-
     const year = document.getElementById('cat-year').value;
     const qty = parseInt(document.getElementById('cat-qty').value) || 1;
 
@@ -850,12 +894,10 @@ async function addToCatalog() {
         document.querySelectorAll('#cat-dept-pills .size-pill').forEach(p => p.classList.remove('active'));
         selectedCatDept = '';
         validateCatalogForm();
-        
         loadCatalog();
-    } catch (e) { showToast('Ошибка', 'error'); }
+    } catch (e) { console.error(e); showToast('Ошибка', 'error'); }
 }
 
-// [FIX-5] Фильтрация по магазинам
 async function loadCatalog(isDirector = false) {
     if (!window.fbDB) return;
     try {
@@ -864,7 +906,6 @@ async function loadCatalog(isDirector = false) {
         snapshot.forEach(d => allCatalogItems.push({id: d.id, ...d.data()}));
         
         if (isDirector) {
-            // [FIX-3] Кнопки редактирования/удаления для директора
             document.getElementById('director-catalog-list').innerHTML = allCatalogItems.map(item => `
                 <div class="order-card" style="padding:12px;">
                     <img src="${item.photo}" class="order-photo">
@@ -887,7 +928,6 @@ async function loadCatalog(isDirector = false) {
             
             list.innerHTML = filtered.length ? filtered.map(item => {
                 if (item.qty <= 0) return ''; 
-                
                 return `
                 <div class="order-card" style="padding: 12px;">
                     <img src="${item.photo}" class="order-photo" style="height: 180px;">
@@ -904,7 +944,6 @@ async function loadCatalog(isDirector = false) {
     } catch(e) { console.log(e); }
 }
 
-// [FIX-5] Новые фильтры
 function toggleCatalogFilter(type) {
     currentCatalogFilter = type;
     document.querySelectorAll('[id^="btn-filter-"]').forEach(el => el.classList.remove('active'));
@@ -964,9 +1003,7 @@ function orderSingleItem(itemId) {
     }
     
     document.getElementById('order-comment').value = `Заказ товара с витрины. Год: ${item.year}`;
-    
     window.currentOrderCatalogId = item.id;
-
     showToast('Товар подставлен в форму заказа', 'success');
     validateOrderForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -978,7 +1015,6 @@ function processScan(code) {
     if (!code || !code.trim()) return;
     const scannedCode = code.trim();
     const name = `Товар ${scannedCode}`;
-    
     const existing = scanList.find(i => i.code === scannedCode);
     if (existing) {
         existing.qty += 1;
@@ -993,9 +1029,11 @@ function processScan(code) {
 
 function renderScanList() {
     const container = document.getElementById('scan-list-container');
+    if (!container) return;
     if (scanList.length === 0) {
         container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 20px; font-weight:600;">Список пуст</div>';
-        document.getElementById('scan-summary').style.display = 'none';
+        const summary = document.getElementById('scan-summary');
+        if (summary) summary.style.display = 'none';
         return;
     }
 
@@ -1037,7 +1075,6 @@ function changeScanQty(id, delta) {
     if (item) { item.qty = Math.max(1, item.qty + delta); localStorage.setItem('scan_list_draft', JSON.stringify(scanList)); renderScanList(); }
 }
 
-// [FIX-доп] Функция updateScanItem — её не было в исходнике, но она вызывается в renderScanList
 function updateScanItem(id, field, value) {
     const item = scanList.find(i => i.id === id);
     if (item) {
@@ -1054,13 +1091,14 @@ function removeScanItem(id) {
 }
 
 async function saveInventory() {
+    if (!window.fbDB) return showToast('Нет связи с базой', 'error');
     if (scanList.length === 0) return showToast('Пусто', 'error');
     try {
         await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, "revisions"), {
             shop: shop, seller: seller, date: new Date().toISOString(), items: scanList
         });
         showToast('✅ Сохранено!', 'success');
-    } catch(e) { showToast('Ошибка', 'error'); }
+    } catch(e) { console.error(e); showToast('Ошибка', 'error'); }
     scanList = [];
     localStorage.removeItem('scan_list_draft');
     renderScanList();
@@ -1079,6 +1117,7 @@ function downloadCurrentRevisionExcel() {
 
 // --- ДИРЕКТОР ---
 async function loadDirectorOrders() {
+    if (!window.fbDB) return;
     try {
         const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
         let orders = [];
@@ -1088,6 +1127,7 @@ async function loadDirectorOrders() {
 }
 
 async function loadRevisions() {
+    if (!window.fbDB) return;
     try {
         const snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "revisions"));
         let revs = [];
@@ -1096,11 +1136,6 @@ async function loadRevisions() {
     } catch(e) { console.log(e); }
 }
 
-// ============================================================
-// [FIX-2, FIX-3, FIX-4] ДИРЕКТОР: редактирование/удаление
-// ============================================================
-
-// --- Удаление заказа ---
 async function directorDeleteOrder(orderId) {
     if (!confirm('Удалить заказ безвозвратно?')) return;
     try {
@@ -1110,8 +1145,8 @@ async function directorDeleteOrder(orderId) {
     } catch(e) { showToast('Ошибка удаления', 'error'); }
 }
 
-// --- Редактирование заказа ---
 async function directorEditOrder(orderId) {
+    if (!window.fbDB) return;
     try {
         const snap = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "orders"));
         let order = null;
@@ -1122,14 +1157,12 @@ async function directorEditOrder(orderId) {
         document.getElementById('edit-size').value = order.size || '';
         document.getElementById('edit-year').value = '';
         document.getElementById('edit-qty').value = 1;
-        // Блокируем неиспользуемые поля визуально
         document.getElementById('edit-year').disabled = true;
         document.getElementById('edit-qty').disabled = true;
         document.getElementById('edit-modal').classList.add('open');
     } catch(e) { showToast('Ошибка', 'error'); }
 }
 
-// --- Удаление товара витрины ---
 async function directorDeleteCatalog(itemId) {
     if (!confirm('Удалить товар с витрины?')) return;
     try {
@@ -1139,8 +1172,8 @@ async function directorDeleteCatalog(itemId) {
     } catch(e) { showToast('Ошибка удаления', 'error'); }
 }
 
-// --- Редактирование товара витрины ---
 async function directorEditCatalog(itemId) {
+    if (!window.fbDB) return;
     try {
         const snap = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, "catalog"));
         let item = null;
@@ -1159,12 +1192,12 @@ async function directorEditCatalog(itemId) {
 
 function closeEditModal() {
     document.getElementById('edit-modal').classList.remove('open');
-    // Сброс disabled-состояний
     document.getElementById('edit-year').disabled = false;
     document.getElementById('edit-qty').disabled = false;
 }
 
 async function saveEditItem() {
+    if (!window.fbDB) return showToast('Нет связи', 'error');
     const id = document.getElementById('edit-item-id').value;
     const type = document.getElementById('edit-item-type').value;
     const size = document.getElementById('edit-size').value.trim();
@@ -1191,6 +1224,8 @@ async function saveEditItem() {
     }
 }
 
+// Финальный лог для отладки
+console.log('✅ Pilo App loaded. FB:', !!window.fbDB);
 </script>
 </body>
 </html>
