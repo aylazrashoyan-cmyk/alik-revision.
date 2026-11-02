@@ -80,7 +80,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(-
 .input-field:focus { border-color: var(--primary); background: #FFF; box-shadow: 0 0 0 4px rgba(212, 255, 0, 0.15); }
 select.input-field { appearance: none; -webkit-appearance: none; cursor: pointer; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 16px top 50%; background-size: 12px auto; }
 
-/* Стилизация кнопки загрузки фото */
 input[type="file"]::file-selector-button {
     background: var(--bg-card);
     color: var(--text-main);
@@ -181,7 +180,6 @@ input[type="file"]::file-selector-button:active {
 
 .icon { width: 20px; height: 20px; fill: currentColor; vertical-align: middle; }
 
-/* Стили для пустых состояний */
 .empty-state { text-align: center; padding: 30px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .empty-state svg { margin-bottom: 12px; }
 .empty-state-title { font-size: 15px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
@@ -189,6 +187,33 @@ input[type="file"]::file-selector-button:active {
 
 #scan-preview-container > div:last-child { animation: slideDownIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 .tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* ===== Counter bar (Пункт 1) ===== */
+.scan-counter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    background: var(--bg-card);
+    padding: 10px 16px;
+    border-radius: var(--radius-pill);
+    margin-top: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+.scan-counter-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.scan-counter-item .num {
+    font-size: 15px;
+    font-weight: 900;
+}
 </style>
 </head>
 <body>
@@ -232,6 +257,19 @@ input[type="file"]::file-selector-button:active {
         <div style="display:flex; gap:12px; margin-top: 12px;">
             <button class="btn-edit" style="flex:1;" onclick="closeEditModal()">Отмена</button>
             <button class="btn-main" style="flex:2;" onclick="saveEditItem()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Пункт 6: модальное окно редактирования категории ревизии -->
+<div id="edit-category-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0; font-weight:900; font-size: 20px; margin-bottom: 16px;">Изменить название ревизии</h3>
+        <input type="hidden" id="edit-rev-category-id">
+        <div class="input-group"><label class="input-label">Категория ревизии</label><input type="text" id="edit-rev-category-input" class="input-field"></div>
+        <div style="display:flex; gap:12px; margin-top: 12px;">
+            <button class="btn-edit" style="flex:1;" onclick="closeEditCategoryModal()">Отмена</button>
+            <button class="btn-main" style="flex:2;" onclick="saveRevisionCategory()">Сохранить</button>
         </div>
     </div>
 </div>
@@ -469,6 +507,13 @@ input[type="file"]::file-selector-button:active {
                        placeholder="Например: Куртка женская" autocomplete="off">
             </div>
 
+            <!-- Пункт 1: счётчик отсканированного -->
+            <div id="scan-counter-bar" class="scan-counter-bar" style="display:none;">
+                <div class="scan-counter-item">📦 Отсканировано: <span class="num" id="counter-qty">0</span> шт.</div>
+                <div class="scan-counter-item" id="counter-errors-wrap" style="display:none;">🔴 Ошибок: <span class="num" id="counter-errors" style="color:var(--danger);">0</span></div>
+                <div class="scan-counter-item" id="counter-warns-wrap" style="display:none;">🟡 Похожих: <span class="num" id="counter-warns" style="color:var(--warn);">0</span></div>
+            </div>
+
             <div id="scan-preview-container" style="margin-top: 16px;"></div>
             <div id="scan-list-container" style="margin-top: 16px;"></div>
 
@@ -486,6 +531,10 @@ input[type="file"]::file-selector-button:active {
             <button class="btn-action" onclick="saveInventory()">
                 <svg class="icon" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
                 Сохранить ревизию
+            </button>
+            <!-- Пункт 4: кнопка отмены последнего скана -->
+            <button class="btn-edit" id="btn-undo-scan" style="display:none; padding: 14px; font-size: 14px;" onclick="undoLastScan()">
+                ↩️ Отменить (<span id="undo-count">0</span>)
             </button>
             <button class="btn-outline" onclick="clearDraft()">
                 🗑 Очистить черновик
@@ -602,7 +651,7 @@ input[type="file"]::file-selector-button:active {
   setTimeout(async () => {
       try {
         const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
-        const { getFirestore, collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const { getFirestore, collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction, orderBy, limit, startAfter } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
 
         const firebaseConfig = {
           apiKey: "AIzaSyBXcymeTjA6zuCPM_ESuKEzVeyc-5YUqBU",
@@ -617,17 +666,18 @@ input[type="file"]::file-selector-button:active {
         const db = getFirestore(app);
 
         window.fbDB = db;
-        window.fbFns = { collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction };
+        window.fbFns = { collection, addDoc, getDocs, getDoc, query, where, deleteDoc, doc, updateDoc, runTransaction, orderBy, limit, startAfter };
         console.log('✅ Firebase ready');
 
         try {
             if (typeof shop !== 'undefined' && shop && seller) {
                 if (typeof window.loadMyOrders === 'function') window.loadMyOrders();
                 if (typeof window.loadCatalog === 'function') window.loadCatalog(false, true);
+                if (typeof window.loadRevisions === 'function') window.loadRevisions(true);
             }
             if (typeof directorMode !== 'undefined' && directorMode) {
                 if (typeof window.loadDirectorOrders === 'function') window.loadDirectorOrders();
-                if (typeof window.loadRevisions === 'function') window.loadRevisions();
+                if (typeof window.loadRevisions === 'function') window.loadRevisions(true);
             }
         } catch(e) { console.error('Post-firebase load error:', e); }
 
@@ -760,9 +810,40 @@ function playErrorSound() {
     } catch(_) {}
 }
 
+// Пункт 4: тихий низкий звук отката
+function playUndoSound() {
+    initAudio();
+    if (!audioCtx) return;
+    try {
+        if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') audioCtx.resume();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = 300;
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(_) {}
+}
+
 function draftKey() { return 'scan_list_draft_' + (shop || 'anon'); }
+
+// Пункт 2: при загрузке старых черновиков назначаем lastScanTime, чтобы сохранить порядок
 function loadDraft() {
-    try { return JSON.parse(localStorage.getItem(draftKey()) || '[]'); } catch(e) { return []; }
+    try {
+        var raw = JSON.parse(localStorage.getItem(draftKey()) || '[]');
+        if (!Array.isArray(raw)) return [];
+        var nowTs = Date.now();
+        for (var i = 0; i < raw.length; i++) {
+            if (raw[i] && !raw[i].lastScanTime) {
+                raw[i].lastScanTime = nowTs - i * 1000;
+            }
+        }
+        return raw;
+    } catch(e) { return []; }
 }
 function persistDraft() {
     try { localStorage.setItem(draftKey(), JSON.stringify(scanList)); } catch(_) {}
@@ -770,6 +851,48 @@ function persistDraft() {
 
 var scanList = loadDraft();
 if (!Array.isArray(scanList)) scanList = [];
+
+// Пункт 4: история сканов для отмены
+var scanHistory = [];
+var MAX_UNDO = 10;
+
+function historyKey() { return 'scan_history_' + (shop || 'anon'); }
+
+function loadScanHistory() {
+    try {
+        var raw = localStorage.getItem(historyKey());
+        if (raw) {
+            var parsed = JSON.parse(raw);
+            scanHistory = Array.isArray(parsed) ? parsed : [];
+        } else {
+            scanHistory = [];
+        }
+    } catch(_) { scanHistory = []; }
+    updateUndoButton();
+}
+
+function persistScanHistory() {
+    try { localStorage.setItem(historyKey(), JSON.stringify(scanHistory)); } catch(_) {}
+}
+
+function pushScanHistory(action) {
+    scanHistory.unshift(action);
+    if (scanHistory.length > MAX_UNDO) scanHistory = scanHistory.slice(0, MAX_UNDO);
+    persistScanHistory();
+    updateUndoButton();
+}
+
+function updateUndoButton() {
+    var btn = document.getElementById('btn-undo-scan');
+    var countEl = document.getElementById('undo-count');
+    if (!btn) return;
+    if (scanHistory.length === 0) {
+        btn.style.display = 'none';
+    } else {
+        btn.style.display = 'block';
+        if (countEl) countEl.textContent = scanHistory.length;
+    }
+}
 
 var directorScanList = [];
 try {
@@ -846,12 +969,13 @@ window.showScreen = function(id) {
     if (id === 'screen-seller' && window.fbDB) {
         try { if (window.loadMyOrders) window.loadMyOrders(); } catch(e) {}
         try { if (window.loadCatalog) window.loadCatalog(false, true); } catch(e) {}
+        try { if (window.loadRevisions) window.loadRevisions(true); } catch(e) {}
     }
 
     if (id === 'screen-director' && window.fbDB) {
         try { if (window.loadDirectorOrders) window.loadDirectorOrders(); } catch(e) {}
         try { if (window.loadCatalog) window.loadCatalog(true, true); } catch(e) {}
-        try { if (window.loadRevisions) window.loadRevisions(); } catch(e) {}
+        try { if (window.loadRevisions) window.loadRevisions(true); } catch(e) {}
         renderDirectorScanList();
     }
 };
@@ -880,10 +1004,11 @@ window.loginSeller = function() {
         if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
         scanList = loadDraft();
         if (!Array.isArray(scanList)) scanList = [];
+        loadScanHistory();
         showScreen('screen-seller');
         renderScanList();
         if (typeof loadBarcodes === 'function') loadBarcodes();
-        if (typeof loadRevisions === 'function') loadRevisions();
+        if (typeof loadRevisions === 'function') loadRevisions(true);
         if (typeof updateOnlineStatus === 'function') updateOnlineStatus();
         if (window.fbDB) {
             try { if (window.loadMyOrders) window.loadMyOrders(); } catch(e) {}
@@ -905,6 +1030,14 @@ window.logout = function() {
     barcodesLoadedFor = '';
     directorBarcodeDB = {};
     directorBarcodesLoadedFor = '';
+
+    revisionsCache = [];
+    revisionsLastDoc = null;
+    revisionsHasMore = true;
+    revisionsCurrentKey = null;
+
+    scanHistory = [];
+    updateUndoButton();
 
     var pills = document.querySelectorAll('#shop-pills .size-pill');
     for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
@@ -959,7 +1092,7 @@ window.switchMainTab = function(tab) {
     if (tab === 'scanner') {
         if (typeof loadBarcodes === 'function') loadBarcodes();
         renderScanList();
-        if (typeof loadRevisions === 'function') loadRevisions();
+        if (typeof loadRevisions === 'function') loadRevisions(true);
         if (typeof updateOnlineStatus === 'function') updateOnlineStatus();
     }
 };
@@ -976,7 +1109,7 @@ window.switchDirTab = function(tab) {
     if (tab === 'scanner') {
         if (typeof loadDirectorBarcodes === 'function') loadDirectorBarcodes();
         renderDirectorScanList();
-        if (typeof loadRevisions === 'function') loadRevisions();
+        if (typeof loadRevisions === 'function') loadRevisions(true);
         if (typeof updateOnlineStatus === 'function') updateOnlineStatus();
     }
 };
@@ -1741,6 +1874,42 @@ function compareCategories(productCat, revCat) {
     return 'mismatch';
 }
 
+// Пункт 3: порядок сортировки при сохранении
+var SIZE_ORDER = { 'M': 1, 'L': 2, 'XL': 3, '2XL': 4, '3XL': 5 };
+var STATUS_ORDER = { 'mismatch': 0, 'close': 1, 'match': 2 };
+
+function compareSizes(a, b) {
+    var aOrd = SIZE_ORDER[a] || (a === 'Без размера' ? 999 : 100);
+    var bOrd = SIZE_ORDER[b] || (b === 'Без размера' ? 999 : 100);
+    return aOrd - bOrd;
+}
+
+function compareYears(a, b) {
+    var aNum = parseInt(a) || 0;
+    var bNum = parseInt(b) || 0;
+    if (aNum === 0 && bNum === 0) return 0;
+    if (aNum === 0) return 1;
+    if (bNum === 0) return -1;
+    return bNum - aNum;
+}
+
+function compareForSave(a, b) {
+    var sa = STATUS_ORDER[a.categoryStatus || 'match'];
+    if (sa === undefined) sa = 2;
+    var sb = STATUS_ORDER[b.categoryStatus || 'match'];
+    if (sb === undefined) sb = 2;
+    if (sa !== sb) return sa - sb;
+
+    var na = (a.name || '').toLowerCase();
+    var nb = (b.name || '').toLowerCase();
+    if (na !== nb) return na < nb ? -1 : 1;
+
+    var sizeComp = compareSizes(a.size, b.size);
+    if (sizeComp !== 0) return sizeComp;
+
+    return compareYears(a.year, b.year);
+}
+
 async function loadBarcodes() {
     if (barcodesLoadedFor === shop && Object.keys(barcodeDB).length > 0) return;
 
@@ -1818,19 +1987,42 @@ async function loadDirectorBarcodes() {
 function queueOffline(type, data) {
     try {
         var q = JSON.parse(localStorage.getItem('offline_queue') || '[]');
-        q.push({ type: type, data: data, id: Date.now() });
+        q.push({ type: type, data: data, id: Date.now(), retries: 0 });
         localStorage.setItem('offline_queue', JSON.stringify(q));
     } catch(e) { console.error('queueOffline', e); }
 }
 
+// Пункт 8: офлайн-очередь больше не застревает
+var OFFLINE_MAX_RETRIES = 5;
+var __syncingOffline = false;
+
 async function syncOfflineData() {
     if (!navigator.onLine || !window.fbDB) return;
+    if (__syncingOffline) return;
+    __syncingOffline = true;
+
     var q;
     try { q = JSON.parse(localStorage.getItem('offline_queue') || '[]'); } catch(_) { q = []; }
-    if (!q.length) return;
+    if (!q.length) {
+        __syncingOffline = false;
+        updateOnlineStatus();
+        return;
+    }
+
+    var remaining = [];
     var ok = 0;
+    var failed = 0;
+
     for (var i = 0; i < q.length; i++) {
         var it = q[i];
+
+        // Пропускаем те, что исчерпали попытки
+        if ((it.retries || 0) >= OFFLINE_MAX_RETRIES) {
+            remaining.push(it);
+            failed++;
+            continue;
+        }
+
         try {
             if (it.type === 'revision') {
                 await window.fbFns.addDoc(window.fbFns.collection(window.fbDB, 'revisions'), it.data);
@@ -1841,25 +2033,79 @@ async function syncOfflineData() {
             }
             ok++;
         } catch (e) {
-            console.error('sync', e);
-            break;
+            console.error('sync item failed:', e);
+            var isNetworkErr = !navigator.onLine ||
+                               (e && e.code && (e.code === 'unavailable' || e.code === 'deadline-exceeded'));
+
+            if (isNetworkErr) {
+                // Сеть пропала — не инкрементим попытки, вернём в очередь
+                remaining.push(it);
+                failed++;
+            } else {
+                // Ошибка базы — инкрементим попытки
+                it.retries = (it.retries || 0) + 1;
+                remaining.push(it);
+                failed++;
+            }
         }
     }
+
+    try { localStorage.setItem('offline_queue', JSON.stringify(remaining)); } catch(_) {}
+
+    if (ok > 0 && failed === 0) {
+        showToast('✅ Отправлено: ' + ok, 'success');
+    } else if (ok > 0 && failed > 0) {
+        showToast('✅ Отправлено: ' + ok + ' · ⚠️ Не ушло: ' + failed, 'warn');
+    } else if (failed > 0) {
+        showToast('⚠️ Не удалось отправить: ' + failed, 'error');
+    }
+
+    __syncingOffline = false;
+    updateOnlineStatus();
+
     if (ok) {
-        try { localStorage.setItem('offline_queue', JSON.stringify(q.slice(ok))); } catch(_) {}
-        showToast('✅ Синхронизировано: ' + ok, 'success');
-        if (typeof loadRevisions === 'function') loadRevisions();
+        if (typeof loadRevisions === 'function') loadRevisions(true);
         if (typeof loadMyOrders === 'function' && shop) loadMyOrders();
     }
 }
 
 function updateOnlineStatus() {
+    var q = [];
+    try { q = JSON.parse(localStorage.getItem('offline_queue') || '[]'); } catch(_) {}
+    var failed = q.filter(function(it) { return (it.retries || 0) >= OFFLINE_MAX_RETRIES; });
+
     var bars = [document.getElementById('offline-bar'), document.getElementById('dir-offline-bar')];
     bars.forEach(function(bar) {
         if (!bar) return;
-        bar.style.display = navigator.onLine ? 'none' : 'block';
+
+        if (!navigator.onLine) {
+            bar.style.display = 'block';
+            bar.style.background = 'var(--danger)';
+            bar.style.color = '#FFF';
+            bar.style.cursor = 'default';
+            bar.onclick = null;
+            bar.innerHTML = '📶 Нет интернета. Работаем офлайн.' + (q.length > 0 ? ' В очереди: ' + q.length : '');
+        } else if (failed.length > 0) {
+            bar.style.display = 'block';
+            bar.style.background = 'var(--warn)';
+            bar.style.color = '#FFF';
+            bar.style.cursor = 'pointer';
+            bar.onclick = function() {
+                // Сбрасываем счётчики и пробуем снова
+                var qq = [];
+                try { qq = JSON.parse(localStorage.getItem('offline_queue') || '[]'); } catch(_) {}
+                qq.forEach(function(it) { it.retries = 0; });
+                try { localStorage.setItem('offline_queue', JSON.stringify(qq)); } catch(_) {}
+                syncOfflineData();
+            };
+            bar.innerHTML = '⚠️ ' + failed.length + ' не отправлено. Тапнуть, чтобы повторить';
+        } else {
+            bar.style.display = 'none';
+            bar.onclick = null;
+        }
     });
 }
+
 window.addEventListener('online', function() { updateOnlineStatus(); syncOfflineData(); });
 window.addEventListener('offline', updateOnlineStatus);
 
@@ -1951,7 +2197,8 @@ function renderPendingScanPreview() {
         (metaLine ? '<div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-top:2px;">' + metaLine + '</div>' : '') +
         '<div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-top:2px;">Код: ' + item.code + '</div>' +
         '</div>' +
-        '<button onclick="cancelScanPreview()" style="background:none; border:none; color:var(--danger); font-size:22px; line-height:1; padding:0;">&times;</button>' +
+        // Пункт 4: подтверждение при удалении из превью
+        '<button onclick="cancelScanPreviewWithConfirm()" style="background:none; border:none; color:var(--danger); font-size:22px; line-height:1; padding:0;">&times;</button>' +
         '</div>' +
         statusLine +
         alreadyLine +
@@ -1987,6 +2234,15 @@ window.cancelScanPreview = function() {
     renderPendingScanPreview();
 };
 
+// Пункт 4: удаление из превью с подтверждением
+window.cancelScanPreviewWithConfirm = function() {
+    if (!pendingScanItem) return;
+    showCustomConfirm('Отменить этот скан?', 'Скан не будет добавлен в список.', function() {
+        pendingScanItem = null;
+        renderPendingScanPreview();
+    });
+};
+
 window.confirmScanPreview = function() {
     if (!pendingScanItem) return;
     var item = pendingScanItem;
@@ -1999,15 +2255,19 @@ window.confirmScanPreview = function() {
     }
     if (existing) {
         existing.qty += 1;
+        // Пункт 2: обновляем время скана — позиция прыгает наверх
+        existing.lastScanTime = Date.now();
         if (CATEGORY_RANK[item.categoryStatus] > CATEGORY_RANK[existing.categoryStatus || 'match']) {
             existing.categoryStatus = item.categoryStatus;
             existing.productCat = item.productCat;
             existing.revCat = item.revCat;
         }
+        // Пункт 4: записываем в историю для отмены
+        pushScanHistory({ type: 'repeat', itemId: existing.id });
         showToast('+1 · ' + existing.name, 'success');
         playSuccessSound();
     } else {
-        scanList.unshift({
+        var newItem = {
             id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
             code: item.code,
             name: item.name,
@@ -2019,8 +2279,14 @@ window.confirmScanPreview = function() {
             system_qty: item.system_qty,
             productCat: item.productCat,
             revCat: item.revCat,
-            categoryStatus: item.categoryStatus
-        });
+            categoryStatus: item.categoryStatus,
+            // Пункт 2: время скана
+            lastScanTime: Date.now()
+        };
+        scanList.unshift(newItem);
+        // Пункт 4: записываем в историю для отмены
+        pushScanHistory({ type: 'new', itemId: newItem.id });
+
         if (item.categoryStatus === 'mismatch') {
             showToast('🔴 Другая категория: ' + (item.productCat || 'нет данных'), 'error');
             playErrorSound();
@@ -2037,6 +2303,62 @@ window.confirmScanPreview = function() {
     renderPendingScanPreview();
     persistDraft();
     renderScanList();
+};
+
+// Пункт 4: отмена последнего скана
+window.undoLastScan = function() {
+    if (scanHistory.length === 0) return;
+
+    var last = scanHistory[0];
+    var itemIndex = -1;
+    for (var i = 0; i < scanList.length; i++) {
+        if (scanList[i].id === last.itemId) { itemIndex = i; break; }
+    }
+
+    // Если позиция уже удалена вручную — пропускаем и берём следующую
+    if (itemIndex === -1) {
+        scanHistory.shift();
+        persistScanHistory();
+        updateUndoButton();
+        if (scanHistory.length > 0) {
+            return undoLastScan();
+        }
+        return showToast('Нечего отменять', 'warn');
+    }
+
+    var item = scanList[itemIndex];
+    var confirmText;
+    if (last.type === 'new') {
+        confirmText = 'Будет удалена позиция: ' + item.name + ' (' + item.size + ', ' + item.year + ')';
+    } else {
+        var newQty = Math.max(0, item.qty - 1);
+        confirmText = 'Количество: ' + item.name + ' (' + item.size + ', ' + item.year + ') ' + item.qty + ' → ' + newQty;
+    }
+
+    showCustomConfirm('Отменить последний скан?', confirmText, function() {
+        scanHistory.shift();
+        persistScanHistory();
+
+        if (last.type === 'new') {
+            scanList = scanList.filter(function(i) { return i.id !== last.itemId; });
+        } else {
+            for (var i = 0; i < scanList.length; i++) {
+                if (scanList[i].id === last.itemId) {
+                    scanList[i].qty = scanList[i].qty - 1;
+                    if (scanList[i].qty <= 0) {
+                        scanList = scanList.filter(function(x) { return x.id !== last.itemId; });
+                    }
+                    break;
+                }
+            }
+        }
+
+        persistDraft();
+        playUndoSound();
+        renderScanList();
+        updateUndoButton();
+        showToast('Отменено', 'success');
+    });
 };
 
 window.processScan = async function(rawCode) {
@@ -2080,9 +2402,54 @@ window.processScan = async function(rawCode) {
     }
 };
 
+// Пункт 1: обновление счётчика
+function updateCounterBar() {
+    var bar = document.getElementById('scan-counter-bar');
+    if (!bar) return;
+
+    if (scanList.length === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+
+    var totalQty = scanList.reduce(function(s, i) { return s + i.qty; }, 0);
+    var errors = scanList.filter(function(i) { return i.categoryStatus === 'mismatch'; }).length;
+    var warns = scanList.filter(function(i) { return i.categoryStatus === 'close'; }).length;
+
+    var qtyEl = document.getElementById('counter-qty');
+    if (qtyEl) qtyEl.textContent = totalQty;
+
+    var errWrap = document.getElementById('counter-errors-wrap');
+    var errEl = document.getElementById('counter-errors');
+    if (errWrap && errEl) {
+        if (errors > 0) {
+            errWrap.style.display = 'flex';
+            errEl.textContent = errors;
+        } else {
+            errWrap.style.display = 'none';
+        }
+    }
+
+    var warnWrap = document.getElementById('counter-warns-wrap');
+    var warnEl = document.getElementById('counter-warns');
+    if (warnWrap && warnEl) {
+        if (warns > 0) {
+            warnWrap.style.display = 'flex';
+            warnEl.textContent = warns;
+        } else {
+            warnWrap.style.display = 'none';
+        }
+    }
+
+    bar.style.display = 'flex';
+}
+
 window.renderScanList = function() {
     var container = document.getElementById('scan-list-container');
     if (!container) return;
+
+    // Пункт 1: обновляем счётчик всегда
+    updateCounterBar();
 
     if (scanList.length === 0) {
         container.innerHTML = getEmptyStateHTML('Список пуст', 'Отсканируйте первый товар', 'scan');
@@ -2094,7 +2461,12 @@ window.renderScanList = function() {
     var sizeOptions = ['Без размера','M','L','XL','2XL','3XL'];
     var yearOptions = ['Без года','2023','2024','2025','2026'];
 
-    container.innerHTML = scanList.map(function(item) {
+    // Пункт 2: сортируем по lastScanTime desc (свежие наверху)
+    var sortedList = scanList.slice().sort(function(a, b) {
+        return (b.lastScanTime || 0) - (a.lastScanTime || 0);
+    });
+
+    container.innerHTML = sortedList.map(function(item) {
         var sizes = sizeOptions.slice();
         if (item.size && sizes.indexOf(item.size) === -1) sizes.push(item.size);
         var years = yearOptions.slice();
@@ -2184,6 +2556,8 @@ function updateSummary() {
             te.style.color = 'var(--text-main)';
         }
     }
+
+    updateCounterBar();
 }
 
 window.updateScanItem = function(id, field, value) {
@@ -2209,10 +2583,23 @@ window.changeScanQty = function(id, delta) {
     renderScanList();
 };
 
+// Пункт 4: удаление позиции из списка с подтверждением
 window.removeScanItem = function(id) {
-    scanList = scanList.filter(function(i) { return i.id !== id; });
-    persistDraft();
-    renderScanList();
+    var item = null;
+    for (var i = 0; i < scanList.length; i++) {
+        if (scanList[i].id === id) { item = scanList[i]; break; }
+    }
+    if (!item) return;
+
+    showCustomConfirm('Удалить позицию?', item.name + ' (' + item.size + ', ' + item.year + ')', function() {
+        scanList = scanList.filter(function(i) { return i.id !== id; });
+        // Убираем из истории — нечего отменять
+        scanHistory = scanHistory.filter(function(h) { return h.itemId !== id; });
+        persistScanHistory();
+        persistDraft();
+        renderScanList();
+        updateUndoButton();
+    });
 };
 
 window.clearDraft = function() {
@@ -2220,9 +2607,15 @@ window.clearDraft = function() {
     showCustomConfirm('Очистить черновик?', 'Все отсканированные позиции будут удалены безвозвратно.', function() {
         scanList = [];
         pendingScanItem = null;
+        scanHistory = [];
+        persistScanHistory();
         persistDraft();
+        // Твой фикс: очищаем категорию ревизии
+        var revCatInp = document.getElementById('revision-category-input');
+        if (revCatInp) revCatInp.value = '';
         renderPendingScanPreview();
         renderScanList();
+        updateUndoButton();
         showToast('Черновик очищен', 'success');
     });
 };
@@ -2240,11 +2633,8 @@ window.saveInventory = async function() {
         return s + (i.system_qty > 0 ? (i.qty - i.system_qty) : 0);
     }, 0);
 
-    var sortedItems = scanList.slice().sort(function(a, b) {
-        var ra = CATEGORY_RANK[a.categoryStatus] != null ? CATEGORY_RANK[a.categoryStatus] : 0;
-        var rb = CATEGORY_RANK[b.categoryStatus] != null ? CATEGORY_RANK[b.categoryStatus] : 0;
-        return ra - rb;
-    });
+    // Пункт 3: сортировка при сохранении — 🔴 → 🟡 → по имени → размер → год
+    var sortedItems = scanList.slice().sort(compareForSave);
 
     var errors = sortedItems.filter(function(i) { return i.categoryStatus === 'mismatch'; });
     var warnings = sortedItems.filter(function(i) { return i.categoryStatus === 'close'; });
@@ -2267,9 +2657,19 @@ window.saveInventory = async function() {
     var doSave = async function() {
         var clearAfter = function() {
             scanList = [];
+            scanHistory = [];
+            persistScanHistory();
             persistDraft();
             renderScanList();
-            if (typeof loadRevisions === 'function') loadRevisions();
+            updateUndoButton();
+            // Твой фикс: очищаем категорию ревизии после сохранения
+            var revCatInp = document.getElementById('revision-category-input');
+            if (revCatInp) revCatInp.value = '';
+
+            revisionsLastDoc = null;
+            revisionsHasMore = true;
+            revisionsCache = [];
+            if (typeof loadRevisions === 'function') loadRevisions(true);
         };
 
         if (!navigator.onLine || !window.fbDB) {
@@ -2485,9 +2885,11 @@ window.clearDirectorDraft = function() {
         var camModal = document.getElementById('camera-scanner-modal');
         var editModal = document.getElementById('edit-modal');
         var confirmModal = document.getElementById('custom-confirm-modal');
+        var editCatModal = document.getElementById('edit-category-modal');
         if ((camModal && camModal.classList.contains('open')) ||
             (editModal && editModal.classList.contains('open')) ||
-            (confirmModal && confirmModal.classList.contains('open'))) {
+            (confirmModal && confirmModal.classList.contains('open')) ||
+            (editCatModal && editCatModal.classList.contains('open'))) {
             return;
         }
 
@@ -2861,8 +3263,107 @@ window.saveEditItem = async function() {
     }
 };
 
+// Пункт 6: редактирование категории ревизии
+window.editRevisionCategory = function(id) {
+    var rev = null;
+    for (var i = 0; i < revisionsCache.length; i++) {
+        if (revisionsCache[i].id === id) { rev = revisionsCache[i]; break; }
+    }
+    if (!rev) return showToast('Ревизия не найдена', 'error');
+    document.getElementById('edit-rev-category-id').value = id;
+    document.getElementById('edit-rev-category-input').value = rev.revCategory || '';
+    document.getElementById('edit-category-modal').classList.add('open');
+};
+
+window.closeEditCategoryModal = function() {
+    document.getElementById('edit-category-modal').classList.remove('open');
+};
+
+window.saveRevisionCategory = async function() {
+    if (!window.fbDB) return showToast('Нет связи', 'error');
+    var id = document.getElementById('edit-rev-category-id').value;
+    var newCat = document.getElementById('edit-rev-category-input').value.trim();
+
+    var rev = null;
+    for (var i = 0; i < revisionsCache.length; i++) {
+        if (revisionsCache[i].id === id) { rev = revisionsCache[i]; break; }
+    }
+    if (!rev) return showToast('Ревизия не найдена', 'error');
+
+    // Пункт 6: пересчитываем статусы относительно нового названия
+    var items = Array.isArray(rev.items) ? rev.items : [];
+    var newItems = items.map(function(item) {
+        var productCat = item.productCat || extractCategory(item.name);
+        var newStatus = compareCategories(productCat, newCat);
+        var copy = {};
+        for (var k in item) copy[k] = item[k];
+        copy.productCat = productCat;
+        copy.revCat = newCat;
+        copy.categoryStatus = newStatus;
+        return copy;
+    });
+
+    var errors = newItems.filter(function(i) { return i.categoryStatus === 'mismatch'; });
+    var warnings = newItems.filter(function(i) { return i.categoryStatus === 'close'; });
+
+    try {
+        await window.fbFns.updateDoc(window.fbFns.doc(window.fbDB, 'revisions', id), {
+            revCategory: newCat,
+            items: newItems,
+            errors: errors.map(function(i) { return { code: i.code, name: i.name, productCat: i.productCat, revCat: i.revCat }; }),
+            warnings: warnings.map(function(i) { return { code: i.code, name: i.name, productCat: i.productCat, revCat: i.revCat }; }),
+            errorsCount: errors.length,
+            warningsCount: warnings.length
+        });
+
+        // Обновляем кеш в памяти
+        rev.revCategory = newCat;
+        rev.items = newItems;
+        rev.errors = errors.map(function(i) { return { code: i.code, name: i.name, productCat: i.productCat, revCat: i.revCat }; });
+        rev.warnings = warnings.map(function(i) { return { code: i.code, name: i.name, productCat: i.productCat, revCat: i.revCat }; });
+        rev.errorsCount = errors.length;
+        rev.warningsCount = warnings.length;
+
+        try {
+            var cacheKey = directorMode ? 'revisions_cache_all' : 'revisions_cache_' + shop;
+            localStorage.setItem(cacheKey, JSON.stringify(revisionsCache));
+        } catch(_) {}
+
+        closeEditCategoryModal();
+        renderRevisionsList();
+        showToast('Название обновлено', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Ошибка сохранения', 'error');
+    }
+};
+
 var revisionsCache = [];
 var directorRevisionFilter = 'all';
+var revisionsLastDoc = null;
+var revisionsHasMore = true;
+var revisionsLoading = false;
+var revisionsCurrentKey = null;
+var REVISIONS_PAGE_SIZE = 4;
+
+function getRevisionsFilterKey() {
+    if (directorMode) return 'director|' + directorRevisionFilter;
+    return 'seller|' + (shop || '');
+}
+
+function tryLoadRevisionsFromCache() {
+    var cacheKey = (shop && !directorMode) ? ('revisions_cache_' + shop) : 'revisions_cache_all';
+    try {
+        var cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            revisionsCache = JSON.parse(cached) || [];
+            revisionsHasMore = false;
+            renderRevisionsList();
+        } else {
+            renderRevisionsList();
+        }
+    } catch(_) { renderRevisionsList(); }
+}
 
 function csvEscape(v) {
     var s = String(v == null ? '' : v);
@@ -2911,7 +3412,6 @@ window.downloadRevisionExcel = function(revId) {
 function renderRevisionCard(r) {
     var dateStr = r.date ? new Date(r.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     var items = Array.isArray(r.items) ? r.items : [];
-    var totalPos = (r.totalPositions != null) ? r.totalPositions : items.length;
     var totalQty = (r.totalQty != null) ? r.totalQty : items.reduce(function(s, i) { return s + (Number(i.qty) || 0); }, 0);
     var totalDiff = (r.totalDiff != null) ? r.totalDiff : items.reduce(function(s, i) {
         return s + ((Number(i.system_qty) || 0) > 0 ? ((Number(i.qty) || 0) - Number(i.system_qty)) : 0);
@@ -2932,10 +3432,30 @@ function renderRevisionCard(r) {
     var shopTitle = r.shop || '—';
     var catTitle = (r.revCategory && r.revCategory.trim()) ? r.revCategory : 'Без категории';
     var sellerTitle = r.seller || '—';
-    
     var statsLine = totalQty + ' шт.' + (totalDiff !== 0 ? ' · <span style="color:' + diffColor + ';font-weight:800;">Δ ' + diffStr + '</span>' : '');
 
-    var itemsHtml = items.map(function(i) {
+    return '<div class="rev-card" data-rev-id="' + r.id + '">' +
+        '<div class="rev-header" onclick="toggleDetails(\'' + r.id + '\')">' +
+        '<div>' +
+        '<div class="rev-title">🏪 ' + shopTitle + ' · ' + catTitle + ' · ' + sellerTitle + '</div>' +
+        '<div class="rev-meta">' + dateStr + ' · ' + statsLine + '</div>' +
+        '</div>' +
+        '<div style="font-size:20px; color:var(--text-muted);">▾</div>' +
+        '</div>' +
+        '<div class="rev-details" id="rev-details-' + r.id + '" data-rendered="0">' +
+        '<div class="rev-details-body"></div>' +
+        '<div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">' +
+        '<button class="btn-edit" style="flex:1; padding:10px; min-width:90px;" onclick="editRevisionCategory(\'' + r.id + '\'); event.stopPropagation();">✏️ Изменить</button>' +
+        '<button class="btn-edit" style="flex:1; padding:10px; min-width:90px;" onclick="downloadRevisionExcel(\'' + r.id + '\'); event.stopPropagation();">📥 В Excel</button>' +
+        '<button class="btn-del" style="flex:1; padding:10px; min-width:90px;" onclick="deleteRevision(\'' + r.id + '\'); event.stopPropagation();">🗑 Удалить</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+function buildRevisionItemsHtml(rev) {
+    var items = Array.isArray(rev.items) ? rev.items : [];
+    return items.map(function(i) {
         var sys = (Number(i.system_qty) || 0) > 0 ? ' · Система: ' + i.system_qty : '';
         var cat = i.category ? ' · ' + i.category : '';
         var dept = i.dept ? ' · ' + i.dept : '';
@@ -2954,50 +3474,31 @@ function renderRevisionCard(r) {
             '<strong>' + (i.qty || 0) + ' шт.</strong>' +
             '</div>';
     }).join('');
-
-    return '<div class="rev-card" data-rev-id="' + r.id + '">' +
-        '<div class="rev-header" onclick="toggleDetails(\'' + r.id + '\')">' +
-        '<div>' +
-        '<div class="rev-title">🏪 ' + shopTitle + ' · ' + catTitle + ' · ' + sellerTitle + '</div>' +
-        '<div class="rev-meta">' + dateStr + ' · ' + statsLine + '</div>' +
-        '</div>' +
-        '<div style="font-size:20px; color:var(--text-muted);">▾</div>' +
-        '</div>' +
-        '<div class="rev-details" id="rev-details-' + r.id + '">' +
-        itemsHtml +
-        '<div style="display:flex; gap:8px; margin-top:12px;">' +
-        '<button class="btn-edit" style="flex:1; padding:10px;" onclick="downloadRevisionExcel(\'' + r.id + '\'); event.stopPropagation();">📥 В Excel</button>' +
-        '<button class="btn-del" style="flex:1; padding:10px;" onclick="deleteRevision(\'' + r.id + '\'); event.stopPropagation();">🗑 Удалить</button>' +
-        '</div>' +
-        '</div>' +
-        '</div>';
 }
 
 function renderRevisionsList() {
+    var loadMoreBtn = function() {
+        if (!revisionsHasMore) return '';
+        return '<button class="btn-main" style="margin-top:12px; width:100%;" onclick="loadMoreRevisions()" ' +
+               (revisionsLoading ? 'disabled' : '') + '>' +
+               (revisionsLoading ? '⏳ Загрузка...' : 'Показать ещё') + '</button>';
+    };
+
     var sellerEl = document.getElementById('seller-revisions-list');
     if (sellerEl) {
-        var sellerList = revisionsCache.filter(function(r) { return r.shop === shop; });
-        sellerList.sort((a, b) => new Date(b.date) - new Date(a.date)); 
-        
-        if (sellerList.length === 0) {
+        if (revisionsCache.length === 0) {
             sellerEl.innerHTML = getEmptyStateHTML('Нет ревизий', 'Сохранённых ревизий пока нет', 'box');
         } else {
-            sellerEl.innerHTML = sellerList.map(renderRevisionCard).join('');
+            sellerEl.innerHTML = revisionsCache.map(renderRevisionCard).join('') + loadMoreBtn();
         }
     }
 
     var directorEl = document.getElementById('director-revisions-list');
     if (directorEl) {
-        var list = revisionsCache.slice();
-        if (directorRevisionFilter !== 'all') {
-            list = list.filter(function(r) { return r.shop === directorRevisionFilter; });
-        }
-        list.sort((a, b) => new Date(b.date) - new Date(a.date)); 
-        
-        if (list.length === 0) {
+        if (revisionsCache.length === 0) {
             directorEl.innerHTML = getEmptyStateHTML('Нет ревизий', 'Ревизий пока нет', 'box');
         } else {
-            directorEl.innerHTML = list.map(renderRevisionCard).join('');
+            directorEl.innerHTML = revisionsCache.map(renderRevisionCard).join('') + loadMoreBtn();
         }
     }
 }
@@ -3006,6 +3507,20 @@ window.toggleDetails = function(id) {
     var el = document.getElementById('rev-details-' + id);
     if (!el) return;
     el.classList.toggle('open');
+
+    if (el.classList.contains('open') && el.dataset.rendered !== '1') {
+        var rev = null;
+        for (var i = 0; i < revisionsCache.length; i++) {
+            if (revisionsCache[i].id === id) { rev = revisionsCache[i]; break; }
+        }
+        if (rev) {
+            var bodyEl = el.querySelector('.rev-details-body');
+            if (bodyEl) {
+                bodyEl.innerHTML = buildRevisionItemsHtml(rev);
+                el.dataset.rendered = '1';
+            }
+        }
+    }
 };
 
 window.toggleDirectorRevisionFilter = function(type) {
@@ -3020,7 +3535,10 @@ window.toggleDirectorRevisionFilter = function(type) {
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
     var target = document.getElementById(ids[type]);
     if (target) target.classList.add('active');
-    renderRevisionsList();
+    revisionsLastDoc = null;
+    revisionsHasMore = true;
+    revisionsCache = [];
+    loadRevisions(true);
 };
 
 window.deleteRevision = async function(id) {
@@ -3030,7 +3548,10 @@ window.deleteRevision = async function(id) {
         try {
             await window.fbFns.deleteDoc(window.fbFns.doc(window.fbDB, 'revisions', id));
             showToast('Удалено', 'success');
-            loadRevisions();
+            revisionsLastDoc = null;
+            revisionsHasMore = true;
+            revisionsCache = [];
+            loadRevisions(true);
         } catch (e) {
             console.error(e);
             showToast('Ошибка удаления', 'error');
@@ -3038,62 +3559,103 @@ window.deleteRevision = async function(id) {
     });
 };
 
-window.loadRevisions = async function() {
-    var cacheKey = shop ? ('revisions_cache_' + shop) : 'revisions_cache_all';
+async function fetchRevisionsPage() {
+    if (!window.fbDB || !navigator.onLine) return false;
+    if (!revisionsHasMore) return false;
 
-    if (!navigator.onLine || !window.fbDB) {
-        try {
-            var cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                revisionsCache = JSON.parse(cached) || [];
-                renderRevisionsList();
-            } else {
-                var cachedAll = localStorage.getItem('revisions_cache_all');
-                if (cachedAll) {
-                    revisionsCache = JSON.parse(cachedAll) || [];
-                    renderRevisionsList();
-                }
-            }
-        } catch(_) {}
-        return;
+    var ref = window.fbFns.collection(window.fbDB, 'revisions');
+    var constraints = [];
+
+    if (directorMode) {
+        if (directorRevisionFilter !== 'all') {
+            constraints.push(window.fbFns.where('shop', '==', directorRevisionFilter));
+        }
+    } else if (shop) {
+        constraints.push(window.fbFns.where('shop', '==', shop));
+    } else {
+        return false;
     }
 
     try {
-        var snapshot;
-        if (directorMode) {
-            snapshot = await window.fbFns.getDocs(window.fbFns.collection(window.fbDB, 'revisions'));
-        } else if (shop) {
-            var q = window.fbFns.query(
-                window.fbFns.collection(window.fbDB, 'revisions'),
-                window.fbFns.where('shop', '==', shop)
-            );
-            snapshot = await window.fbFns.getDocs(q);
-        } else {
-            return;
+        var pageConstraints = constraints.slice();
+        pageConstraints.push(window.fbFns.orderBy('date', 'desc'));
+        pageConstraints.push(window.fbFns.limit(REVISIONS_PAGE_SIZE));
+        if (revisionsLastDoc) pageConstraints.push(window.fbFns.startAfter(revisionsLastDoc));
+
+        var q = window.fbFns.query.apply(null, [ref].concat(pageConstraints));
+        var snap = await window.fbFns.getDocs(q);
+
+        if (snap.docs.length < REVISIONS_PAGE_SIZE) revisionsHasMore = false;
+        if (snap.docs.length > 0) revisionsLastDoc = snap.docs[snap.docs.length - 1];
+
+        snap.forEach(function(d) { revisionsCache.push(Object.assign({id: d.id}, d.data())); });
+
+        try {
+            var cacheKey = directorMode ? 'revisions_cache_all' : 'revisions_cache_' + shop;
+            localStorage.setItem(cacheKey, JSON.stringify(revisionsCache));
+        } catch(_) {}
+
+        return true;
+    } catch(e) {
+        console.warn('Paginated revisions query failed, fallback:', e && (e.message || e.code));
+        try {
+            var fallbackQ = constraints.length
+                ? window.fbFns.query.apply(null, [ref].concat(constraints))
+                : ref;
+            var fallbackSnap = await window.fbFns.getDocs(fallbackQ);
+            fallbackSnap.forEach(function(d) { revisionsCache.push(Object.assign({id: d.id}, d.data())); });
+            revisionsCache.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+            revisionsHasMore = false;
+            try {
+                var cacheKey2 = directorMode ? 'revisions_cache_all' : 'revisions_cache_' + shop;
+                localStorage.setItem(cacheKey2, JSON.stringify(revisionsCache));
+            } catch(_) {}
+            return true;
+        } catch(e2) {
+            console.error('Fallback revisions load failed:', e2);
+            return false;
         }
-        var revs = [];
-        snapshot.forEach(function(d) { revs.push(Object.assign({id: d.id}, d.data())); });
-        revisionsCache = revs;
+    }
+}
 
-        try {
-            if (directorMode) {
-                localStorage.setItem('revisions_cache_all', JSON.stringify(revs));
-            }
-            if (shop) {
-                localStorage.setItem('revisions_cache_' + shop, JSON.stringify(revs.filter(function(r) { return r.shop === shop; })));
-            }
-        } catch(_) {}
-
+window.loadMoreRevisions = async function() {
+    if (revisionsLoading || !revisionsHasMore) return;
+    revisionsLoading = true;
+    renderRevisionsList();
+    try {
+        await fetchRevisionsPage();
+    } finally {
+        revisionsLoading = false;
         renderRevisionsList();
-    } catch (e) {
-        console.error('loadRevisions', e);
-        try {
-            var cached2 = localStorage.getItem(cacheKey);
-            if (cached2) {
-                revisionsCache = JSON.parse(cached2) || [];
-                renderRevisionsList();
-            }
-        } catch(_) {}
+    }
+};
+
+window.loadRevisions = async function(forceReset) {
+    var key = getRevisionsFilterKey();
+
+    if (forceReset || revisionsCurrentKey !== key) {
+        revisionsCurrentKey = key;
+        revisionsLastDoc = null;
+        revisionsHasMore = true;
+        revisionsCache = [];
+    } else if (revisionsCache.length > 0) {
+        renderRevisionsList();
+        return;
+    }
+
+    if (!navigator.onLine || !window.fbDB) {
+        tryLoadRevisionsFromCache();
+        return;
+    }
+
+    if (revisionsLoading) return;
+    revisionsLoading = true;
+    renderRevisionsList();
+    try {
+        await fetchRevisionsPage();
+    } finally {
+        revisionsLoading = false;
+        renderRevisionsList();
     }
 };
 
@@ -3115,10 +3677,11 @@ function initApp() {
             if (titleEl) titleEl.innerText = 'Магазин · ' + shop;
             scanList = loadDraft();
             if (!Array.isArray(scanList)) scanList = [];
+            loadScanHistory();
             showScreen('screen-seller');
             renderScanList();
             loadBarcodes();
-            loadRevisions();
+            loadRevisions(true);
             updateOnlineStatus();
         } else {
             showScreen('screen-auth');
@@ -3168,6 +3731,8 @@ function initApp() {
         validateCatalogForm();
         renderPendingScanPreview();
         renderDirectorScanList();
+        updateUndoButton();
+        updateCounterBar();
         updateOnlineStatus();
         console.log('✅ Init complete, shop=' + shop + ', seller=' + seller);
     } catch(e) {
